@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#05020a">
-<title>Squeekchain Pixel ID v15</title>
+<title>Squeekchain Pixel ID v16</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>SQUEEKCHAIN<br>PIXEL ID v15</h1>
-<p class="sub">WALLET ANTHEM · CYBERPUNK EDITION</p>
+<h1>SQUEEKCHAIN<br>PIXEL ID v16</h1>
+<p class="sub">WALLET ANTHEM · PRO EDITION</p>
 <div class="container">
  <section class="panel" id="mainPanel">
   <div class="stack">
@@ -21,7 +21,15 @@
    <button class="secondary" id="connectBtn">Ambil dari Wallet</button>
    <p class="anthem" id="anthemInfo"></p>
    
-   <div class="diff-row">
+   <label>Pilih Genre Musik</label>
+   <div class="diff-row" id="genreRow">
+     <button class="diff-btn active" data-genre="cyber">CYBER</button>
+     <button class="diff-btn" data-genre="synth">SYNTH</button>
+     <button class="diff-btn" data-genre="chip">CHIP</button>
+   </div>
+
+   <label>Pilih Kesulitan</label>
+   <div class="diff-row" id="diffRow">
      <button class="diff-btn active" data-diff="easy">EASY</button>
      <button class="diff-btn" data-diff="normal">NORMAL</button>
      <button class="diff-btn" data-diff="hard">HARD</button>
@@ -29,7 +37,6 @@
 
    <button class="success" id="playBtn">Mainkan Anthem</button>
    <button class="secondary" id="genBtn">Generate ID Card</button>
-   <div><label for="offset">Kalibrasi latensi: <span id="offVal">0</span> ms</label><input id="offset" type="range" min="-150" max="250" step="5" value="0"><small class="calib">Geser ke kanan kalau ketukan terasa telat.</small></div>
   </div>
   <p class="msg" id="message">Masukkan wallet, atau main sebagai GUEST.</p>
   <div id="cardArea" class="hidden stack">
