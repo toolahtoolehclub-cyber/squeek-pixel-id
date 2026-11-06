@@ -4,16 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#05020a">
-<title>Squeekchain Pixel ID v14</title>
+<title>Squeekchain Pixel ID v15</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<!-- Memanggil file CSS eksternal -->
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>SQUEEKCHAIN<br>PIXEL ID v14</h1>
-<p class="sub">WALLET ANTHEM · SETIAP WALLET PUNYA LAGU SENDIRI</p>
+<h1>SQUEEKCHAIN<br>PIXEL ID v15</h1>
+<p class="sub">WALLET ANTHEM · CYBERPUNK EDITION</p>
 <div class="container">
  <section class="panel" id="mainPanel">
   <div class="stack">
@@ -21,6 +20,13 @@
    <input id="walletInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0x...">
    <button class="secondary" id="connectBtn">Ambil dari Wallet</button>
    <p class="anthem" id="anthemInfo"></p>
+   
+   <div class="diff-row">
+     <button class="diff-btn active" data-diff="easy">EASY</button>
+     <button class="diff-btn" data-diff="normal">NORMAL</button>
+     <button class="diff-btn" data-diff="hard">HARD</button>
+   </div>
+
    <button class="success" id="playBtn">Mainkan Anthem</button>
    <button class="secondary" id="genBtn">Generate ID Card</button>
    <div><label for="offset">Kalibrasi latensi: <span id="offVal">0</span> ms</label><input id="offset" type="range" min="-150" max="250" step="5" value="0"><small class="calib">Geser ke kanan kalau ketukan terasa telat.</small></div>
@@ -51,8 +57,6 @@
   <div class="stack"><button class="success" id="againBtn">Main Lagi</button><button class="secondary" id="toCardBtn">Cetak ke ID Card</button><button class="danger" id="homeBtn">Kembali</button></div>
  </section>
 </div>
-
-<!-- Memanggil file JavaScript eksternal -->
 <script src="script.js"></script>
 </body>
 </html>
