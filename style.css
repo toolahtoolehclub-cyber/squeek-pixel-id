@@ -1,1 +1,38 @@
 
+:root{--bg:#05020a;--glass:rgba(26,17,48,.78);--green:#39ff14;--blue:#00ffff;--red:#ff365f;--yellow:#fcee0a;--pink:#ff5cf0;--text:#f0f0f0;--muted:#a090b0;--border:rgba(74,44,130,.85)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+button,canvas,.stat,h1{user-select:none;-webkit-user-select:none}
+html,body{overscroll-behavior:none}
+body{margin:0;min-height:100dvh;padding:16px;background:radial-gradient(circle at 50% 0%,#150a2b 0%,var(--bg) 70%) fixed;color:var(--text);font-family:'Space Mono',monospace;display:flex;flex-direction:column;align-items:center}
+h1{font:15px/1.6 'Press Start 2P',monospace;color:var(--green);text-align:center;margin:8px 0 4px;text-shadow:0 0 14px rgba(57,255,20,.6)}
+.sub{font-size:10px;color:var(--muted);text-align:center;margin:0 0 16px;letter-spacing:.1em}
+.container{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 10px 40px rgba(0,0,0,.7)}
+.stack{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:10px}
+.hidden{display:none!important}
+button{width:100%;border:none;border-radius:10px;padding:14px;background:var(--blue);color:#000;font:700 12px 'Space Mono',monospace;text-transform:uppercase;cursor:pointer;transition:transform .1s,opacity .2s;box-shadow:0 0 10px rgba(0,255,255,.3)}
+button:active{transform:translateY(2px)}
+button:disabled{opacity:.4;cursor:wait}
+button.secondary{background:rgba(0,255,255,.08);border:1px solid var(--blue);color:var(--blue)}
+button.success{background:var(--green);box-shadow:0 0 12px rgba(57,255,20,.35)}
+button.danger{background:rgba(255,54,95,.08);border:1px solid var(--red);color:var(--red)}
+label{font-size:11px;color:var(--blue)}
+input[type=text]{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:rgba(0,0,0,.5);color:var(--green);font:13px 'Space Mono',monospace;user-select:text;-webkit-user-select:text}
+input[type=range]{width:100%;accent-color:var(--blue)}
+.msg{text-align:center;color:var(--yellow);font-size:11px;margin:4px 0;min-height:15px}
+.anthem{font-size:11px;color:var(--pink);text-align:center;min-height:15px;margin:0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stat{padding:8px 4px;background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:10px;text-align:center}
+.stat b{display:block;color:var(--green);font-size:14px}
+.stat span{font-size:8px;color:var(--muted)}
+canvas{display:block;border-radius:10px;margin:0 auto;max-width:100%;box-shadow:0 0 20px rgba(0,0,0,0.8)}
+#game{border:2px solid var(--border);touch-action:none;background:#000}
+#card{border:2px solid var(--blue);background:#000}
+.hint{text-align:center;font-size:10px;color:var(--muted);margin:10px 0}
+.result{text-align:center}
+.result .grade{font:48px 'Press Start 2P',monospace;margin:10px 0}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;margin:12px 0;text-align:left}
+.kv b{color:var(--green)}
+small.calib{font-size:10px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
