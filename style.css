@@ -1,91 +1,65 @@
 :root {
-    --bg: #000000;
-    --fg: #ffffff;
-    --neon-green: #00ff00;
-    --neon-pink: #ff00ff;
-    --neon-cyan: #00ffff;
+    --bg: #000000; --fg: #ffffff;
+    --green: #00ff00; --pink: #ff00ff; --cyan: #00ffff;
     --border: 4px solid #ffffff;
-    --shadow-hard: 6px 6px 0px var(--neon-pink);
+    --shadow-hard: 6px 6px 0px var(--pink);
     --shadow-black: 6px 6px 0px #333;
 }
 
-* { 
-    box-sizing: border-box; 
-    border-radius: 0 !important; /* ANTI-WEB2: Hapus semua sudut membulat */
-    -webkit-tap-highlight-color: transparent; 
-    user-select: none;
-}
+* { box-sizing: border-box; border-radius: 0 !important; user-select: none; -webkit-tap-highlight-color: transparent; }
 
 body {
-    margin: 0; min-height: 100dvh; padding: 20px;
-    background-color: var(--bg);
-    color: var(--fg);
-    font-family: 'Space Mono', monospace;
+    margin: 0; min-height: 100dvh; background-color: var(--bg); color: var(--fg);
+    font-family: 'Space Mono', monospace; overflow-x: hidden;
     display: flex; flex-direction: column; align-items: center;
-    background-image: linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px);
-    background-size: 20px 20px; /* Grid eksposur arsitektural */
 }
 
-header { text-align: center; margin-bottom: 20px; }
-h1 { font-family: 'Press Start 2P', monospace; font-size: 20px; color: var(--neon-green); margin: 0 0 10px 0; text-transform: uppercase; }
-h2 { font-size: 12px; color: var(--neon-pink); margin: 0; letter-spacing: 2px; }
-
-.container { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 20px; }
-
-.panel {
-    background: #000;
-    border: var(--border);
-    box-shadow: var(--shadow-hard);
-    padding: 20px;
+/* Background WebGL */
+#bg-gl {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    z-index: -1; opacity: 0.4; pointer-events: none;
 }
 
+#ui-layer { width: 100%; max-width: 420px; padding: 20px; z-index: 10; display: flex; flex-direction: column; gap: 20px; }
+
+header { text-align: center; margin-bottom: 10px; }
+h1 { font-family: 'Press Start 2P', monospace; font-size: 22px; color: var(--green); margin: 0; text-shadow: 3px 3px 0 var(--pink); }
+h2 { font-size: 12px; color: var(--cyan); margin: 5px 0 0 0; letter-spacing: 2px; }
+
+.panel { background: #000; border: var(--border); box-shadow: var(--shadow-hard); padding: 20px; width: 100%; }
 .stack { display: flex; flex-direction: column; gap: 15px; }
 .row { display: flex; gap: 10px; }
 .hidden { display: none !important; }
 
-/* BUTTONS: Agresif, Kotak, Hard Shadow */
-button {
-    width: 100%; border: var(--border); padding: 15px;
-    font: bold 14px 'Space Mono', monospace; text-transform: uppercase;
-    cursor: pointer; transition: all 0.1s;
-    box-shadow: var(--shadow-black);
-}
+button { width: 100%; border: var(--border); padding: 15px; font: bold 14px 'Space Mono', monospace; text-transform: uppercase; cursor: pointer; transition: all 0.1s; box-shadow: var(--shadow-black); }
 button:active { transform: translate(4px, 4px); box-shadow: none; }
-
-.btn-primary { background: var(--neon-green); color: #000; }
-.btn-secondary { background: #000; color: var(--neon-cyan); border-color: var(--neon-cyan); }
-.btn-danger { background: #000; color: var(--neon-pink); border-color: var(--neon-pink); }
+.btn-primary { background: var(--green); color: #000; }
+.btn-secondary { background: #000; color: var(--cyan); border-color: var(--cyan); }
+.btn-danger { background: #000; color: var(--pink); border-color: var(--pink); }
 
 .diff-row { display: flex; gap: 10px; }
-.btn-diff {
-    flex: 1; padding: 10px 0; background: #000; color: #666; border: 2px solid #666;
-    box-shadow: none; font-size: 12px;
-}
-.btn-diff.active {
-    background: var(--neon-cyan); color: #000; border-color: #fff;
-    box-shadow: 4px 4px 0 var(--neon-pink);
-}
+.btn-diff { flex: 1; padding: 10px 0; background: #000; color: #666; border: 2px solid #666; box-shadow: none; font-size: 12px; }
+.btn-diff.active { background: var(--cyan); color: #000; border-color: #fff; box-shadow: 4px 4px 0 var(--pink); }
 
-label { font-size: 12px; color: var(--neon-pink); font-weight: bold; }
-input[type=text] {
-    width: 100%; padding: 15px; border: var(--border); background: #000;
-    color: var(--neon-green); font: 14px 'Space Mono', monospace; outline: none;
-}
-input[type=text]:focus { border-color: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
+label { font-size: 12px; color: var(--pink); font-weight: bold; }
+input[type=text] { width: 100%; padding: 15px; border: var(--border); background: #000; color: var(--green); font: 14px 'Space Mono', monospace; outline: none; }
+input[type=text]:focus { border-color: var(--green); box-shadow: 0 0 10px var(--green); }
 
-.msg { text-align: center; color: var(--neon-green); font-size: 12px; font-weight: bold; margin: 15px 0; border: 1px dashed var(--neon-green); padding: 10px; }
-.anthem { font-size: 12px; color: var(--neon-cyan); text-align: center; margin: 0; }
+.msg { text-align: center; color: var(--green); font-size: 12px; font-weight: bold; margin: 15px 0 0 0; border: 1px dashed var(--green); padding: 10px; }
+.anthem { font-size: 12px; color: var(--cyan); text-align: center; margin: 0; }
 
+/* Game & Card */
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
 .stat { border: 2px solid #fff; padding: 10px; text-align: center; background: #000; }
-.stat b { display: block; color: var(--neon-green); font-size: 18px; font-family: 'Press Start 2P', monospace; }
+.stat b { display: block; color: var(--green); font-size: 18px; font-family: 'Press Start 2P', monospace; }
 .stat span { font-size: 10px; color: #888; }
 
-canvas { display: block; border: var(--border); width: 100%; box-shadow: 6px 6px 0 var(--neon-cyan); }
-#game { touch-action: none; background: #050505; }
+canvas { display: block; width: 100%; box-shadow: 6px 6px 0 var(--cyan); border: var(--border); }
+#game-canvas { touch-action: none; background: #050505; }
+#card-canvas { background: #050505; }
 .hint { text-align: center; font-size: 11px; color: #888; margin: 15px 0; }
 
 .result { text-align: center; }
-.result .grade { font: 64px 'Press Start 2P', monospace; margin: 20px 0; color: var(--neon-cyan); text-shadow: 4px 4px 0 var(--neon-pink); }
+.result .grade { font: 64px 'Press Start 2P', monospace; margin: 20px 0; color: var(--cyan); text-shadow: 4px 4px 0 var(--pink); }
 .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; border: 2px solid #333; padding: 15px; margin-bottom: 20px; text-align: left; }
-.kv b { color: var(--neon-green); text-align: right; }
+.kv b { color: var(--green); text-align: right; }
