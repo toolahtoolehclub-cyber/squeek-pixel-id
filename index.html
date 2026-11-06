@@ -15,8 +15,18 @@
 </head>
 <body>
 <canvas id="bg-gl" aria-hidden="true"></canvas>
+<div id="bg-anim" aria-hidden="true"><i class="orb orb-g"></i><i class="orb orb-p"></i><i class="sweep"></i></div>
 <div id="crt" aria-hidden="true"></div>
 
+<div id="musicSplash" role="dialog" aria-label="Mulai musik">
+    <div class="splash-box">
+        <p class="splash-title">SQUEEKCHAIN</p>
+        <p class="splash-sub">PILIH MUSIK PEMBUKA</p>
+        <button class="btn-primary" type="button" id="startMusicBtn">[ ▶ SERU 128 BPM ]</button>
+        <button class="btn-secondary" type="button" id="startMusicSantaiBtn" style="margin-top:10px">[ ▶ SANTAI 100 BPM ]</button>
+        <p class="splash-note">Browser memblokir suara sebelum kamu ketuk apa pun — musik mulai di ketukan pertamamu, bukan sebelum itu.</p>
+    </div>
+</div>
 <div id="ui-layer">
     <header>
         <div class="header-row">
@@ -38,6 +48,7 @@
                 <p class="warn" id="walletWarn">⚠️ HANYA alamat 0x. JANGAN PERNAH masukkan seed phrase / private key di sini, di mana pun.</p>
                 <p class="anthem" id="anthemInfo" aria-live="polite">AWAITING INPUT...</p>
                 
+                <!-- WRAPPER UNTUK 3D AVATAR -->
                 <div id="avatarPreviewWrap" class="hidden">
                     <canvas id="avatar-preview" width="128" height="128" aria-label="Preview avatar dari wallet kamu"></canvas>
                     <p id="avatarLabel">YOUR PIXEL SELF</p>
@@ -75,6 +86,7 @@
                     <div id="historyBars"></div>
                     <p id="masteryStats">Belum ada game tercatat di browser ini.</p>
                 </div>
+                <button class="btn-secondary" type="button" id="musicModeBtn">MUSIK: SERU 128 BPM — KETUK UNTUK SANTAI</button>
                 <button class="btn-primary" type="button" id="playBtn">INITIALIZE RHYTHM</button>
                 <button class="btn-secondary" type="button" id="genBtn">GENERATE ID CARD</button>
             </div>
@@ -82,6 +94,7 @@
             <p class="msg" id="glStatus" role="status">WEBGL: MENGECEK... • QLTY: ULTRA • AUDIO: BELUM DICOBA</p>
 
             <div id="cardArea" class="hidden stack">
+                <!-- v26 FIX #4: kartu TIDAK ikut muter. Canvas di wrapper biasa, 400x600 terbaca. -->
                 <div class="canvas-wrapper"><canvas id="card-canvas" aria-label="ID Card Squeek Citizen"></canvas></div>
                 <div class="row">
                     <button class="btn-primary" type="button" id="dlBtn">[ DOWNLOAD ]</button>
@@ -124,7 +137,7 @@
             </div>
         </section>
     </main>
-    <footer class="footer">v26 FIX — UNOFFICIAL. Data on-chain dibaca read-only (token Sepolia, bukan BNB mainnet), tidak ada transaksi, tidak ada koneksi wallet. Daily: ?daily=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard</footer>
+    <footer class="footer">CREATED BY <a class="creator-link" href="https://x.com/xixaxxuxa" target="_blank" rel="noopener">@xixaxxuxa</a> • v26 FIX — UNOFFICIAL. Data on-chain dibaca read-only (token Sepolia, bukan BNB mainnet), tidak ada transaksi, tidak ada koneksi wallet. Daily: ?daily=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard</footer>
 </div>
 
 <noscript><p style="color:#ff00ff;text-align:center;padding:20px">Game ini butuh JavaScript. Aktifkan JavaScript untuk bermain.</p></noscript>

@@ -1,4 +1,10 @@
 'use strict';
+/* SQUEEKCHAIN v26 FIX — basis v25 ULTIMATE + v24 RETENTION.
+ * Perbaikan dari tes HP 2026-11-06 (AudioContext running, WebGL OK, clipboard OK):
+ * #1 intro 50Hz sawtooth -> 220Hz triangle + stop race-safe; #4 avatar putar di dalam canvas, kartu tidak ikut muter;
+ * #5 Daily banner + scroll; #6 Duel Link feedback di resultPanel + kotak link terlihat; #7 QLTY efek terlihat walau WebGL mati + status WebGL;
+ * XP divisor 20->30 karena BARS 32; shader normalize(0,0) guard; footer deep-link + bindClick warning dikembalikan.
+ */
 
 const $ = id => document.getElementById(id);
 const isAddr = s => /^0x[a-fA-F0-9]{40}$/.test(s);
@@ -50,7 +56,7 @@ function show(id) { ['mainPanel', 'gamePanel', 'resultPanel'].forEach(p => $(p).
 window.addEventListener('error', (e) => { try { say('ERROR: ' + String(e.message || e.error || 'unknown').slice(0, 80), 'pink'); } catch (_) {} });
 
 // ==========================================
-// 1. WEBGL BACKGROUND
+// 1. WEBGL BACKGROUND (SHOCKWAVE & REACTIVE)
 // ==========================================
 const glCanvas = document.getElementById('bg-gl');
 let gl = null, prog = null, glSeed = 0, glAudio = 0, glGlitch = 0, glShockwave = 0, glCombo = 0;
@@ -68,12 +74,16 @@ function initGL() {
     gl = glCanvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' }) || glCanvas.getContext('experimental-webgl');
     if (!gl) throw new Error('no-webgl');
     const vsSource = `attribute vec2 position; void main() { gl_Position = vec4(position, 0.0, 1.0); }`;
+    
+    // SHADER DENGAN EFEK SHOCKWAVE & WARNA COMBO
     const fsSource = `
       precision highp float;
       uniform vec2 u_resolution; uniform float u_time; uniform float u_seed;
       uniform float u_audio; uniform float u_glitch; uniform float u_shock; uniform float u_combo;
+
       float map(vec3 p) {
-          float s = u_seed; p.xz = mat2(cos(s), -sin(s), sin(s), cos(s)) * p.xz;
+          float s = u_seed;
+          p.xz = mat2(cos(s), -sin(s), sin(s), cos(s)) * p.xz;
           float pulse = 1.0 + sin(u_time * 3.0) * 0.1 + u_audio * 0.5;
           float sphere = length(p) - (1.0 * pulse);
           float torus = length(vec2(length(p.xz)-1.5, p.y)) - 0.2;
@@ -83,9 +93,12 @@ function initGL() {
       }
       void main() {
           vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution) / min(u_resolution.x, u_resolution.y);
+          
+          // SHOCKWAVE DISTORTION
           float dist = length(uv);
           float ripple = sin(dist * 20.0 - u_time * 10.0) * u_shock * 0.1;
-          uv += (dist > 0.001 ? normalize(uv) : vec2(0.0)) * ripple;
+          uv += (dist > 0.001 ? normalize(uv) : vec2(0.0)) * ripple; // v26: normalize(0,0) di tengah layar itu undefined — jaga dari NaN
+
           vec3 ro = vec3(0.0, 0.0, -3.0 - u_audio * 0.5);
           vec3 rd = normalize(vec3(uv, 1.0));
           float t = 0.0;
@@ -100,9 +113,12 @@ function initGL() {
               float d0 = map(p);
               vec3 n = normalize(vec3(map(p+vec3(e,0.,0.))-d0, map(p+vec3(0.,e,0.))-d0, map(p+vec3(0.,0.,e))-d0));
               float diff = max(dot(n, normalize(vec3(1.0, 1.0, -1.0))), 0.0);
-              vec3 c1 = vec3(0.0, 1.0, 0.0); vec3 c2 = vec3(1.0, 0.0, 1.0);
-              if (u_combo > 20.0) c1 = vec3(0.0, 1.0, 1.0);
-              if (u_combo > 50.0) c2 = vec3(1.0, 1.0, 0.0);
+              
+              vec3 c1 = vec3(0.0, 1.0, 0.0); // Hijau
+              vec3 c2 = vec3(1.0, 0.0, 1.0); // Pink
+              if (u_combo > 20.0) c1 = vec3(0.0, 1.0, 1.0); // Cyan
+              if (u_combo > 50.0) c2 = vec3(1.0, 1.0, 0.0); // Kuning
+              
               col = mix(c1, c2, n.x * 0.5 + 0.5) * diff;
           }
           if(u_glitch > 0.0) { col.r = mix(col.r, 1.0, u_glitch); col += vec3(sin(uv.y * 50.0) * u_glitch); }
@@ -127,14 +143,21 @@ let lastGlFrame = 0;
 function renderGL(time) {
   if (!glRunning || !gl) return; requestAnimationFrame(renderGL);
   if (document.hidden) return; if (prefersReducedMotion && time - lastGlFrame < 66) return; lastGlFrame = time;
-  gl.uniform2f(uRes, glCanvas.width, glCanvas.height); gl.uniform1f(uTime, time * 0.001); gl.uniform1f(uSeed, glSeed); gl.uniform1f(uAudio, prefersReducedMotion ? 0 : glAudio); gl.uniform1f(uGlitch, prefersReducedMotion ? 0 : glGlitch); gl.uniform1f(uShock, prefersReducedMotion ? 0 : glShockwave); gl.uniform1f(uCombo, glCombo);
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); glGlitch *= 0.95; glShockwave *= 0.92;
+  gl.uniform2f(uRes, glCanvas.width, glCanvas.height); 
+  gl.uniform1f(uTime, time * 0.001); gl.uniform1f(uSeed, glSeed); 
+  gl.uniform1f(uAudio, prefersReducedMotion ? 0 : glAudio); 
+  gl.uniform1f(uGlitch, prefersReducedMotion ? 0 : glGlitch);
+  gl.uniform1f(uShock, prefersReducedMotion ? 0 : glShockwave);
+  gl.uniform1f(uCombo, glCombo);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); 
+  glGlitch *= 0.95; 
+  glShockwave *= 0.92; // Shockwave mereda
 }
 initGL();
 
 function setQuality(q) {
   quality = q; const b = $('qualityBtn'); if (b) b.textContent = q === 'ultra' ? 'QLTY: ULTRA' : 'QLTY: HEMAT';
-  document.body.classList.toggle('hemat', q === 'hemat');
+  document.body.classList.toggle('hemat', q === 'hemat'); // v26 FIX #7: efek terlihat walau WebGL mati — background halaman berubah jelas
   if (q === 'hemat') { glRunning = false; document.body.classList.add('no-gl'); }
   else { document.body.classList.remove('no-gl'); if (gl && !glRunning) { glRunning = true; requestAnimationFrame(renderGL); } }
   setText('glStatus', 'WEBGL: ' + (gl ? 'OK' : 'GAGAL') + ' • QLTY: ' + q.toUpperCase() + (q === 'hemat' ? ' • BACKGROUND: GRADIENT DIAM' : ' • BACKGROUND: 3D / GRID BERGERAK'));
@@ -152,7 +175,7 @@ class CircuitBreaker {
   async execute(fn) { if (this.state === 'OPEN') { if (Date.now() > this.next) this.state = 'HALF_OPEN'; else throw new Error('CIRCUIT_OPEN'); } try { const res = await fn(); this.fails = 0; this.state = 'CLOSED'; return res; } catch (e) { this.fails++; if (this.fails >= this.threshold) { this.state = 'OPEN'; this.next = Date.now() + this.timeout; } throw e; } }
 }
 const rpcBreaker = new CircuitBreaker(3, 10000);
-const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0x810239d271e80a86023f4f315943acbd65b59281', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } };
+const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0x810239d271e80a86023f4f315943acbd65b59281', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } }; // BARS 32 (Lagu lebih panjang)
 const DIFFICULTIES = { easy: { speed: 350, density: 0.4, chord: 0.0 }, normal: { speed: 480, density: 0.7, chord: 0.1 }, hard: { speed: 600, density: 0.9, chord: 0.25 } };
 const GENRES = { cyber: { scales: ['Phrygian', 'Harmonic Minor', 'Minor Pentatonic'], bpm: 120 }, synth: { scales: ['Dorian', 'Major Pentatonic'], bpm: 100 }, chip: { scales: ['Major Pentatonic', 'Dorian'], bpm: 140 } };
 let currentDiff = 'easy', currentGenre = 'cyber';
@@ -195,7 +218,7 @@ function makeAnthem(wallet, randomize = false, seedOverride = null) {
 }
 
 // ==========================================
-// 3. AUDIO ENGINE
+// 3. AUDIO ENGINE (INTRO & GAMEPLAY)
 // ==========================================
 let ac = null, master = null, analyser = null, noiseBuf = null, audioDataArray = null;
 let introOsc = null, introGain = null, introInterval = null;
@@ -213,45 +236,58 @@ async function initAudio() {
   if (ac.state !== 'running') await ac.resume();
 }
 
+// MUSIK INTRO: 2 MODE — SANTAI 100 BPM (lembut, enak didengar terus) dan
+// SERU 128 BPM (catchy, power chord, double-kick, tapi nada tetap >=220 Hz).
+// Default SERU, karena user bilang versi lembut "masih kurang seru".
+// Ganti mode kapan saja dengan 1 ketuk — tidak perlu tebak-tebakan lagi.
+const INTRO_MODES = {
+  santai: { bpm: 100, lead: [72, 76, 79, 81, 79, 76, 72, 76, 74, 77, 81, 84, 81, 77, 74, 77], bass: [48, 48, 45, 43, 48, 48, 45, 43, 48, 48, 45, 43, 41, 43, 45, 48], leadType: 'triangle', leadVol: 0.10, bassType: 'triangle', bassVol: 0.20, kickSteps: [0, 8], snare: false, hatVol: 0.02, pad: true, label: 'SANTAI 100 BPM' },
+  seru: { bpm: 128, lead: [72, 79, 76, 81, 79, 76, 74, 79, 72, 79, 81, 84, 81, 79, 76, 74], bass: [48, 48, 45, 43, 48, 48, 50, 43, 48, 48, 45, 43, 41, 43, 45, 48], leadType: 'square', leadVol: 0.12, bassType: 'sawtooth', bassVol: 0.22, kickSteps: [0, 4, 8, 12, 14], snare: true, hatVol: 0.04, pad: false, label: 'SERU 128 BPM' }
+};
+let introMode = 'seru';
+let introStep = 0, introNextTime = 0;
+function introCfg() { return INTRO_MODES[introMode]; }
+function scheduleIntro() {
+    if (!ac || muted) return;
+    const cfg = introCfg(), stepDur = 60 / cfg.bpm / 4;
+    while (introNextTime < ac.currentTime + 0.18) {
+        const s = introStep % 16, t = introNextTime;
+        tone(mtof(cfg.lead[s]), t, cfg.leadType, cfg.leadVol, stepDur * 1.4);
+        if (introMode === 'seru') tone(mtof(cfg.lead[s] + 7), t, 'sawtooth', 0.06, stepDur * 1.2);
+        tone(mtof(cfg.bass[s]), t, cfg.bassType, cfg.bassVol, stepDur * 1.8);
+        if (cfg.pad && (s === 0 || s === 8)) { tone(mtof(60), t, 'triangle', 0.04, stepDur * 8); tone(mtof(64), t, 'triangle', 0.04, stepDur * 8); tone(mtof(67), t, 'triangle', 0.04, stepDur * 8); }
+        if (cfg.kickSteps.includes(s)) kick(t);
+        if (cfg.snare && (s === 4 || s === 12)) noise(t, 1500, 0.25, 0.12);
+        if (s % 2 === 1) noise(t, 7000, cfg.hatVol, 0.03);
+        introStep++; introNextTime += stepDur;
+    }
+}
+function updateMusicModeBtn() { const b = $('musicModeBtn'); if (b) b.textContent = 'MUSIK: ' + introCfg().label + ' — KETUK UNTUK ' + (introMode === 'seru' ? 'SANTAI' : 'SERU'); }
+function setIntroMode(m) {
+    introMode = m; updateMusicModeBtn();
+    if (introInterval) { stopIntroMusic(); if (ac && ac.state === 'running' && !muted) playIntroMusic(); }
+    if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('MUSIK: ' + introCfg().label + ' • KETUK MUTE UNTUK MATI.', 'green');
+}
 function playIntroMusic() {
     if (!ac || muted) return;
+    if (introInterval) return; // sudah jalan — jangan dobel
     stopIntroMusic();
-    introOsc = ac.createOscillator();
-    introGain = ac.createGain();
-    introOsc.type = 'triangle';
-    introOsc.frequency.setValueAtTime(220, ac.currentTime);
-    const filter = ac.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(1200, ac.currentTime);
-    introOsc.connect(filter); filter.connect(introGain); introGain.connect(master);
-    introGain.gain.setValueAtTime(0, ac.currentTime);
-    introGain.gain.linearRampToValueAtTime(0.15, ac.currentTime + 2);
-    introOsc.start();
-    let t = 0;
-    introInterval = setInterval(() => {
-        if(!ac || !filter || !introOsc) return;
-        t += 0.1;
-        filter.frequency.setTargetAtTime(800 + Math.sin(t) * 400, ac.currentTime, 0.1);
-        introOsc.frequency.setTargetAtTime(220 + Math.sin(t*0.5) * 60, ac.currentTime, 0.1);
-    }, 100);
-    if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('INTRO: ON (220 Hz, TERDENGAR) — KETUK MUTE UNTUK MATI.', 'green');
+    introStep = 0; introNextTime = ac.currentTime + 0.05;
+    introInterval = setInterval(scheduleIntro, 40);
+    updateMusicModeBtn();
+    if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('INTRO: ON — ' + introCfg().label + ' • KETUK MUTE UNTUK MATI.', 'green');
 }
 
 function stopIntroMusic() {
-    const oldOsc = introOsc, oldGain = introGain, oldInterval = introInterval;
-    introOsc = null; introGain = null; introInterval = null;
-    if (oldInterval) clearInterval(oldInterval);
-    if (oldGain) {
-        try { oldGain.gain.setTargetAtTime(0, ac.currentTime, 0.2); } catch (_) {}
-        setTimeout(() => { try { oldOsc.stop(); oldOsc.disconnect(); } catch(e){} }, 600);
-    }
+    if (introInterval) { clearInterval(introInterval); introInterval = null; }
+    introOsc = null; introGain = null; introStep = 0;
 }
 
 function toggleMute() { 
     muted = !muted; 
     if (master) master.gain.value = muted ? 0 : .4; 
     const b = $('muteBtn'); if (b) { b.textContent = muted ? '🔇' : '🔊'; b.setAttribute('aria-pressed', String(muted)); } 
-    if (!muted && !G) playIntroMusic(); else if (muted) stopIntroMusic();
+    if (!muted && !G) playIntroMusic(); else if (muted) stopIntroMusic(); // v26: unmute di tengah game JANGAN nyalakan intro di atas lagu
     return muted; 
 }
 
@@ -262,7 +298,21 @@ function kick(t) { if (!ac || muted) return; const o = ac.createOscillator(), g 
 function noise(t, hp, p, d) { if (!ac || muted) return; const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = hp; s.connect(f); f.connect(g); g.connect(master); env(g, t, .001, p, d); s.start(t); s.stop(t + d + .05) }
 function getAudioLevel() { if (!analyser || muted) return 0; if (!audioDataArray) audioDataArray = new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(audioDataArray); let s = 0; for (let i = 0; i < audioDataArray.length; i++) s += audioDataArray[i]; return (s / audioDataArray.length) / 255; }
 
-window.addEventListener('pointerdown', () => { if(!ac) initAudio(); playIntroMusic(); }, {once: true});
+// Musik mulai di ketukan pertama (browser memblokir autoplay suara sebelum interaksi).
+// Tombol splash di atas adalah ketukan itu — jadi musik terasa "muncul saat dibuka".
+function hideMusicSplash() { const s = $('musicSplash'); if (s) s.classList.add('hidden'); }
+async function startMusicFromTap(mode) {
+    if (mode) introMode = mode;
+    try { await initAudio(); } catch (_) {}
+    hideMusicSplash(); updateMusicModeBtn();
+    if (ac && ac.state === 'running') playIntroMusic();
+    else if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('AUDIO: ' + (ac ? ac.state : 'TIDAK ADA') + ' — KETUK LAGI UNTUK MUSIK.', 'pink');
+}
+window.addEventListener('pointerdown', () => { startMusicFromTap(); }, {once: true});
+bindClick('startMusicBtn', () => { startMusicFromTap('seru'); });
+bindClick('startMusicSantaiBtn', () => { startMusicFromTap('santai'); });
+bindClick('musicModeBtn', () => { setIntroMode(introMode === 'seru' ? 'santai' : 'seru'); });
+window.addEventListener('load', () => { initAudio().then(() => { if (ac && ac.state === 'running') { hideMusicSplash(); playIntroMusic(); } }).catch(() => {}); });
 
 // ==========================================
 // 4. GAME ENGINE
@@ -286,7 +336,7 @@ async function play() {
   const seedKey = seedKeyFor(playMode);
   anthem = makeAnthem(w, false, seedKey); lastAnthem = anthem; hitOffsets = []; CONFIG.SPEED = DIFFICULTIES[currentDiff].speed; applyHue(anthem.hue);
   glSeed = w ? Math.abs(cyrb53(w) % 1000) / 100 : Math.random() * 10;
-  glShockwave = 1.0;
+  glShockwave = 1.0; // Shockwave saat mulai
 
   G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: [0, 0, 0], ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff };
   floatTexts = [];
@@ -302,8 +352,17 @@ function schedule() {
   const ahead = ac.currentTime + .15;
   while (G.next < anthem.drums.length && G.start + anthem.drums[G.next].t < ahead) {
     const d = anthem.drums[G.next], t = G.start + d.t;
+    const stepInBar = G.next % 16, barNo = Math.floor(G.next / 16);
     if (d.kick) kick(t); if (d.hat) noise(t, 7000, .08, .04); if (d.snare) noise(t, 1500, .35, .12);
     if (d.bass !== null) tone(mtof(36 + anthem.root + anthem.scale[d.bass]), t, 'triangle', .35, anthem.step * 7);
+    // v26-musik: lapisan punk di semua difficulty — bass 8th-note + riff lead dari scale anthem
+    if (stepInBar % 2 === 0) tone(mtof(36 + anthem.root), t, 'sawtooth', 0.16, anthem.step * 1.5);
+    if (stepInBar === 2 || stepInBar === 6 || stepInBar === 10 || stepInBar === 14) {
+      const riffDeg = [7, 5, 4, 7, 5, 3, 2, 4][barNo % 8];
+      const riffMidi = 72 + anthem.root + anthem.scale[riffDeg % anthem.scale.length];
+      tone(mtof(riffMidi), t, 'square', 0.10, anthem.step * 1.5);
+      tone(mtof(riffMidi + 7), t, 'sawtooth', 0.05, anthem.step * 1.5);
+    }
     G.next++;
   }
 }
@@ -319,14 +378,14 @@ function judge(lane) {
     const dt = Math.abs(n.t - st); if (dt < bd) { bd = dt; target = n; }
   }
   G.flash[lane] = 1;
-  glShockwave = 0.5;
+  glShockwave = 0.5; // Shockwave kecil tiap tap
   if (!target || bd > CONFIG.W.good) return;
   updatePrecision((target.t - st) * 1000, 'hit');
   const k = bd <= CONFIG.W.perfect ? 'perfect' : bd <= CONFIG.W.great ? 'great' : 'good';
   target.judged = k; G.counts[k]++; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
   const mult = Math.min(2, 1 + Math.floor(G.combo / 10) * .1);
   G.score += Math.round({ perfect: 300, great: 200, good: 100 }[k] * mult);
-  tone(mtof(target.midi), ac.currentTime, 'square', k === 'perfect' ? .18 : .12, .22);
+  tone(mtof(target.midi), ac.currentTime, 'sawtooth', k === 'perfect' ? .22 : .15, .22); // v26-musik: hit note sawtooth, lebih galak
   if (k === 'perfect') { addFloatText('PERFECT!', '#00ff00'); juiceHit('perfect'); } else if (G.combo > 0 && G.combo % 10 === 0) addFloatText(`COMBO x${G.combo}!`, '#00ffff');
   if (G.combo === 25 || G.combo === 50 || G.combo === 100) addFloatText(`COMBO x${G.combo}!!`, '#ffff00');
   for (let i = 0; i < 8; i++) { const a = Math.random() * Math.PI * 2, s = 50 + Math.random() * 150; G.fx.push({ x: lane * LW + LW / 2, y: CONFIG.HIT_Y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 50, life: .4, c: k === 'perfect' ? '#00ff00' : '#ff00ff' }) }
@@ -390,13 +449,7 @@ function finish() {
   const doneBefore = loadJSON(doneKey, []);
   const newlyDone = missions.filter(m => !doneBefore.includes(m.id) && m.check(res)).map(m => m.id);
   if (newlyDone.length) saveJSON(doneKey, doneBefore.concat(newlyDone));
-  
-  // FIX FATAL: Memisahkan komentar agar bonus XP berjalan
-  let xpGain = Math.round(G.score / 30); 
-  if (a >= 95) xpGain += 50; else if (a >= 88) xpGain += 25;
-  if (G.counts.miss === 0) xpGain += 30;
-  xpGain += newlyDone.length * 25;
-
+  const xpGain = Math.round(G.score / 30) // v26: BARS 32 (v25) bikin skor lebih besar — divisor 20->30 supaya leveling tidak makin cepat + (a >= 95 ? 50 : a >= 88 ? 25 : 0) + (G.counts.miss === 0 ? 30 : 0) + newlyDone.length * 25;
   const xpBefore = totalXP(G.wallet), xpAfter = xpBefore + xpGain;
   saveJSON('sqk24:xp:' + walletKey(G.wallet), xpAfter);
   const lvBefore = levelFor(xpBefore), lvAfter = levelFor(xpAfter);
@@ -411,14 +464,26 @@ function finish() {
     if (st.last !== todayStr()) { st.count = st.last === yesterdayStr() ? st.count + 1 : 1; st.last = todayStr(); saveJSON(sk, st); }
     streakTxt = ` • STREAK ${st.count} HARI`;
   }
-  const xpEl = $('xpMsg'); if (xpEl) xpEl.textContent = `+${xpGain} XP • LV ${lvBefore} -> LV ${lvAfter}${lvAfter > lvBefore ? ' — LEVEL UP! AVATAR BEREVOLUSI' : ''} • TOTAL ${xpAfter} XP${streakTxt}`;
-  const mr = $('missionResult'); if (mr) mr.innerHTML = missions.map(m => `<div class="mission${doneBefore.concat(newlyDone).includes(m.id) ? ' done' : ''}">${m.text}</div>`).join('');
+  const xpEl = $('xpMsg');
+  if (xpEl) xpEl.textContent = `+${xpGain} XP • LV ${lvBefore} -> LV ${lvAfter}${lvAfter > lvBefore ? ' — LEVEL UP! AVATAR BEREVOLUSI' : ''} • TOTAL ${xpAfter} XP${streakTxt}`;
+  const mr = $('missionResult');
+  if (mr) mr.innerHTML = missions.map(m => `<div class="mission${doneBefore.concat(newlyDone).includes(m.id) ? ' done' : ''}">${m.text}</div>`).join('');
   renderDailyBox(); renderMastery(); renderAvatarPreview(G.wallet);
   $('gradeVal').textContent = g; $('gradeVal').style.color = g.startsWith('S') ? 'var(--green)' : g === 'A' ? 'var(--cyan)' : 'var(--pink)';
   const c = G.counts;
   $('resultKv').innerHTML = `<span>SCORE</span><b>${G.score}</b><span>ACCURACY</span><b>${a.toFixed(2)}%</b><span>MAX COMBO</span><b>${G.maxCombo}</b><span>PERFECT/GREAT</span><b>${c.perfect}/${c.great}</b><span>GOOD/MISS</span><b>${c.good}/${c.miss}</b><span>ANTHEM</span><b>${anthem.key} ${anthem.scaleName}</b>`;
   $('bestMsg').textContent = isNew ? 'NEW HIGH SCORE!' : `BEST: ${prev.score} (${prev.grade})`;
-  show('resultPanel'); playIntroMusic(); 
+  show('resultPanel');
+  playResultJingle(g);
+  playIntroMusic(); // Kembalikan intro setelah selesai
+}
+function playResultJingle(g) {
+  // v26-musik: fanfare hasil — SS/S naik penuh, A/B sedang, C/D pendek turun
+  if (!ac || muted) return;
+  const t0 = ac.currentTime + 0.05;
+  const seq = (g === 'SS' || g === 'S') ? [81, 84, 88, 93, 88, 93] : (g === 'A' || g === 'B') ? [81, 84, 88, 84] : [81, 79, 76];
+  seq.forEach((m, i) => { tone(mtof(m), t0 + i * 0.11, 'square', 0.16, 0.16); tone(mtof(m + 7), t0 + i * 0.11, 'sawtooth', 0.07, 0.16); });
+  if (g === 'SS' || g === 'S') kick(t0);
 }
 function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } show('mainPanel'); playIntroMusic(); }
 async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', '[ RESUME ]'); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); }
@@ -493,6 +558,7 @@ async function generateCard() {
   ctx.textAlign = 'left'; ctx.fillStyle = '#000'; ctx.font = 'bold 16px "Space Mono"';
   ctx.fillText('SQUEEK CITIZEN // ID CARD', 15, 26);
 
+  // 3D Avatar draw
   avatar(ctx, w, CW / 2 - 64, 60, 8, levelFor(totalXP(w)));
 
   const row = (l, v, x, y, col) => { ctx.fillStyle = '#888'; ctx.font = '12px "Space Mono"'; ctx.fillText(l, x, y); ctx.fillStyle = col; ctx.font = 'bold 16px "Space Mono"'; ctx.fillText(v, x, y + 20); };
@@ -508,6 +574,9 @@ async function generateCard() {
   row('WHEEL STATUS:', wheel.status, 25, 460, wheel.ok ? '#00ff00' : '#ff00ff');
   row('DISTANCE:', wheel.ok ? wheel.dist.toFixed(3) + ' KM' : '-', 220, 460, '#00ff00');
 
+  ctx.fillStyle = '#fff'; ctx.font = '10px "Space Mono"'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#00ffff'; ctx.font = 'bold 11px "Space Mono"'; ctx.textAlign = 'center';
+  ctx.fillText('CREATOR: @xixaxxuxa', CW / 2, CH - 32);
   ctx.fillStyle = '#fff'; ctx.font = '10px "Space Mono"'; ctx.textAlign = 'center';
   ctx.fillText(`UNOFFICIAL DATA // ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC`, CW / 2, CH - 15);
 
@@ -553,7 +622,7 @@ function renderAvatarPreview(w) {
   const ll = $('levelLabel');
   if (ll) { const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 }); ll.textContent = `LV ${lv} • ${totalXP(w)} XP${st.count ? ' • STREAK ' + st.count + ' HARI' : ''}`; }
   wrap.classList.remove('hidden');
-  startPreviewSpin(w);
+  startPreviewSpin(w); // v26 FIX #4: putaran di DALAM canvas (scaleX = cos), kotaknya diam, teks tidak gepeng
   const h = $('anthemHash');
   if (h) { const a = makeAnthem(w); h.textContent = `SEED #${String(seedOf(w) % 100000).padStart(5, '0')} • ${a.key} ${a.scaleName} • ${a.bpm} BPM`; applyHue(a.hue); }
 }
@@ -639,6 +708,7 @@ function setMode(m) {
 }
 function duelLink() { if (!G || !G.seedKey) return null; const base = location.href.split('?')[0]; return `${base}?challenge=${encodeURIComponent(G.seedKey)}&genre=${G.genre}&diff=${G.diff}`; }
 async function shareDuel() {
+  // v26 FIX #6: feedback ditulis ke #duelMsg / #duelOut DI DALAM resultPanel — bukan ke #message di mainPanel yang tersembunyi
   const link = duelLink();
   const dm = $('duelMsg'), out = $('duelOut');
   if (!link) { if (dm) dm.textContent = 'MAIN DULU SATU LAGU, BARU DUEL BISA DIBAGIKAN.'; return; }

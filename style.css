@@ -15,18 +15,20 @@ body {
     margin: 0; min-height: 100dvh; background-color: var(--bg); color: var(--fg);
     font-family: 'Space Mono', monospace; overflow-x: hidden;
     display: flex; flex-direction: column; align-items: center;
-    background-image: linear-gradient(rgba(57,255,20,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(57,255,20,0.05) 1px, transparent 1px);
+    /* Animated Grid Background */
+    background-image: linear-gradient(rgba(57,255,20,0.14) 1px, transparent 1px), linear-gradient(90deg, rgba(57,255,20,0.14) 1px, transparent 1px);
     background-size: 30px 30px;
-    animation: bgPan 20s linear infinite;
+    animation: bgPan 8s linear infinite; /* v26-bg: grid dibuat 3x lebih terlihat dan 2,5x lebih cepat — di v25 hampir tidak kelihatan */
 }
 
-@keyframes bgPan { 0% { background-position: 0 0; } 100% { background-position: 30px 30px; } }
+@keyframes bgPan {
+    0% { background-position: 0 0; }
+    100% { background-position: 30px 30px; }
+}
 
 #bg-gl { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; opacity: 0.6; pointer-events: none; }
 body.no-gl #bg-gl { display: none; }
 body.no-gl { background: radial-gradient(circle at 20% 20%, rgba(0,255,0,.18), transparent 55%), radial-gradient(circle at 80% 80%, rgba(255,0,255,.18), transparent 55%), #000; }
-body.hemat { background: #181818; }
-body.hemat #bg-gl { opacity: .1; }
 
 #ui-layer { width: 100%; max-width: 420px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 10; display: flex; flex-direction: column; gap: 20px; }
 
@@ -34,6 +36,7 @@ header { text-align: center; margin-bottom: 10px; }
 .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; text-align: left; }
 .header-row > div { flex: 1; text-align: center; }
 
+/* FLICKER ANIMATION UNTUK JUDUL */
 @keyframes neonFlicker {
     0%, 18%, 22%, 25%, 53%, 57%, 100% { text-shadow: 3px 3px 0 var(--pink), 0 0 10px var(--green), 0 0 20px var(--green); opacity: 1; }
     20%, 24%, 55% { text-shadow: none; opacity: 0.5; }
@@ -68,7 +71,6 @@ input[type=text]:focus { border-color: var(--green); box-shadow: 0 0 10px var(--
 input[type=text].invalid { border-color: var(--pink); box-shadow: 0 0 10px var(--pink); }
 
 .msg { text-align: center; color: var(--green); font-size: 12px; font-weight: bold; margin: 15px 0 0 0; border: 1px dashed var(--green); padding: 10px; word-break: break-word; }
-#glStatus, #gameAudioStatus { border-color: var(--cyan); color: var(--cyan); }
 .anthem { font-size: 12px; color: var(--cyan); text-align: center; margin: 0; word-break: break-word; }
 .warn { font-size: 11px; color: var(--yellow); text-align: left; margin: 0; border: 1px dashed var(--yellow); padding: 8px 10px; line-height: 1.5; }
 
@@ -83,12 +85,21 @@ canvas { display: block; width: 100%; height: auto; border: none; box-shadow: no
 #game-canvas { touch-action: none; background: #050505; }
 #card-canvas { background: #050505; }
 
+/* 3D ROTATING AVATAR */
+.avatar-container { width: 100%; display: flex; justify-content: center; perspective: 1000px; }
+.avatar-wrapper { width: 100px; height: 100px; margin: 0 auto; } /* v26 FIX #4: animasi spin3D di wrapper DIMATIKAN — putaran dilakukan di dalam canvas lewat JS, bukan CSS */
+@keyframes spin3D { 
+    0% { transform: rotateY(0deg); } 
+    100% { transform: rotateY(360deg); } 
+}
 #avatarPreviewWrap { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 2px dashed var(--accent); padding: 10px; }
 #avatarPreviewWrap.hidden { display: none; }
 #avatar-preview { width: 128px; height: 128px; border: 3px solid #fff; box-shadow: 4px 4px 0 var(--pink); image-rendering: pixelated; }
 #avatarLabel { margin: 0; font-size: 10px; color: var(--cyan); letter-spacing: 2px; }
-
 #duelOut { width: 100%; background: #000; color: var(--cyan); border: 2px solid var(--cyan); font: 11px 'Space Mono', monospace; padding: 8px; }
+#glStatus, #gameAudioStatus { border-color: var(--cyan); color: var(--cyan); }
+body.hemat { background: #181818; }
+body.hemat #bg-gl { opacity: .1; }
 
 .hint { text-align: center; font-size: 11px; color: #aaa; margin: 15px 0; line-height: 1.7; }
 .kbd-hint { color: #888; font-size: 10px; }
@@ -133,3 +144,26 @@ canvas { display: block; width: 100%; height: auto; border: none; box-shadow: no
 #masteryStats { margin: 8px 0 0 0; font-size: 11px; color: #aaa; line-height: 1.6; }
 #missionResult { margin: 12px 0; text-align: left; }
 #xpMsg { border-color: var(--yellow); color: var(--yellow); }
+
+#musicSplash { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.92); display: flex; align-items: center; justify-content: center; padding: 20px; }
+#musicSplash.hidden { display: none !important; }
+.splash-box { border: 4px solid #00ff00; box-shadow: 6px 6px 0 #ff00ff; background: #000; padding: 24px 18px; text-align: center; max-width: 340px; width: 100%; }
+.splash-title { font-family: 'Press Start 2P', monospace; font-size: 20px; color: #00ff00; margin: 0 0 8px 0; text-shadow: 3px 3px 0 #ff00ff; }
+.splash-sub { font-size: 12px; color: #00ffff; letter-spacing: 2px; margin: 0 0 16px 0; }
+.splash-note { font-size: 11px; color: #888; line-height: 1.6; margin: 14px 0 0 0; }
+
+/* v26-bg: BACKGROUND BERGERAK ALA FILE TES — murni CSS, jalan walau WebGL mati.
+   Model animasi: grid diagonal geser + 2 orb cahaya melayang + 1 garis sweep turun.
+   Tidak pakai WebGL, tidak pakai JS, jadi tidak bisa "gagal diam" seperti background 3D. */
+#bg-anim { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+#bg-anim .orb { position: absolute; width: 180px; height: 180px; opacity: .30; }
+#bg-anim .orb-g { background: #00ff00; box-shadow: 0 0 60px #00ff00; top: 8%; left: -40px; animation: driftG 12s ease-in-out infinite alternate; }
+#bg-anim .orb-p { background: #ff00ff; box-shadow: 0 0 60px #ff00ff; bottom: 12%; right: -40px; animation: driftP 14s ease-in-out infinite alternate; }
+@keyframes driftG { from { transform: translate(0, 0); } to { transform: translate(60px, 90px); } }
+@keyframes driftP { from { transform: translate(0, 0); } to { transform: translate(-70px, -70px); } }
+#bg-anim .sweep { position: absolute; left: 0; right: 0; height: 60px; background: linear-gradient(180deg, transparent, rgba(0,255,255,.14), transparent); animation: sweepY 6s linear infinite; }
+@keyframes sweepY { from { top: -60px; } to { top: 100%; } }
+body.hemat #bg-anim { display: none; } /* HEMAT = diam, sesuai janji tombol QLTY */
+
+.creator-link { color: var(--cyan); text-decoration: none; border-bottom: 2px solid var(--pink); font-weight: bold; letter-spacing: 1px; }
+.creator-link:hover, .creator-link:focus-visible { color: var(--yellow); border-color: var(--yellow); }
