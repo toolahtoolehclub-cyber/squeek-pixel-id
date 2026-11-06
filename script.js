@@ -3,11 +3,28 @@ const CONFIG={
  API_URL:'https://api.squeekchain.com/v1/status',
  RPC_URL:'https://ethereum-sepolia-rpc.publicnode.com',
  TOKEN:'0x810239d271e80a86023f4f315943acbd65b59281',
- BARS:24, LEAD_IN:2, SPEED:450, HIT_Y:450,
+ BARS:24, LEAD_IN:2, HIT_Y:450,
  W:{perfect:.045,great:.09,good:.135}
 };
+
+const DIFFICULTIES = {
+    easy:   { speed: 320, density: 0.3, chord: 0.0 },
+    normal: { speed: 450, density: 0.6, chord: 0.15 },
+    hard:   { speed: 600, density: 0.85, chord: 0.3 }
+};
+
 const $=id=>document.getElementById(id);
 const isAddr=s=>/^0x[a-fA-F0-9]{40}$/.test(s);
+let currentDiff = 'easy';
+
+// Handle difficulty buttons
+document.querySelectorAll('.diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentDiff = btn.dataset.diff;
+    });
+});
 
 function cyrb53(str,seed=0){let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0;i<str.length;i++){const c=str.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0)}
 function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -15,28 +32,47 @@ const seedOf=w=>cyrb53((w||'GUEST').toLowerCase());
 
 const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const SCALES={'Minor Pentatonic':[0,3,5,7,10],'Dorian':[0,2,3,5,7,9,10],'Phrygian':[0,1,3,5,7,8,10],'Major Pentatonic':[0,2,4,7,9],'Harmonic Minor':[0,2,3,5,7,8,11]};
-function makeAnthem(wallet){
- const r=rng(seedOf(wallet)),names=Object.keys(SCALES);
+
+// FUNGSI BARU: Ditambahkan parameter randomize agar setiap main beatmap beda
+function makeAnthem(wallet, randomize = false){
+ // Seed tetap dari wallet, tapi jika randomize, tambahkan Math.random()
+ let seed = seedOf(wallet);
+ if(randomize) seed += Math.floor(Math.random() * 999999);
+
+ const r=rng(seed),names=Object.keys(SCALES);
  const scaleName=names[Math.floor(r()*names.length)],scale=SCALES[scaleName],root=Math.floor(r()*12);
  const bpm=100+Math.floor(r()*5)*8,step=60/bpm/4,span=scale.length*2;
- const motif=Array.from({length:16},()=>r()<.65?Math.floor(r()*span):-1);
+ const motif=Array.from({length:16},()=>r()<.55?Math.floor(r()*span):-1);
  const bassLine=Array.from({length:4},()=>[0,3,4,5,2][Math.floor(r()*5)]%scale.length);
  const chart=[],drums=[];
+ 
+ const diff = DIFFICULTIES[currentDiff];
+
  for(let bar=0;bar<CONFIG.BARS;bar++){
-  const density=Math.min(.9,.35+bar*.05);
   for(let s=0;s<16;s++){
    const t=(bar*16+s)*step;
    drums.push({t,kick:s%4===0||(s===10&&r()<.4),hat:s%2===0,snare:s===4||s===12,bass:s%8===0?bassLine[bar%4]:null});
+   
    let deg=motif[s];
-   const onBeat=s%4===0,onEighth=s%2===0;
-   const want=bar<2?(onBeat&&s%8===0):bar<5?onBeat:onEighth?(r()<density||(deg>=0&&onBeat)):(deg>=0&&bar>10&&r()<density*.5);
+   const onBeat=s%4===0;
+   const onEighth=s%2===0;
+   
+   // Density logic berdasarkan difficulty
+   const want = bar<2 ? (onBeat&&s%8===0) : (onEighth ? r()<diff.density : (onBeat && r()<diff.density*1.5));
+   
    if(want){
        if(deg<0)deg=Math.floor(r()*span);
-       if(bar%4===3)deg=(deg+2)%span;
        const oct=Math.floor(deg/scale.length),midi=60+root+scale[deg%scale.length]+12*oct;
        const lane=Math.min(2,Math.floor(deg/span*3));
-       chart.push({t,lane,midi,judged:null});
-       if(bar>4 && s%4===0 && r()<.4){
+       
+       // Cek jarak minimum antar not (Anti-Slip)
+       const lastNote = chart.length > 0 ? chart[chart.length-1] : null;
+       if(!lastNote || (t - lastNote.t) > 0.15) {
+           chart.push({t,lane,midi,judged:null});
+       }
+
+       // Chord / Not Ganda (hanya di Hard atau Normal sesekali)
+       if(s%4===0 && r()<diff.chord){
            const lane2=(lane+1+Math.floor(r()*2))%3;
            chart.push({t,lane:lane2,midi:midi-12,judged:null});
        }
@@ -69,15 +105,20 @@ const GW=360,GH=540,LANES=3,LW=GW/LANES;
 function fitCanvas(c,ctx,w,h,scale){const d=scale||Math.max(1,window.devicePixelRatio||1);c.width=w*d;c.height=h*d;c.style.width=w+'px';c.style.height=h+'px';ctx.setTransform(d,0,0,d,0,0)}
 fitCanvas(cv,cx,GW,GH);
 let G=null,raf=0,sched=0,anthem=null;
-const best=w=>{try{return JSON.parse(localStorage.getItem('sqk13:'+(w||'GUEST').toLowerCase())||'null')}catch{return null}};
+const best=w=>{try{return JSON.parse(localStorage.getItem('sqk15:'+(w||'GUEST').toLowerCase())||'null')}catch{return null}};
 const songTime=()=>ac.currentTime-G.start-(+$('offset').value)/1000;
 
 async function play(){
  const w=$('walletInput').value.trim();
  if(w&&!isAddr(w))return say('Alamat wallet tidak valid.','red');
  await initAudio();
- anthem=makeAnthem(w);
- G={wallet:w,start:ac.currentTime+CONFIG.LEAD_IN,next:0,score:0,combo:0,maxCombo:0,counts:{perfect:0,great:0,good:0,miss:0},fx:[],flash:[0,0,0],judge:null,shake:0,comboGlow:0,ended:false,paused:false};
+ // Panggil makeAnthem dengan randomize = true agar selalu berbeda
+ anthem=makeAnthem(w, true);
+ 
+ // Update speed berdasarkan difficulty
+ CONFIG.SPEED = DIFFICULTIES[currentDiff].speed;
+
+ G={wallet:w,start:ac.currentTime+CONFIG.LEAD_IN,next:0,score:0,combo:0,maxCombo:0,counts:{perfect:0,great:0,good:0,miss:0},fx:[],flash:[0,0,0],judge:null,shake:0,ended:false,paused:false};
  show('gamePanel');$('bpmVal').textContent=anthem.bpm;hud();
  clearInterval(sched);sched=setInterval(schedule,25);
  cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
@@ -106,13 +147,13 @@ function judge(lane){
  if(!target||bd>CONFIG.W.good)return;
  const k=bd<=CONFIG.W.perfect?'perfect':bd<=CONFIG.W.great?'great':'good';
  target.judged=k;G.counts[k]++;G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);
- if(k==='perfect') G.comboGlow = 10;
  if(G.combo%10===0) G.shake=4;
+ 
  const mult=Math.min(2,1+Math.floor(G.combo/10)*.1);
  G.score+=Math.round({perfect:300,great:200,good:100}[k]*mult);
  tone(mtof(target.midi),ac.currentTime,'square',k==='perfect'?.18:.12,.22);
  G.judge={k,txt:k==='perfect'?'PERFECT':k.toUpperCase()+' · '+(target.t>st?'EARLY':'LATE'),a:1};
- burst(lane*LW+LW/2,CONFIG.HIT_Y,k==='perfect'?'#fcee0a':'#00ffff',k==='perfect'?25:15);
+ burst(lane*LW+LW/2,CONFIG.HIT_Y,k==='perfect'?'#fcee0a':'#00ffff',k==='perfect'?15:8);
  hud();
 }
 function burst(x,y,c,n){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=80+Math.random()*250;G.fx.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-100,life:.6,c})}}
@@ -122,7 +163,7 @@ function loop(){
  const st=songTime();
  for(const n of anthem.chart){
   if(n.judged)continue;
-  if(st-n.t>CONFIG.W.good){n.judged='miss';G.counts.miss++;G.combo=0;G.comboGlow=0;G.judge={k:'miss',txt:'MISS',a:1};G.shake=10;hud()}
+  if(st-n.t>CONFIG.W.good){n.judged='miss';G.counts.miss++;G.combo=0;G.judge={k:'miss',txt:'MISS',a:1};G.shake=8;hud()}
   else if(n.t>st)break;
  }
  if(st>anthem.duration+.8)return finish();
@@ -133,13 +174,17 @@ function draw(st){
  if(G.shake>0){cx.translate((Math.random()-.5)*G.shake,(Math.random()-.5)*G.shake);G.shake*=.85;if(G.shake<.3)G.shake=0}
  cx.fillStyle='#05020a';cx.fillRect(-10,-10,GW+20,GH+20);
  const spb=60/anthem.bpm,beat=((st/spb)%1+1)%1,pulse=st>0?Math.max(0,1-beat*4):0;
+ 
  for(let l=0;l<LANES;l++){const f=G.flash[l];cx.fillStyle=`rgba(0,255,255,${.04+f*.18})`;cx.fillRect(l*LW+2,0,LW-4,GH);G.flash[l]=Math.max(0,f-dt*5)}
  cx.strokeStyle='#30204d';cx.lineWidth=2;
  for(let l=1;l<LANES;l++){cx.beginPath();cx.moveTo(l*LW,0);cx.lineTo(l*LW,GH);cx.stroke()}
+ 
  cx.strokeStyle='rgba(160,144,176,.12)';cx.lineWidth=1;
  for(let b=Math.ceil(st/spb);b<st/spb+GH/CONFIG.SPEED/spb+1;b++){const y=CONFIG.HIT_Y-(b*spb-st)*CONFIG.SPEED;cx.beginPath();cx.moveTo(0,y);cx.lineTo(GW,y);cx.stroke()}
+ 
  cx.fillStyle=`rgba(57,255,20,${.15+pulse*.25})`;cx.fillRect(0,CONFIG.HIT_Y-15,GW,30);
  cx.fillStyle='#39ff14';cx.fillRect(0,CONFIG.HIT_Y-2,GW,4);
+ 
  for(const n of anthem.chart){
   const y=CONFIG.HIT_Y-(n.t-st)*CONFIG.SPEED;
   if(y<-30)break;
@@ -149,12 +194,15 @@ function draw(st){
   cx.shadowColor=cx.fillStyle;cx.shadowBlur=n.judged?0:15;
   cx.fillRect(Math.round(x-35),Math.round(y-12),70,24);cx.shadowBlur=0;
  }
+ 
  for(let i=G.fx.length-1;i>=0;i--){const p=G.fx[i];p.life-=dt;if(p.life<=0){G.fx.splice(i,1);continue}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=500*dt;cx.globalAlpha=p.life*1.5;cx.fillStyle=p.c;cx.fillRect(p.x|0,p.y|0,4,4)}
  cx.globalAlpha=1;cx.textAlign='center';
+ 
  if(st<0){cx.fillStyle='#fcee0a';cx.font='24px "Press Start 2P"';cx.fillText(Math.ceil(-st),GW/2,GH/2)}
- if(G.comboGlow>0){cx.fillStyle=`rgba(57,255,20,${G.comboGlow/20})`;cx.beginPath();cx.arc(GW/2, GH/2, 100 + (10-G.comboGlow)*10, 0, Math.PI*2);cx.fill();G.comboGlow-=dt*2}
+ 
  if(G.judge&&G.judge.a>0){const j=G.judge;cx.globalAlpha=Math.min(1,j.a*1.5);cx.fillStyle={perfect:'#fcee0a',great:'#00ffff',good:'#39ff14',miss:'#ff365f'}[j.k];cx.font='16px "Press Start 2P"';cx.fillText(j.txt,GW/2,CONFIG.HIT_Y-80);j.a-=dt*1.5;cx.globalAlpha=1}
  cx.fillStyle='#39ff14';cx.fillRect(0,0,GW*Math.max(0,Math.min(1,st/anthem.duration)),4);
+ 
  if(G.paused){cx.fillStyle='rgba(0,0,0,.7)';cx.fillRect(0,0,GW,GH);cx.fillStyle='#fff';cx.font='14px "Press Start 2P"';cx.fillText('KETUK UNTUK LANJUT',GW/2,GH/2)}
  cx.restore();
 }
@@ -166,7 +214,7 @@ function finish(){
  const a=accuracy(),g=grade(a,G.counts.miss),key=(G.wallet||'GUEST').toLowerCase(),prev=best(G.wallet);
  const rec={score:G.score,acc:+a.toFixed(2),grade:g,maxCombo:G.maxCombo,at:Date.now()};
  const isNew=!prev||rec.score>prev.score;
- if(isNew)localStorage.setItem('sqk13:'+key,JSON.stringify(rec));
+ if(isNew)localStorage.setItem('sqk15:'+key,JSON.stringify(rec));
  $('gradeVal').textContent=g;
  $('gradeVal').style.color=g.startsWith('S')?'var(--yellow)':g==='A'?'var(--green)':g==='D'?'var(--red)':'var(--blue)';
  const c=G.counts;
@@ -242,7 +290,7 @@ async function generateCard(){
  ctx.strokeStyle='rgba(255,92,240,.5)';ctx.lineWidth=1;ctx.strokeRect(10,10,CW-20,CH-20);
  ctx.fillStyle='rgba(255,255,255,.025)';for(let y=12;y<CH-12;y+=4)ctx.fillRect(12,y,CW-24,1);
  ctx.textAlign='center';ctx.fillStyle='#00ffff';ctx.font='12px "Press Start 2P"';ctx.fillText('SQUEEK CITIZEN',CW/2,38);
- ctx.fillStyle='#a090b0';ctx.font='9px "Space Mono"';ctx.fillText('PIXEL ID v14 · WALLET ANTHEM',CW/2,54);
+ ctx.fillStyle='#a090b0';ctx.font='9px "Space Mono"';ctx.fillText('PIXEL ID v15 · WALLET ANTHEM',CW/2,54);
  avatar(ctx,w,CW/2-56,68,7);
  const row=(l,v,x,y,col)=>{ctx.textAlign='left';ctx.fillStyle='#a090b0';ctx.font='9px "Space Mono"';ctx.fillText(l,x,y);ctx.fillStyle=col;ctx.font='bold 13px "Space Mono"';ctx.fillText(v,x,y+16)};
  row('WALLET',w.slice(0,8)+'...'+w.slice(-6),24,206,'#39ff14');
@@ -270,10 +318,10 @@ function say(t,c){$('message').textContent=t;$('message').style.color=`var(--${c
 function show(id){['mainPanel','gamePanel','resultPanel'].forEach(p=>$(p).classList.toggle('hidden',p!==id))}
 function preview(){const w=$('walletInput').value.trim();if(w&&!isAddr(w)){$('anthemInfo').textContent='';return}const a=makeAnthem(w),b=best(w);$('anthemInfo').textContent=`♪ ${w?'Anthem':'Guest anthem'}: ${a.key} ${a.scaleName} · ${a.bpm} BPM · ${a.chart.length} not${b?' · rekor '+b.score:''}`}
 $('walletInput').addEventListener('input',preview);
-$('offset').value=localStorage.getItem('sqk13:offset')||0;$('offVal').textContent=$('offset').value;
-$('offset').addEventListener('input',e=>{$('offVal').textContent=e.target.value;localStorage.setItem('sqk13:offset',e.target.value)});
+$('offset').value=localStorage.getItem('sqk15:offset')||0;$('offVal').textContent=$('offset').value;
+$('offset').addEventListener('input',e=>{$('offVal').textContent=e.target.value;localStorage.setItem('sqk15:offset',e.target.value)});
 $('connectBtn').onclick=async()=>{
- if(!window.ethereum)return say('Wallet tidak terdeteksi. Buka di browser MetaMask/Trust Wallet, atau ketik manual.','red');
+ if(!window.ethereum)return say('Wallet tidak terdeteksi. Buka di browser MetaMask/Trust Wallet.','red');
  try{const[a]=await window.ethereum.request({method:'eth_requestAccounts'});$('walletInput').value=a;preview();say('Alamat diambil (read-only).','green')}catch{say('Dibatalkan.','yellow')}
 };
 $('playBtn').onclick=play;$('genBtn').onclick=generateCard;
