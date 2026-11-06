@@ -6,8 +6,8 @@
     <title>Squeekchain Pixel ID</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <!-- Library untuk membuat Avatar unik dari Wallet Address -->
-    <script src="https://cdn.jsdelivr.net/npm/ethereum-blockies-base64@1.0.2/dist/blockies.min.js"></script>
+    <!-- Library yang sudah diperbaiki untuk Avatar -->
+    <script src="https://cdn.jsdelivr.net/npm/ethereum-blockies-base64@1.0.2/dist/main.js"></script>
     <style>
         :root {
             --bg-color: #1a0b2e;
@@ -33,7 +33,6 @@
             min-height: 100vh;
             overflow-x: hidden;
         }
-
         /* Efek Layar CRT (Scanlines) */
         body::after {
             content: " ";
@@ -45,7 +44,6 @@
             background-size: 100% 2px, 3px 100%;
             pointer-events: none;
         }
-
         h1 { color: var(--neon-green); text-shadow: 2px 2px 0 #000; font-size: 16px; text-align: center; line-height: 1.5; margin-bottom: 20px; z-index: 3; }
         .input-group { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 350px; margin-bottom: 20px; z-index: 3; }
         input {
@@ -60,7 +58,7 @@
         }
         button:active { transform: translate(4px, 4px); box-shadow: 0px 0px 0 black; }
         #download-btn { background: var(--neon-green); display: none; margin-top: 20px; z-index: 3; }
-
+        
         /* Desain Kartu */
         .card-container { display: none; margin-top: 10px; z-index: 3; }
         #hamster-card {
@@ -78,7 +76,7 @@
             border-radius: 8px; box-shadow: 0 0 15px var(--neon-blue); overflow: hidden;
         }
         .avatar-container img { width: 100%; height: 100%; image-rendering: pixelated; }
-
+        
         .stats { text-align: left; font-size: 8px; line-height: 2; color: #ccc; }
         .stats span { color: var(--neon-green); float: right; font-size: 9px; }
         
@@ -88,7 +86,6 @@
             border-radius: 4px; box-shadow: 0 0 10px var(--neon-red);
         }
         @keyframes blink { 50% { opacity: 0; } }
-        
         .status-active { color: var(--neon-green) !important; text-shadow: 0 0 5px var(--neon-green); }
         .status-idle { color: var(--neon-yellow) !important; text-shadow: 0 0 5px var(--neon-yellow); }
     </style>
@@ -109,7 +106,6 @@
                 <h2>SQUEEK CITIZEN</h2>
             </div>
             
-            <!-- Tempat Avatar Unik -->
             <div class="avatar-container">
                 <img id="c-avatar" src="" alt="avatar">
             </div>
@@ -151,28 +147,30 @@
             document.getElementById('download-btn').style.display = 'inline-block';
             document.getElementById('c-wallet').innerText = wallet;
 
-            // 1. GENERATE AVATAR UNIK DARI WALLET (Blockies)
-            const avatarDataUrl = blockies.create({ seed: wallet.toLowerCase(), size: 8, scale: 10 }).toDataURL();
-            document.getElementById('c-avatar').src = avatarDataUrl;
+            // 1. GENERATE AVATAR (Menggunakan fungsi dari library yang baru)
+            try {
+                const avatarDataUrl = ethereumBlockies(wallet);
+                document.getElementById('c-avatar').src = avatarDataUrl;
+            } catch (e) {
+                // Jika gagal generate avatar, pakai gambar default
+                document.getElementById('c-avatar').src = "https://api.dicebear.com/7.x/pixel-art/svg?seed=" + wallet;
+            }
 
-            // 2. FETCH DATA ASLI DARI API
+            // 2. FETCH DATA API (Dipisah agar tetap jalan meski avatar error)
             document.getElementById('c-rpm').innerText = "Syncing...";
             document.getElementById('c-dist').innerText = "Syncing...";
             document.getElementById('c-status').innerText = "Syncing...";
-            document.getElementById('c-status').className = "";
 
             try {
                 const response = await fetch('https://api.squeekchain.com/v1/status');
                 const data = await response.json();
 
-                // Ekstrak data (dengan fallback jika struktur API berubah)
                 const rpm = parseInt(data.wheel?.rpm || data.rpm || 0);
                 const distance = data.wheel?.totalDistanceMm || data.distance || "0";
                 
                 document.getElementById('c-rpm').innerText = rpm + " RPM";
                 document.getElementById('c-dist').innerText = distance;
 
-                // Logika Status Roda
                 const statusEl = document.getElementById('c-status');
                 if (rpm > 0) {
                     statusEl.innerText = "ACTIVE 🏃‍♂️";
@@ -193,17 +191,11 @@
 
         function downloadCard() {
             const card = document.getElementById('hamster-card');
-            // Sembunyikan badge live sementara saat download agar rapi (opsional)
-            // document.querySelector('.live-badge').style.display = 'none';
-            
             html2canvas(card, { backgroundColor: null, scale: 2, useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = 'Squeekchain_Pixel_ID_v2.png';
                 link.href = canvas.toDataURL();
                 link.click();
-                
-                // Tampilkan kembali badge
-                // document.querySelector('.live-badge').style.display = 'block';
             });
         }
     </script>
