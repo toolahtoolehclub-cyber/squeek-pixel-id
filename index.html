@@ -4,58 +4,66 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<title>SQUEEKCHAIN // ULTIMATE v19</title>
+<meta name="theme-color" content="#000000">
+<title>SQUEEKCHAIN // v22 PRECISION</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- Background WebGL (Organism) -->
-<canvas id="bg-gl"></canvas>
+<canvas id="bg-gl" aria-hidden="true"></canvas>
 
 <div id="ui-layer">
     <header>
-        <h1>SQUEEKCHAIN</h1>
-        <h2>PIXEL ID // v19 ULTIMATE</h2>
+        <div class="header-row">
+            <div>
+                <h1>SQUEEKCHAIN</h1>
+                <h2>PIXEL ID // v22</h2>
+            </div>
+            <button class="btn-icon" id="muteBtn" type="button" aria-label="Mute">🔊</button>
+        </div>
     </header>
 
     <main class="container">
-        <!-- PANEL UTAMA (MENU) -->
         <section class="panel" id="mainPanel">
             <div class="stack">
-                <label>WALLET ADDRESS (SEED)</label>
-                <input id="walletInput" type="text" autocomplete="off" placeholder="0x...">
+                <label for="walletInput">WALLET ADDRESS</label>
+                <input id="walletInput" type="text" maxlength="42" placeholder="0x...">
+                <p class="warn">⚠️ HANYA alamat 0x. JANGAN masukkan seed phrase / private key.</p>
                 <p class="anthem" id="anthemInfo">AWAITING INPUT...</p>
-                
-                <label>// GENRE</label>
+
+                <label id="genreLabel">// GENRE</label>
                 <div class="diff-row" id="genreRow">
                     <button class="btn-diff active" data-genre="cyber">CYBER</button>
                     <button class="btn-diff" data-genre="synth">SYNTH</button>
                     <button class="btn-diff" data-genre="chip">CHIP</button>
                 </div>
 
-                <label>// DIFFICULTY</label>
+                <label id="diffLabel">// DIFFICULTY</label>
                 <div class="diff-row" id="diffRow">
                     <button class="btn-diff active" data-diff="easy">EASY</button>
                     <button class="btn-diff" data-diff="normal">NORMAL</button>
                     <button class="btn-diff" data-diff="hard">HARD</button>
                 </div>
 
-                <button class="btn-primary" id="playBtn">INITIALIZE RHYTHM</button>
-                <button class="btn-secondary" id="genBtn">GENERATE ID CARD</button>
+                <button class="btn-primary" type="button" id="playBtn">INITIALIZE RHYTHM</button>
+                <button class="btn-secondary" type="button" id="genBtn">GENERATE ID CARD</button>
             </div>
             <p class="msg" id="message">SYSTEM READY.</p>
-            
-            <!-- AREA KARTU -->
+
+            <!-- FIX: Canvas dibungkus div (canvas-wrapper) agar border tidak merusak layout -->
             <div id="cardArea" class="hidden stack">
-                <canvas id="card-canvas"></canvas>
+                <div class="canvas-wrapper">
+                    <canvas id="card-canvas"></canvas>
+                </div>
                 <div class="row">
-                    <button class="btn-primary" id="dlBtn">[ DOWNLOAD ]</button>
-                    <button class="btn-secondary" id="shareBtn">[ SHARE ]</button>
+                    <button class="btn-primary" type="button" id="dlBtn">[ DOWNLOAD ]</button>
+                    <button class="btn-secondary" type="button" id="shareBtn">[ SHARE ]</button>
                 </div>
             </div>
         </section>
 
-        <!-- PANEL GAME -->
         <section class="panel hidden" id="gamePanel">
             <div class="stats">
                 <div class="stat"><b id="scoreVal">0</b><span>SCORE</span></div>
@@ -63,25 +71,31 @@
                 <div class="stat"><b id="accVal">100%</b><span>ACC</span></div>
                 <div class="stat"><b id="bpmVal">120</b><span>BPM</span></div>
             </div>
-            <canvas id="game-canvas"></canvas>
-            <p class="hint">TAP LANE WHEN BLOCK HITS THE LINE.</p>
-            <button class="btn-danger" id="stopBtn">[ TERMINATE ]</button>
+            
+            <!-- FIX: Canvas dibungkus div (canvas-wrapper) -->
+            <div class="canvas-wrapper">
+                <canvas id="game-canvas" tabindex="0"></canvas>
+            </div>
+            
+            <p class="hint">TAP LANE WHEN BLOCK HITS THE LINE.<br><span class="kbd-hint">KEYBOARD: ← ↓ → / A S D</span></p>
+            <div class="row">
+                <button class="btn-secondary" type="button" id="pauseBtn">[ PAUSE ]</button>
+                <button class="btn-danger" type="button" id="stopBtn">[ TERMINATE ]</button>
+            </div>
         </section>
 
-        <!-- PANEL HASIL -->
         <section class="panel hidden" id="resultPanel">
             <div class="grade" id="gradeVal">S</div>
             <div class="kv" id="resultKv"></div>
             <p class="msg" id="bestMsg"></p>
             <div class="stack">
-                <button class="btn-primary" id="againBtn">RETRY</button>
-                <button class="btn-secondary" id="toCardBtn">GENERATE CARD</button>
-                <button class="btn-danger" id="homeBtn">EXIT TO MENU</button>
+                <button class="btn-primary" type="button" id="againBtn">RETRY</button>
+                <button class="btn-secondary" type="button" id="toCardBtn">GENERATE CARD</button>
+                <button class="btn-danger" type="button" id="homeBtn">EXIT TO MENU</button>
             </div>
         </section>
     </main>
 </div>
-
 <script src="script.js"></script>
 </body>
 </html>
