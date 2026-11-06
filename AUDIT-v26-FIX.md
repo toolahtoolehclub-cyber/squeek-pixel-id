@@ -22,6 +22,10 @@ Daily Anthem + streak, XP + level avatar, 3 misi harian, mastery 10 game, duel l
 
 XP: `score/20` → `score/30`. BARS 32 bikin skor lebih besar dari BARS 20; tanpa ini leveling makin cepat dari v24 yang saja sudah cepat.
 
+## Bahasa Inggris (update 2026-11-06 23:09 WIB)
+
+User: ubah v26 ke bahasa Inggris untuk pengajuan Buildoooor. Semua teks UI diterjemahkan: lang="en", SERU→HYPE, SANTAI→CALM, HEMAT→ECO, misi, status WebGL/QLTY/audio, Duel Link, footer + "Made in Indonesia". README ditulis ulang dalam bahasa Inggris. Catatan: ID Card v26 SUDAH memakai Squeekchain public API (fetchWheel() ke api.squeekchain.com/v1/status, tampil sebagai WHEEL STATUS + DISTANCE) — koreksi atas peringatan API sebelumnya.
+
 ## Kredit pencipta (update 2026-11-06 22:34 WIB)
 
 User: tambah kredit pencipta dengan kode xixaxxuxa di bagian bawah v26. Diterapkan: footer "CREATED BY @xixaxxuxa" (link ke https://x.com/xixaxxuxa, target _blank, rel noopener, gaya pixel cyan + garis bawah pink, hover kuning) dan di ID Card "CREATOR: @xixaxxuxa" di atas baris UNOFFICIAL DATA. Saran: jangan tambah alamat wallet di kredit, dan jangan klaim afiliasi resmi — cukup nama + link X.

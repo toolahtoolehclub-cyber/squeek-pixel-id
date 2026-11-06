@@ -1,32 +1,33 @@
 # Squeekchain v26 FIX
 
-Rhythm game pixel cyberpunk — buat anthem dari wallet (read-only, tanpa koneksi wallet, tanpa transaksi), main 3 lane, kumpulkan XP, Daily Anthem, misi harian, dan ID Card.
+A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only, no wallet connection, no transactions), play 3 lanes, earn XP, play the Daily Anthem, complete daily missions, and generate your ID Card.
 
-Dibuat oleh [@xixaxxuxa](https://x.com/xixaxxuxa)
+Created by [@xixaxxuxa](https://x.com/xixaxxuxa) — Made in Indonesia.
 
-## Main
+## Play
 
-Buka `index.html` di browser (atau serve folder ini), ketuk **▶ SERU 128 BPM** atau **▶ SANTAI 100 BPM**, masukkan alamat wallet `0x...`, lalu **INITIALIZE RHYTHM**.
+Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** or **▶ CALM 100 BPM**, enter a wallet address `0x...`, then **INITIALIZE RHYTHM**.
 
-- **Daily Anthem** — lagu yang sama untuk semua orang di hari yang sama (genre + difficulty sama), streak harian
-- **XP & level** — LV1–LV8, avatar berevolusi (kacamata, topi, mahkota emas)
-- **Misi harian** — 3 misi acak per hari, +25 XP per misi
-- **Mastery** — 10 game terakhir per wallet
-- **Duel Link** — bagikan `?challenge=...` supaya teman main lagu yang sama
-- **Musik pembuka 2 mode** — SERU 128 BPM / SANTAI 100 BPM, ganti dengan 1 ketuk di menu
-- **Background bergerak** — grid + orb + sweep (tetap jalan walau WebGL mati), QLTY ULTRA/HEMAT
+- **Daily Anthem** — the same song for everyone on the same day (same genre + difficulty), with a daily streak
+- **XP & levels** — LV1–LV8, your avatar evolves (glasses, hat, golden crown)
+- **Daily missions** — 3 random missions per day, +25 XP each
+- **Mastery** — your last 10 games per wallet
+- **Duel Link** — share `?challenge=...` so a friend plays the exact same song
+- **Opening music, 2 modes** — HYPE 128 BPM / CALM 100 BPM, switch with 1 tap in the menu
+- **Moving background** — grid + orbs + sweep (still moves even if WebGL fails), QLTY ULTRA/ECO
+- **Live Squeekchain API** — the ID Card shows the live hamster-wheel status and distance from `api.squeekchain.com/v1/status`, plus your Sepolia token balance (read-only)
 
-## File
+## Files
 
-- `index.html` — halaman utama
-- `style.css` — gaya pixel / CRT
-- `script.js` — game, musik, Daily, XP, misi, ID Card
-- `AUDIT-v26-FIX.md` — catatan perbaikan v25 → v26
-- `squeekchain-v26-single.html` — versi single-file (CSS + JS di-inline)
+- `index.html` — main page
+- `style.css` — pixel / CRT styling
+- `script.js` — game, music, Daily, XP, missions, ID Card
+- `AUDIT-v26-FIX.md` — notes on the v25 → v26 fixes
+- `squeekchain-v26-single.html` — single-file build (CSS + JS inlined)
 
-## Catatan
+## Notes
 
-- UNOFFICIAL. Data on-chain dibaca read-only (token Sepolia, bukan BNB mainnet).
-- Tidak ada transaksi, tidak ada koneksi wallet, tidak ada seed/private key — jangan pernah masukkan seed.
-- Semua skor, XP, streak, dan misi tersimpan 100% di `localStorage` browser.
-- Suara baru berbunyi setelah ketukan pertama (aturan autoplay browser).
+- UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet).
+- No transactions, no wallet connection, no seed/private key — never enter a seed.
+- All scores, XP, streaks, and missions are stored 100% in the browser's `localStorage`.
+- Sound only starts after your first tap (browser autoplay rule).

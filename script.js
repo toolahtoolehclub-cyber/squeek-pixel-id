@@ -31,12 +31,12 @@ function totalXP(w) { return loadJSON('sqk24:xp:' + walletKey(w), 0) | 0; }
 function levelFor(xp) { let lv = 1; for (let i = 0; i < XP_LEVELS.length; i++) if (xp >= XP_LEVELS[i]) lv = i + 1; return lv; }
 
 const MISSION_POOL = [
-  { id: 'acc95', text: 'Akurasi >= 95%', check: r => r.acc >= 95 },
+  { id: 'acc95', text: 'Accuracy >= 95%', check: r => r.acc >= 95 },
   { id: 'combo50', text: 'Combo >= 50', check: r => r.maxCombo >= 50 },
-  { id: 'miss0', text: '0 Miss dalam satu lagu', check: r => r.miss === 0 },
-  { id: 'score5000', text: 'Skor >= 5000', check: r => r.score >= 5000 },
+  { id: 'miss0', text: '0 Miss in one song', check: r => r.miss === 0 },
+  { id: 'score5000', text: 'Score >= 5000', check: r => r.score >= 5000 },
   { id: 'perfect30', text: 'Perfect >= 30', check: r => r.perfect >= 30 },
-  { id: 'hard', text: 'Selesaikan satu lagu di HARD', check: r => r.diff === 'hard' },
+  { id: 'hard', text: 'Finish one song on HARD', check: r => r.diff === 'hard' },
 ];
 function dailyMissions(dateStr) {
   const r = rng(cyrb53('MISSION-' + dateStr));
@@ -135,8 +135,8 @@ function initGL() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const posLoc = gl.getAttribLocation(prog, 'position'); gl.enableVertexAttribArray(posLoc); gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
     uRes = gl.getUniformLocation(prog, 'u_resolution'); uTime = gl.getUniformLocation(prog, 'u_time'); uSeed = gl.getUniformLocation(prog, 'u_seed'); uAudio = gl.getUniformLocation(prog, 'u_audio'); uGlitch = gl.getUniformLocation(prog, 'u_glitch'); uShock = gl.getUniformLocation(prog, 'u_shock'); uCombo = gl.getUniformLocation(prog, 'u_combo');
-    resizeGL(); window.addEventListener('resize', resizeGL); glRunning = true; requestAnimationFrame(renderGL); setText('glStatus', 'WEBGL: OK • QLTY: ' + quality.toUpperCase() + ' • BACKGROUND 3D BERGERAK');
-  } catch (err) { gl = null; glRunning = false; document.body.classList.add('no-gl'); setText('glStatus', 'WEBGL: GAGAL — BACKGROUND GRADIENT + GRID CSS (TETAP BERGERAK) • QLTY: ' + quality.toUpperCase()); }
+    resizeGL(); window.addEventListener('resize', resizeGL); glRunning = true; requestAnimationFrame(renderGL); setText('glStatus', 'WEBGL: OK • QLTY: ' + quality.toUpperCase() + ' • MOVING 3D BACKGROUND');
+  } catch (err) { gl = null; glRunning = false; document.body.classList.add('no-gl'); setText('glStatus', 'WEBGL: FAILED — GRADIENT BACKGROUND + CSS GRID (STILL MOVING) • QLTY: ' + quality.toUpperCase()); }
 }
 function resizeGL() { if (!gl) return; const scale = 0.66; const dpr = Math.min(1.5, window.devicePixelRatio || 1); glCanvas.width = Math.max(2, Math.floor(window.innerWidth * dpr * scale)); glCanvas.height = Math.max(2, Math.floor(window.innerHeight * dpr * scale)); gl.viewport(0, 0, glCanvas.width, glCanvas.height); }
 let lastGlFrame = 0;
@@ -156,12 +156,12 @@ function renderGL(time) {
 initGL();
 
 function setQuality(q) {
-  quality = q; const b = $('qualityBtn'); if (b) b.textContent = q === 'ultra' ? 'QLTY: ULTRA' : 'QLTY: HEMAT';
+  quality = q; const b = $('qualityBtn'); if (b) b.textContent = q === 'ultra' ? 'QLTY: ULTRA' : 'QLTY: ECO';
   document.body.classList.toggle('hemat', q === 'hemat'); // v26 FIX #7: efek terlihat walau WebGL mati — background halaman berubah jelas
   if (q === 'hemat') { glRunning = false; document.body.classList.add('no-gl'); }
   else { document.body.classList.remove('no-gl'); if (gl && !glRunning) { glRunning = true; requestAnimationFrame(renderGL); } }
-  setText('glStatus', 'WEBGL: ' + (gl ? 'OK' : 'GAGAL') + ' • QLTY: ' + q.toUpperCase() + (q === 'hemat' ? ' • BACKGROUND: GRADIENT DIAM' : ' • BACKGROUND: 3D / GRID BERGERAK'));
-  say('QLTY: ' + q.toUpperCase() + (q === 'hemat' ? ' — WebGL dimatikan, background gradient diam.' : ' — WebGL / grid bergerak.'), 'cyan');
+  setText('glStatus', 'WEBGL: ' + (gl ? 'OK' : 'FAILED') + ' • QLTY: ' + q.toUpperCase() + (q === 'hemat' ? ' • BACKGROUND: STATIC GRADIENT' : ' • BACKGROUND: 3D / MOVING GRID'));
+  say('QLTY: ' + q.toUpperCase() + (q === 'hemat' ? ' — WebGL off, static gradient background.' : ' — WebGL / moving grid.'), 'cyan');
   try { localStorage.setItem('sqk-quality', q); } catch (_) {}
 }
 try { const savedQ = localStorage.getItem('sqk-quality'); if (savedQ === 'hemat') quality = 'hemat'; } catch (_) {}
@@ -236,13 +236,12 @@ async function initAudio() {
   if (ac.state !== 'running') await ac.resume();
 }
 
-// MUSIK INTRO: 2 MODE — SANTAI 100 BPM (lembut, enak didengar terus) dan
-// SERU 128 BPM (catchy, power chord, double-kick, tapi nada tetap >=220 Hz).
-// Default SERU, karena user bilang versi lembut "masih kurang seru".
-// Ganti mode kapan saja dengan 1 ketuk — tidak perlu tebak-tebakan lagi.
+// INTRO MUSIC: 2 MODES — CALM 100 BPM (soft, pleasant to loop) and
+// HYPE 128 BPM (catchy, power chord, double-kick, all notes >=220 Hz).
+// Default HYPE. Switch modes anytime with 1 tap.
 const INTRO_MODES = {
-  santai: { bpm: 100, lead: [72, 76, 79, 81, 79, 76, 72, 76, 74, 77, 81, 84, 81, 77, 74, 77], bass: [48, 48, 45, 43, 48, 48, 45, 43, 48, 48, 45, 43, 41, 43, 45, 48], leadType: 'triangle', leadVol: 0.10, bassType: 'triangle', bassVol: 0.20, kickSteps: [0, 8], snare: false, hatVol: 0.02, pad: true, label: 'SANTAI 100 BPM' },
-  seru: { bpm: 128, lead: [72, 79, 76, 81, 79, 76, 74, 79, 72, 79, 81, 84, 81, 79, 76, 74], bass: [48, 48, 45, 43, 48, 48, 50, 43, 48, 48, 45, 43, 41, 43, 45, 48], leadType: 'square', leadVol: 0.12, bassType: 'sawtooth', bassVol: 0.22, kickSteps: [0, 4, 8, 12, 14], snare: true, hatVol: 0.04, pad: false, label: 'SERU 128 BPM' }
+  santai: { bpm: 100, lead: [72, 76, 79, 81, 79, 76, 72, 76, 74, 77, 81, 84, 81, 77, 74, 77], bass: [48, 48, 45, 43, 48, 48, 45, 43, 48, 48, 45, 43, 41, 43, 45, 48], leadType: 'triangle', leadVol: 0.10, bassType: 'triangle', bassVol: 0.20, kickSteps: [0, 8], snare: false, hatVol: 0.02, pad: true, label: 'CALM 100 BPM' },
+  seru: { bpm: 128, lead: [72, 79, 76, 81, 79, 76, 74, 79, 72, 79, 81, 84, 81, 79, 76, 74], bass: [48, 48, 45, 43, 48, 48, 50, 43, 48, 48, 45, 43, 41, 43, 45, 48], leadType: 'square', leadVol: 0.12, bassType: 'sawtooth', bassVol: 0.22, kickSteps: [0, 4, 8, 12, 14], snare: true, hatVol: 0.04, pad: false, label: 'HYPE 128 BPM' }
 };
 let introMode = 'seru';
 let introStep = 0, introNextTime = 0;
@@ -262,11 +261,11 @@ function scheduleIntro() {
         introStep++; introNextTime += stepDur;
     }
 }
-function updateMusicModeBtn() { const b = $('musicModeBtn'); if (b) b.textContent = 'MUSIK: ' + introCfg().label + ' — KETUK UNTUK ' + (introMode === 'seru' ? 'SANTAI' : 'SERU'); }
+function updateMusicModeBtn() { const b = $('musicModeBtn'); if (b) b.textContent = 'MUSIC: ' + introCfg().label + ' — TAP FOR ' + (introMode === 'seru' ? 'CALM' : 'HYPE'); }
 function setIntroMode(m) {
     introMode = m; updateMusicModeBtn();
     if (introInterval) { stopIntroMusic(); if (ac && ac.state === 'running' && !muted) playIntroMusic(); }
-    if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('MUSIK: ' + introCfg().label + ' • KETUK MUTE UNTUK MATI.', 'green');
+    if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('MUSIC: ' + introCfg().label + ' • TAP MUTE TO SILENCE.', 'green');
 }
 function playIntroMusic() {
     if (!ac || muted) return;
@@ -275,7 +274,7 @@ function playIntroMusic() {
     introStep = 0; introNextTime = ac.currentTime + 0.05;
     introInterval = setInterval(scheduleIntro, 40);
     updateMusicModeBtn();
-    if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('INTRO: ON — ' + introCfg().label + ' • KETUK MUTE UNTUK MATI.', 'green');
+    if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('INTRO: ON — ' + introCfg().label + ' • TAP MUTE TO SILENCE.', 'green');
 }
 
 function stopIntroMusic() {
@@ -306,7 +305,7 @@ async function startMusicFromTap(mode) {
     try { await initAudio(); } catch (_) {}
     hideMusicSplash(); updateMusicModeBtn();
     if (ac && ac.state === 'running') playIntroMusic();
-    else if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('AUDIO: ' + (ac ? ac.state : 'TIDAK ADA') + ' — KETUK LAGI UNTUK MUSIK.', 'pink');
+    else if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('AUDIO: ' + (ac ? ac.state : 'NONE') + ' — TAP AGAIN FOR MUSIC.', 'pink');
 }
 window.addEventListener('pointerdown', () => { startMusicFromTap(); }, {once: true});
 bindClick('startMusicBtn', () => { startMusicFromTap('seru'); });
@@ -328,11 +327,11 @@ function saveBest(w, rec) { try { localStorage.setItem('sqk20:' + (w || 'GUEST')
 const songTime = () => ac ? ac.currentTime - G.start : 0;
 
 async function play() {
-  if (G && !G.ended) return say('GAME SUDAH BERJALAN.', 'cyan');
+  if (G && !G.ended) return say('GAME ALREADY RUNNING.', 'cyan');
   const w = $('walletInput').value.trim();
   if (w && !isAddr(w)) { $('walletInput').classList.add('invalid'); return say('INVALID WALLET ADDRESS.', 'pink'); }
   $('walletInput').classList.remove('invalid');
-  try { await initAudio(); stopIntroMusic(); } catch (e) { return say('AUDIO GAGAL: ' + String(e.message || e).slice(0, 60), 'pink'); }
+  try { await initAudio(); stopIntroMusic(); } catch (e) { return say('AUDIO FAILED: ' + String(e.message || e).slice(0, 60), 'pink'); }
   const seedKey = seedKeyFor(playMode);
   anthem = makeAnthem(w, false, seedKey); lastAnthem = anthem; hitOffsets = []; CONFIG.SPEED = DIFFICULTIES[currentDiff].speed; applyHue(anthem.hue);
   glSeed = w ? Math.abs(cyrb53(w) % 1000) / 100 : Math.random() * 10;
@@ -462,10 +461,10 @@ function finish() {
     const sk = 'sqk24:streak:' + walletKey(G.wallet);
     const st = loadJSON(sk, { last: null, count: 0 });
     if (st.last !== todayStr()) { st.count = st.last === yesterdayStr() ? st.count + 1 : 1; st.last = todayStr(); saveJSON(sk, st); }
-    streakTxt = ` • STREAK ${st.count} HARI`;
+    streakTxt = ` • STREAK ${st.count} DAYS`;
   }
   const xpEl = $('xpMsg');
-  if (xpEl) xpEl.textContent = `+${xpGain} XP • LV ${lvBefore} -> LV ${lvAfter}${lvAfter > lvBefore ? ' — LEVEL UP! AVATAR BEREVOLUSI' : ''} • TOTAL ${xpAfter} XP${streakTxt}`;
+  if (xpEl) xpEl.textContent = `+${xpGain} XP • LV ${lvBefore} -> LV ${lvAfter}${lvAfter > lvBefore ? ' — LEVEL UP! AVATAR EVOLVED' : ''} • TOTAL ${xpAfter} XP${streakTxt}`;
   const mr = $('missionResult');
   if (mr) mr.innerHTML = missions.map(m => `<div class="mission${doneBefore.concat(newlyDone).includes(m.id) ? ' done' : ''}">${m.text}</div>`).join('');
   renderDailyBox(); renderMastery(); renderAvatarPreview(G.wallet);
@@ -586,7 +585,7 @@ async function generateCard() {
 
 const cardBlob = () => new Promise(r => { try { $('card-canvas').toBlob(r, 'image/png'); } catch { r(null); } });
 async function download() {
-  const b = await cardBlob(); if (!b) return say('DOWNLOAD GAGAL: canvas kosong.', 'pink');
+  const b = await cardBlob(); if (!b) return say('DOWNLOAD FAILED: empty canvas.', 'pink');
   const u = URL.createObjectURL(b), a = document.createElement('a');
   a.href = u; a.download = 'squeek-id.png'; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(u), 1000);
@@ -620,7 +619,7 @@ function renderAvatarPreview(w) {
   const lv = levelFor(totalXP(w));
   avatar(ctx, w, 0, 0, 8, lv);
   const ll = $('levelLabel');
-  if (ll) { const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 }); ll.textContent = `LV ${lv} • ${totalXP(w)} XP${st.count ? ' • STREAK ' + st.count + ' HARI' : ''}`; }
+  if (ll) { const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 }); ll.textContent = `LV ${lv} • ${totalXP(w)} XP${st.count ? ' • STREAK ' + st.count + ' DAYS' : ''}`; }
   wrap.classList.remove('hidden');
   startPreviewSpin(w); // v26 FIX #4: putaran di DALAM canvas (scaleX = cos), kotaknya diam, teks tidak gepeng
   const h = $('anthemHash');
@@ -676,7 +675,7 @@ function renderDailyBox() {
   box.classList.toggle('hidden', !isDaily);
   if (!isDaily) return;
   const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 });
-  const sl = $('streakLine'); if (sl) sl.textContent = `STREAK: ${st.count} HARI — main Daily tiap hari untuk menjaga api tetap hidup.`;
+  const sl = $('streakLine'); if (sl) sl.textContent = `STREAK: ${st.count} DAYS — play Daily every day to keep the flame alive.`;
   const dt = $('dailyTitle'); if (dt) dt.textContent = 'DAILY ANTHEM — ' + todayStr();
   const done = loadJSON(missionsDoneKey(w), []);
   const ml = $('missionList');
@@ -687,7 +686,7 @@ function renderMastery() {
   const hist = loadJSON('sqk24:hist:' + walletKey(w), []);
   const bars = $('historyBars'), stats = $('masteryStats');
   if (!bars || !stats) return;
-  if (!hist.length) { bars.innerHTML = ''; stats.textContent = 'Belum ada game tercatat di browser ini.'; return; }
+  if (!hist.length) { bars.innerHTML = ''; stats.textContent = 'No games recorded in this browser yet.'; return; }
   const max = Math.max.apply(null, hist.map(h => h.score).concat([1]));
   const best = Math.max.apply(null, hist.map(h => h.score));
   bars.innerHTML = hist.map(h => `<i style="height:${Math.max(6, Math.round(h.score / max * 100))}%" title="${h.score} • ${h.acc}%"></i>`).join('');
@@ -696,7 +695,7 @@ function renderMastery() {
   const avgOff = avgOffs.length ? Math.round(avgOffs.reduce((s, h) => s + h.avgOff, 0) / avgOffs.length) : null;
   const bestBy = {};
   hist.forEach(h => { const k = h.genre + '/' + h.diff; if (!bestBy[k] || h.score > bestBy[k]) bestBy[k] = h.score; });
-  stats.textContent = `GAME: ${hist.length} • BEST: ${best} • RATA-RATA AKURASI: ${avgAcc}%` +
+  stats.textContent = `GAMES: ${hist.length} • BEST: ${best} • AVG ACCURACY: ${avgAcc}%` +
     (avgOff !== null ? ` • AVG OFFSET: ${avgOff > 0 ? '+' : ''}${avgOff} ms` : '') +
     ' • BEST PER GENRE/DIFF: ' + Object.entries(bestBy).map(([k, v]) => `${k} ${v}`).join(', ');
 }
@@ -704,17 +703,17 @@ function setMode(m) {
   playMode = m;
   document.querySelectorAll('#modeRow .btn-diff').forEach(x => { const on = x.dataset.mode === m; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); });
   renderDailyBox(); preview();
-  if (m === 'daily') { say('DAILY AKTIF — ' + todayStr() + ' • LAGU HARI INI SAMA UNTUK SEMUA ORANG (GENRE/DIFF SAMA).', 'yellow'); const db = $('dailyBox'); if (db) db.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  if (m === 'daily') { say('DAILY ACTIVE — ' + todayStr() + ' • TODAY\'S SONG IS THE SAME FOR EVERYONE (SAME GENRE/DIFF).', 'yellow'); const db = $('dailyBox'); if (db) db.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 }
 function duelLink() { if (!G || !G.seedKey) return null; const base = location.href.split('?')[0]; return `${base}?challenge=${encodeURIComponent(G.seedKey)}&genre=${G.genre}&diff=${G.diff}`; }
 async function shareDuel() {
   // v26 FIX #6: feedback ditulis ke #duelMsg / #duelOut DI DALAM resultPanel — bukan ke #message di mainPanel yang tersembunyi
   const link = duelLink();
   const dm = $('duelMsg'), out = $('duelOut');
-  if (!link) { if (dm) dm.textContent = 'MAIN DULU SATU LAGU, BARU DUEL BISA DIBAGIKAN.'; return; }
+  if (!link) { if (dm) dm.textContent = 'PLAY ONE SONG FIRST, THEN DUEL CAN BE SHARED.'; return; }
   if (out) out.value = link;
-  try { await navigator.clipboard.writeText(link); if (dm) dm.textContent = 'DUEL LINK TERSALIN — KIRIM KE TEMAN, MEREKA MAIN LAGU YANG SAMA PERSIS.'; }
-  catch (e) { if (dm) dm.textContent = 'CLIPBOARD DIBLOKIR — LINK ADA DI KOTAK DI BAWAH, COPY MANUAL.'; }
+  try { await navigator.clipboard.writeText(link); if (dm) dm.textContent = 'DUEL LINK COPIED — SEND IT TO A FRIEND, THEY PLAY THE EXACT SAME SONG.'; }
+  catch (e) { if (dm) dm.textContent = 'CLIPBOARD BLOCKED — THE LINK IS IN THE BOX BELOW, COPY IT MANUALLY.'; }
   if (out) { out.focus(); out.select(); }
 }
 document.querySelectorAll('#modeRow .btn-diff').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
