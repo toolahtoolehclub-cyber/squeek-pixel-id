@@ -3,85 +3,141 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a0514">
-<title>Squeekchain Pixel ID v9</title>
+<meta name="theme-color" content="#05020a">
+<title>Squeekchain Pixel ID v10</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap');
-:root{
-    /* Warna disesuaikan untuk kontras lebih baik (WCAG) */
-    --bg:#0a0514; --panel:#1a1130; 
-    --green:#39ff14; --blue:#00ffff; --red:#ff365f; --yellow:#fcee0a; 
-    --text:#f0f0f0; --muted:#c0b0d0; /* Abu-abu dinaikkan kontrasnya */
-    --border:#4a2c82;
+
+:root {
+    --bg-dark: #05020a;
+    --panel-glass: rgba(26, 17, 48, 0.65);
+    --green: #39ff14; 
+    --blue: #00ffff; 
+    --red: #ff365f; 
+    --yellow: #fcee0a; 
+    --text: #f0f0f0; 
+    --border: rgba(74, 44, 130, 0.8);
 }
-*{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
-body{
-    margin:0; min-height:100vh; padding:18px; background-color:var(--bg);
-    color:var(--text); font-family:'Space Mono',monospace;
-    display:flex; align-items:center; flex-direction:column;
-    user-select: none; /* Mencegah text-selection drag */
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+    margin: 0; min-height: 100vh; padding: 20px;
+    background: radial-gradient(circle at 50% 0%, #150a2b 0%, var(--bg-dark) 70%);
+    background-attachment: fixed;
+    color: var(--text); font-family: 'Space Mono', monospace;
+    display: flex; align-items: center; flex-direction: column;
+    user-select: none;
 }
-h1{font:16px/1.8 'Press Start 2P',cursive; color:var(--green); text-align:center; text-shadow:0 0 14px #39ff1480; margin:8px 0 18px}
-.container{width:100%; max-width:440px; display:flex; flex-direction:column; gap:14px}
-.panel{background:var(--panel); border:2px solid var(--border); border-radius:13px; padding:16px; box-shadow:0 8px 28px #0009}
-.stack{display:flex; flex-direction:column; gap:10px}
-button{
-    width:100%; border:0; border-radius:8px; padding:13px 10px; background:var(--blue); 
-    color:#000; font:700 13px 'Space Mono',monospace; text-transform:uppercase; cursor:pointer;
+
+@keyframes neonPulse {
+    0%, 100% { text-shadow: 0 0 10px rgba(57,255,20,0.5), 0 0 20px rgba(57,255,20,0.3); }
+    50% { text-shadow: 0 0 15px rgba(57,255,20,0.8), 0 0 30px rgba(57,255,20,0.5); }
 }
-button:active{transform:translateY(1px)}
-button.secondary{background:transparent; border:1px solid var(--blue); color:var(--blue)}
-button.success{background:var(--green)}
-button.danger{background:transparent; border:1px solid var(--red); color:var(--red)}
-button:disabled{opacity:.45; cursor:not-allowed}
-label{font-size:11px; color:var(--blue)}
-input{width:100%; padding:12px; border-radius:8px; border:1px solid var(--border); background:#080510; color:var(--green); font:12px 'Space Mono',monospace}
-#message{min-height:22px; text-align:center; color:var(--yellow); font-size:11px; line-height:1.5}
-.status{padding:9px; border:1px solid var(--border); border-radius:8px; font-size:10px; line-height:1.6}
-.status.good{border-color:#287b35; color:#a8ff9c}.status.warn{border-color:#927b19; color:#fff09a}.status.bad{border-color:#8d2941; color:#ff9eaf}
-#gamePanel{display:none}
-canvas{display:block; width:100%; height:auto; background:#080510; border-radius:9px}
-#gameCanvas{border:2px solid var(--border); touch-action:none; /* touch-action none krusial */ }
-#cardCanvas{max-width:320px; margin:12px auto 0; border:2px solid var(--blue)}
-.stats{display:grid; grid-template-columns:repeat(3,1fr); gap:7px}
-.stat{padding:8px 4px; background:#0b0715; border:1px solid var(--border); border-radius:7px; text-align:center}
-.stat b{display:block; color:var(--green); font-size:14px}.stat span{font-size:9px; color:var(--muted)}
-#cardArea{display:none; text-align:center}
+
+h1 {
+    font: 18px/1.6 'Press Start 2P', cursive; 
+    color: var(--green); text-align: center; 
+    margin: 10px 0 25px;
+    animation: neonPulse 2s infinite ease-in-out;
+}
+
+.container { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 20px; }
+
+/* Implementasi Glassmorphism */
+.panel {
+    background: var(--panel-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border); 
+    border-radius: 16px; 
+    padding: 24px; 
+    box-shadow: 0 10px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.stack { display: flex; flex-direction: column; gap: 12px; }
+
+button {
+    width: 100%; border: none; border-radius: 10px; padding: 15px; 
+    background: var(--blue); color: #000; 
+    font: 700 13px 'Space Mono', monospace; text-transform: uppercase; 
+    cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
+button:active:not(:disabled) { transform: translateY(1px); }
+button.secondary { background: rgba(0,255,255,0.1); border: 1px solid var(--blue); color: var(--blue); box-shadow: none; }
+button.secondary:hover { background: rgba(0,255,255,0.2); }
+button.success { background: var(--green); box-shadow: 0 0 10px rgba(57, 255, 20, 0.3); }
+button.success:hover { box-shadow: 0 0 20px rgba(57, 255, 20, 0.6); }
+button.danger { background: rgba(255,54,95,0.1); border: 1px solid var(--red); color: var(--red); box-shadow: none; }
+button.danger:hover { background: rgba(255,54,95,0.2); box-shadow: 0 0 15px rgba(255,54,95,0.4); }
+
+input {
+    width: 100%; padding: 14px; border-radius: 10px; 
+    border: 1px solid var(--border); background: rgba(0,0,0,0.5); 
+    color: var(--green); font: 14px 'Space Mono', monospace;
+    transition: border-color 0.3s;
+}
+input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 10px rgba(0,255,255,0.2); }
+
+.status {
+    padding: 10px; border-radius: 10px; font-size: 11px; text-align: center;
+    background: rgba(0,0,0,0.4); border-left: 4px solid var(--border);
+}
+.status.good { border-left-color: var(--green); color: #a8ff9c; }
+.status.warn { border-left-color: var(--yellow); color: #fff09a; }
+.status.bad { border-left-color: var(--red); color: #ff9eaf; }
+
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+.stat {
+    padding: 12px 6px; background: rgba(0,0,0,0.4); 
+    border: 1px solid var(--border); border-radius: 12px; text-align: center;
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+}
+.stat b { display: block; color: var(--green); font-size: 18px; margin-bottom: 4px; text-shadow: 0 0 8px rgba(57,255,20,0.4); }
+.stat span { font-size: 9px; color: #a090b0; letter-spacing: 1px; }
+
+canvas { display: block; width: 100%; height: auto; border-radius: 12px; }
+#gameCanvas { border: 2px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.8); touch-action: none; }
+#cardCanvas { border: 2px solid var(--blue); box-shadow: 0 0 20px rgba(0, 255, 255, 0.2); margin-top: 15px; }
+#message { min-height: 20px; text-align: center; color: var(--yellow); font-size: 11px; margin: 10px 0; }
+#cardArea { display: none; text-align: center; }
+#gamePanel { display: none; }
 </style>
 </head>
 <body>
 
-<h1>SQUEEKCHAIN<br>PIXEL ID v9</h1>
+<h1>SQUEEKCHAIN<br>PIXEL ID v10</h1>
 
 <div class="container">
   <section class="panel" id="mainPanel">
     <div class="stack">
-      <button class="success" id="practiceBtn">Main Game — Practice 120 BPM</button>
+      <button class="success" id="practiceBtn">Main Game — Practice</button>
       <button id="liveBtn">Main Game — API Tempo</button>
     </div>
-    <hr style="border:0; border-top:1px solid var(--border); margin:13px 0;">
+    <div style="border-top: 1px solid var(--border); margin: 20px 0;"></div>
     <div class="stack">
-      <label for="walletInput">Wallet address (opsional)</label>
+      <label style="font-size: 12px; color: var(--blue);">Wallet address (opsional)</label>
       <input id="walletInput" type="text" autocomplete="off" spellcheck="false" maxlength="42" placeholder="0x...">
       <button class="secondary" id="generateBtn">Generate ID Card</button>
     </div>
-    <!-- ARIA-LIVE untuk aksesibilitas screen reader -->
     <p id="message" role="status" aria-live="polite">Pilih mode permainan atau masukkan wallet.</p>
     <div id="cardArea">
-      <canvas id="cardCanvas"></canvas> <!-- Ukuran diatur JS -->
-      <button class="success" id="downloadBtn" style="margin-top:10px">Unduh PNG</button>
+      <canvas id="cardCanvas"></canvas>
+      <button class="success" id="downloadBtn" style="margin-top:15px">Unduh PNG</button>
     </div>
   </section>
 
   <section class="panel" id="gamePanel">
-    <div class="stats" style="margin-bottom:10px">
+    <div class="stats">
       <div class="stat"><b id="scoreValue">0</b><span>SKOR</span></div>
       <div class="stat"><b id="comboValue">0</b><span>COMBO</span></div>
       <div class="stat"><b id="bpmValue">120</b><span>BPM</span></div>
     </div>
-    <div id="liveStatus" class="status warn" style="margin-bottom:10px" role="status" aria-live="polite">Practice mode</div>
+    <div id="liveStatus" class="status warn" style="margin-bottom:15px" role="status" aria-live="polite">Practice mode</div>
     <canvas id="gameCanvas"></canvas>
-    <p class="muted" style="text-align:center; font-size:10px;">Ketuk lane saat balok mendekati garis hijau.</p>
+    <p style="text-align:center; font-size:10px; color:#a090b0; margin: 15px 0;">Ketuk lane saat balok mendekati garis hijau.</p>
     <button class="danger" id="stopBtn">Berhenti</button>
   </section>
 </div>
@@ -112,7 +168,7 @@ const state = {
   mode: 'practice', active: false, score: 0, combo: 0, maxCombo: 0, perfect: 0, good: 0, miss: 0,
   notes: [], bpm: CONFIG.PRACTICE_BPM, spawnAccumulator: 0, lastFrameTime: 0, 
   rafId: null, liveTimer: null, liveBusy: false, audioCtx: null, gameSession: 0,
-  activePointers: new Set() // Untuk multi-touch tracking
+  activePointers: new Set()
 };
 
 const gameCanvas = $('gameCanvas');
@@ -120,7 +176,7 @@ const ctx = gameCanvas.getContext('2d');
 const cardCanvas = $('cardCanvas');
 const cardCtx = cardCanvas.getContext('2d');
 
-// ====== FIX 1: DYNAMIC CANVAS SCALING (DPR) ======
+// ====== CANVAS DPR SETUP ======
 function setupCanvas(canvas, ctx, width, height) {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = width * dpr;
@@ -129,7 +185,6 @@ function setupCanvas(canvas, ctx, width, height) {
     canvas.style.height = height + 'px';
     ctx.scale(dpr, dpr);
 }
-
 const GAME_W = 320, GAME_H = 480;
 const CARD_W = 320, CARD_H = 460;
 setupCanvas(gameCanvas, ctx, GAME_W, GAME_H);
@@ -147,20 +202,15 @@ async function timeoutFetch(url, options={}, timeoutMs=8000) {
   return fetch(url, {...options, signal: controller.signal}).finally(() => clearTimeout(timer));
 }
 
-// ====== FIX 2: AUDIO BUFFER & SUSPENDED CHECK ======
+// ====== AUDIO ======
 async function initAudio() {
   if (state.audioCtx) return;
   try {
     const AudioCtor = window.AudioContext || window.webkitAudioContext;
     state.audioCtx = new AudioCtor();
-    // Wajib resume untuk iOS Safari
-    if (state.audioCtx.state === 'suspended') {
-        await state.audioCtx.resume();
-    }
+    if (state.audioCtx.state === 'suspended') await state.audioCtx.resume();
   } catch { state.audioCtx = null; }
 }
-
-// Menggunakan Buffer untuk mencegah GC spike
 function playBeep(freq=440, duration=0.05, vol=0.1) {
   if (!state.audioCtx || state.audioCtx.state !== 'running') return;
   const osc = state.audioCtx.createOscillator();
@@ -173,22 +223,20 @@ function playBeep(freq=440, duration=0.05, vol=0.1) {
   osc.onended = () => { osc.disconnect(); gain.disconnect(); };
 }
 
-// ====== FIX 3: WEB3 PRECISION (BIGINT -> STRING) ======
+// ====== WEB3 & API ======
 function formatUnits(rawBigInt, decimals) {
     const d = BigInt(decimals);
     if (d === 0n) return rawBigInt.toString();
     const scale = 10n ** d;
     const whole = rawBigInt / scale;
     const fraction = rawBigInt % scale;
-    let digits = fraction.toString().padStart(Number(d), '0');
-    digits = digits.slice(0, 2).padEnd(2, '0'); // Ambil 2 desimal
+    let digits = fraction.toString().padStart(Number(d), '0').slice(0, 2).padEnd(2, '0');
     return `${whole}.${digits}`;
 }
 
 async function fetchTokenBalance(wallet) {
-    if (!CONFIG.TOKEN_CONTRACT_VERIFIED) return { ok: false, status: 'CONTRACT_NOT_VERIFIED' };
+    if (!CONFIG.TOKEN_CONTRACT_VERIFIED) return { ok: false, status: 'NOT VERIFIED' };
     try {
-        // Implementasi lengkap dengan cek ChainId & Bytecode (disederhanakan untuk ruang)
         const data = '0x70a08231' + wallet.slice(2).toLowerCase().padStart(64, '0');
         const res = await timeoutFetch(CONFIG.RPC_URL, {
             method: 'POST', headers: {'content-type':'application/json'},
@@ -197,12 +245,8 @@ async function fetchTokenBalance(wallet) {
         if (res.status === 429) return { ok: false, status: 'RATE_LIMITED' };
         const json = await res.json();
         if (!json.result || json.result === '0x') throw new Error('No result');
-        
-        const raw = BigInt(json.result);
-        return { ok: true, status: 'SUCCESS', formatted: formatUnits(raw, 18) };
-    } catch (e) {
-        return { ok: false, status: 'RPC_ERROR' };
-    }
+        return { ok: true, status: 'SUCCESS', formatted: formatUnits(BigInt(json.result), 18) };
+    } catch (e) { return { ok: false, status: 'RPC_ERROR' }; }
 }
 
 async function fetchWheelData() {
@@ -223,13 +267,12 @@ async function fetchWheelData() {
         rpm: Number(m.rpmMilli)/1000, 
         distanceMm: Number(m.distanceMm), 
         coreStatus: m.coreStatus, 
-        ageSeconds, 
-        stale
+        ageSeconds, stale
     };
   } catch { return {ok:false, status:'FETCH_ERROR'}; }
 }
 
-// ====== GAME ENGINE ======
+// ====== GAME ENGINE (FIXED BUGS) ======
 function stopLoop() { if (state.rafId) cancelAnimationFrame(state.rafId); state.rafId = null; }
 function stopLivePolling() { if (state.liveTimer) clearInterval(state.liveTimer); state.liveTimer = null; }
 
@@ -275,27 +318,42 @@ function gameLoop(now) {
   let dt = (now - state.lastFrameTime) / 1000;
   state.lastFrameTime = now;
   if (!Number.isFinite(dt) || dt < 0) dt = 0;
-  dt = Math.min(dt, 0.05); // Batasi dt jika tab di-background
+  dt = Math.min(dt, 0.05);
 
   const interval = 60 / Math.max(1, state.bpm);
   state.spawnAccumulator += dt;
   while (state.spawnAccumulator >= interval) {
     const lanes = [53, 160, 267];
     state.notes.push({ x: lanes[Math.floor(Math.random() * 3)], y: -24, hit: false, missed: false });
-    playBeep(400, 0.04, 0.02); // Metronome tick
+    playBeep(400, 0.04, 0.02);
     state.spawnAccumulator -= interval;
   }
 
+  // Logika Update & Clear Note
   for (let i = state.notes.length - 1; i >= 0; i--) {
     const note = state.notes[i];
-    if (!note.hit && !note.missed) {
-      note.y += CONFIG.NOTE_SPEED * dt;
-      if (note.y + 20 > CONFIG.TARGET_Y + CONFIG.HIT_WINDOW_PX) {
-        note.missed = true; state.combo = 0; state.miss++;
-        playBeep(180, 0.12, 0.045);
-      }
+    
+    // Jika note sudah di-hit, langsung hapus dari array
+    if (note.hit) {
+        state.notes.splice(i, 1);
+        continue;
     }
-    if (note.hit || note.y > GAME_H + 20) state.notes.splice(i, 1);
+    
+    // Update posisi
+    note.y += CONFIG.NOTE_SPEED * dt;
+    
+    // Cek miss
+    if (!note.missed && note.y + 20 > CONFIG.TARGET_Y + CONFIG.HIT_WINDOW_PX) {
+        note.missed = true; 
+        state.combo = 0; 
+        state.miss++;
+        playBeep(180, 0.12, 0.045);
+    }
+    
+    // Hapus note yang sudah lewat batas bawah layar (agar warna merah hilang)
+    if (note.y > GAME_H) {
+        state.notes.splice(i, 1);
+    }
   }
 
   drawGame();
@@ -305,22 +363,17 @@ function gameLoop(now) {
 
 function drawGame() {
   ctx.clearRect(0, 0, GAME_W, GAME_H);
-  ctx.fillStyle = '#0a0514'; ctx.fillRect(0, 0, GAME_W, GAME_H);
+  ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, GAME_W, GAME_H);
 
-  // Garis Lanes
   ctx.strokeStyle = '#30204d'; ctx.lineWidth = 2;
   [106, 213].forEach(x => { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GAME_H); ctx.stroke(); });
 
-  // Garis Target (Gunakan Math.round untuk mencegah anti-aliasing blur)
   const targetY = Math.round(CONFIG.TARGET_Y);
   ctx.fillStyle = 'rgba(57,255,20,.20)'; ctx.fillRect(0, targetY, GAME_W, 22);
   ctx.fillStyle = '#39ff14'; ctx.fillRect(0, targetY, GAME_W, 3);
 
-  // Notes
   for (const note of state.notes) {
-    if (note.hit) continue;
     ctx.fillStyle = note.missed ? '#ff365f' : '#00ffff';
-    // FIX 4: SANITASI PIKEL (Math.round)
     ctx.fillRect(Math.round(note.x - 24), Math.round(note.y), 48, 20);
   }
 }
@@ -331,16 +384,15 @@ function updateStats() {
   $('bpmValue').textContent = String(Math.round(state.bpm));
 }
 
-// ====== FIX 5: MULTI-TOUCH & POINTER CANCEL ======
 gameCanvas.addEventListener('pointerdown', (e) => {
     if (!state.active || state.activePointers.has(e.pointerId)) return;
     e.preventDefault();
     state.activePointers.add(e.pointerId);
     
-    // Abaikan jika klik di luar garis target
     const rect = gameCanvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) * (GAME_W / rect.width);
     const y = (e.clientY - rect.top) * (GAME_H / rect.height);
+    
     if (Math.abs(y - CONFIG.TARGET_Y) > 65) return;
 
     let candidate = null, bestDistance = Infinity;
@@ -351,6 +403,7 @@ gameCanvas.addEventListener('pointerdown', (e) => {
             candidate = note; bestDistance = distance;
         }
     }
+    
     if (!candidate) { state.combo = 0; updateStats(); return; }
 
     candidate.hit = true;
@@ -363,31 +416,63 @@ gameCanvas.addEventListener('pointerdown', (e) => {
     updateStats();
 });
 
-// Mencegah game macet saat OS interrupt (misal ditelepon)
-gameCanvas.addEventListener('pointercancel', (e) => {
-    state.activePointers.delete(e.pointerId);
-    if (state.active) { // Jeda game
-        state.active = false; 
-        stopLoop();
-        message("Permainan dijeda karena interupsi sistem.", "warn");
-    }
-});
 gameCanvas.addEventListener('pointerup', (e) => state.activePointers.delete(e.pointerId));
+gameCanvas.addEventListener('pointercancel', (e) => state.activePointers.delete(e.pointerId));
 
+// ====== FIX BUG TOMBOL BERHENTI ======
 function endGame() {
-  if (!state.active) return;
-  state.active = false; stopLoop(); stopLivePolling();
+  // Selalu paksa game berhenti, abaikan state.active agar tidak nyangkut
+  state.active = false; 
+  stopLoop(); 
+  stopLivePolling();
   
   const unfinished = state.notes.filter(n => !n.hit && !n.missed).length;
   const total = state.perfect + state.good + state.miss + unfinished;
   const hitRate = total ? Math.round(((state.perfect + state.good) / total) * 100) : 0;
   
   $('gamePanel').style.display = 'none';
-  $('mainPanel').style.display = 'block';
+  $('mainPanel').style.display = 'flex';
   message(`Selesai! Skor ${state.score} · Hit rate ${hitRate}% · Max Combo ${state.maxCombo}`, 'good');
 }
 
-// ====== CARD & RPC ======
+// ====== AVATAR GENERATOR (PIXEL ART) ======
+function hashString(text) {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = ((hash << 5) - hash) + text.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+}
+
+function drawAvatar(g, hash, x0, y0, s) {
+    const hue = hash % 360;
+    const fur = `hsl(${hue}, 80%, 60%)`;
+    const dark = `hsl(${hue}, 80%, 35%)`;
+    const belly = `hsl(${hue}, 60%, 85%)`;
+    
+    const px = (x, y, c) => { g.fillStyle = c; g.fillRect(x0 + x * s, y0 + y * s, s, s); };
+    const both = (x, y, c) => { px(x, y, c); px(15 - x, y, c); };
+
+    // Body
+    for (let y = 0; y < 16; y++) {
+        for (let x = 0; x < 8; x++) {
+            const dx = (x - 7.5) / 7, dy = (y - 9) / 6.2;
+            if (dx * dx + dy * dy > 1) continue;
+            let c = fur;
+            if (y > 11 && x > 2) c = belly;
+            else if (y < 10 && x < 6 && ((hash >> (x+y)) & 1)) c = dark; // Random pattern
+            both(x, y, c);
+        }
+    }
+    // Telinga
+    [[2, 2], [3, 2], [2, 3], [3, 3]].forEach(([x, y]) => both(x, y, dark));
+    // Mata
+    both(5, 8, '#000'); 
+    // Hidung
+    both(7, 10, '#ff5c9a');
+}
+
 async function generateCard() {
     const wallet = $('walletInput').value.trim();
     if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) { message('Alamat wallet tidak valid.', 'bad'); return; }
@@ -398,12 +483,18 @@ async function generateCard() {
     
     const [wheel, balance] = await Promise.all([fetchWheelData(), fetchTokenBalance(wallet)]);
     
+    // Render Card
     cardCtx.fillStyle = '#1a1130'; cardCtx.fillRect(0, 0, CARD_W, CARD_H);
     cardCtx.strokeStyle = '#00ffff'; cardCtx.lineWidth = 4; cardCtx.strokeRect(2, 2, CARD_W-4, CARD_H-4);
     
     cardCtx.textAlign = 'center'; cardCtx.fillStyle = '#00ffff'; cardCtx.font = 'bold 16px "Space Mono"';
     cardCtx.fillText('SQUEEK COMMUNITY CARD', CARD_W/2, 30);
     
+    // Gambar Avatar Pixel
+    const hash = hashString(wallet.toLowerCase());
+    cardCtx.fillStyle = '#000'; cardCtx.fillRect(CARD_W/2 - 50, 45, 100, 100);
+    drawAvatar(cardCtx, hash, CARD_W/2 - 48, 47, 6); // 16x16 grid * 6 scale = 96px
+
     const drawRow = (label, value, y, color = '#39ff14') => {
         cardCtx.textAlign = 'left'; cardCtx.fillStyle = '#c0b0d0'; cardCtx.font = '11px "Space Mono"';
         cardCtx.fillText(label, 20, y);
@@ -411,45 +502,6 @@ async function generateCard() {
         cardCtx.fillText(String(value), 20, y + 16);
     };
 
-    drawRow('WALLET', wallet.slice(0,8)+'...'+wallet.slice(-6), 60);
-    drawRow('API STATUS', wheel.ok ? wheel.status : wheel.status, 110, wheel.ok ? '#39ff14' : '#fcee0a');
-    drawRow('DISTANCE', wheel.ok ? (wheel.distanceMm/1000000).toFixed(3)+' km' : 'UNAVAILABLE', 160);
-    drawRow('WHEEL STATUS', wheel.ok ? wheel.coreStatus : 'UNKNOWN', 210);
-    drawRow('SPEED', wheel.ok ? wheel.rpm.toFixed(2)+' RPM' : 'UNAVAILABLE', 260);
-    
-    // Format SQK yang presisi (BigInt string)
-    const sqkText = balance.ok ? balance.formatted + ' SQK' : 
-                   (balance.status === 'CONTRACT_NOT_VERIFIED' ? 'NOT VERIFIED' : `ERROR (${balance.status})`);
-    drawRow('SQK BALANCE', sqkText, 310, balance.ok ? '#00ffff' : '#ff365f');
-
-    cardCtx.textAlign = 'center'; cardCtx.fillStyle = '#fcee0a'; cardCtx.font = '10px "Space Mono"';
-    cardCtx.fillText('UNOFFICIAL SNAPSHOT', CARD_W/2, 400);
-    cardCtx.fillStyle = '#c0b0d0';
-    cardCtx.fillText(new Date().toISOString().slice(0,16).replace('T',' ')+' UTC', CARD_W/2, 420);
-
-    $('cardArea').style.display = 'block';
-    message('Kartu berhasil dibuat.', 'good');
-    $('generateBtn').disabled = false;
-}
-
-function downloadCard() {
-    try {
-        const link = document.createElement('a');
-        link.download = 'squeekchain-card.png';
-        link.href = cardCanvas.toDataURL('image/png');
-        link.click();
-    } catch { message('Browser tidak dapat mengekspor canvas.', 'bad'); }
-}
-
-// Event Listeners
-$('practiceBtn').addEventListener('click', () => startGame('practice'));
-$('liveBtn').addEventListener('click', () => startGame('live'));
-$('stopBtn').addEventListener('click', endGame);
-$('generateBtn').addEventListener('click', generateCard);
-$('downloadBtn').addEventListener('click', downloadCard);
-
-window.addEventListener('pagehide', () => { state.active = false; stopLoop(); stopLivePolling(); });
-drawGame(); // Init canvas kosong
-</script>
-</body>
-</html>
+    drawRow('WALLET', wallet.slice(0,8)+'...'+wallet.slice(-6), 170);
+    drawRow('API STATUS', wheel.ok ? wheel.status : wheel.status, 220, wheel.ok ? '#39ff14' : '#fcee0a');
+    drawRow('DISTANCE', wheel.ok ? (whee
