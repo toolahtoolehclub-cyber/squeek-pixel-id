@@ -6,7 +6,7 @@ const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 let muted = false;
 
 function say(t, c) { const el = $('message'); if (!el) return; el.textContent = t; el.style.color = c ? `var(--${c})` : ''; }
-function show(id) { ['mainPanel', 'gamePanel', 'resultPanel'].forEach(p => $(p).classList.toggle('hidden', p !== id)); }
+function show(id) { ['mainPanel', 'gamePanel', 'resultPanel'].forEach(p => { if($(p)) $(p).classList.toggle('hidden', p !== id); }); }
 window.addEventListener('error', (e) => { try { say('ERROR: ' + String(e.message || e.error || 'unknown').slice(0, 80), 'pink'); } catch (_) {} });
 
 // ==========================================
@@ -76,7 +76,7 @@ function initGL() {
     const posLoc = gl.getAttribLocation(prog, 'position'); gl.enableVertexAttribArray(posLoc); gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
     uRes = gl.getUniformLocation(prog, 'u_resolution'); uTime = gl.getUniformLocation(prog, 'u_time'); uSeed = gl.getUniformLocation(prog, 'u_seed'); uAudio = gl.getUniformLocation(prog, 'u_audio'); uGlitch = gl.getUniformLocation(prog, 'u_glitch');
     resizeGL(); window.addEventListener('resize', resizeGL); glRunning = true; requestAnimationFrame(renderGL);
-  } catch (err) { gl = null; glRunning = false; document.body.classList.add('no-gl'); }
+  } catch (err) { gl = null; glRunning = false; if(document.body) document.body.classList.add('no-gl'); }
 }
 function resizeGL() { if (!gl) return; const scale = 0.66; const dpr = Math.min(1.5, window.devicePixelRatio || 1); glCanvas.width = Math.max(2, Math.floor(window.innerWidth * dpr * scale)); glCanvas.height = Math.max(2, Math.floor(window.innerHeight * dpr * scale)); gl.viewport(0, 0, glCanvas.width, glCanvas.height); }
 let lastGlFrame = 0;
@@ -164,15 +164,15 @@ function getAudioLevel() { if (!analyser || muted || !audioDataArray) return 0; 
 // ==========================================
 // 4. GAME ENGINE
 // ==========================================
-const cv = $('game-canvas'), cx = cv.getContext('2d');
+const cv = $('game-canvas'), cx = cv ? cv.getContext('2d') : null;
 const GW = 360, GH = 540, LANES = 3, LW = GW / LANES;
-function fitCanvas(c, ctx, w, h, scale) { const d = scale || Math.min(2, window.devicePixelRatio || 1); c.width = Math.floor(w * d); c.height = Math.floor(h * d); c.style.width = '100%'; c.style.height = 'auto'; c.style.aspectRatio = `${w}/${h}`; ctx.setTransform(d, 0, 0, d, 0, 0); }
-fitCanvas(cv, cx, GW, GH);
+function fitCanvas(c, ctx, w, h, scale) { if(!c||!ctx) return; const d = scale || Math.min(2, window.devicePixelRatio || 1); c.width = Math.floor(w * d); c.height = Math.floor(h * d); c.style.width = '100%'; c.style.height = 'auto'; c.style.aspectRatio = `${w}/${h}`; ctx.setTransform(d, 0, 0, d, 0, 0); }
+if(cv && cx) fitCanvas(cv, cx, GW, GH);
 
 let G = null, raf = 0, sched = 0, anthem = null, floatTexts = [];
 function loadBest(w) { try { return JSON.parse(localStorage.getItem('sqk20:' + (w || 'GUEST').toLowerCase()) || 'null') } catch { return null } }
 function saveBest(w, rec) { try { localStorage.setItem('sqk20:' + (w || 'GUEST').toLowerCase(), JSON.stringify(rec)); return true; } catch (e) { return false; } }
-const songTime = () => ac ? ac.currentTime - G.start : 0;
+const songTime = () => ac && G ? ac.currentTime - G.start : 0;
 
 async function play() {
   const w = $('walletInput').value.trim();
@@ -236,10 +236,10 @@ function loop(ts) {
   draw(st, dt);
 }
 function draw(st, dt) {
+  if (!cx) return;
   dt = dt || 1 / 60;
   cx.clearRect(0, 0, GW, GH); cx.fillStyle = '#050505'; cx.fillRect(0, 0, GW, GH);
   
-  // FIX CLIPPING: Mencegah balok keluar dari area canvas
   cx.save();
   cx.beginPath();
   cx.rect(0, 0, GW, GH);
@@ -260,7 +260,7 @@ function draw(st, dt) {
       cx.fillRect(Math.round(x - 35), Math.round(y - 12), 70, 24) 
   }
   
-  cx.restore(); // Selesai clipping area game
+  cx.restore();
 
   for (let i = G.fx.length - 1; i >= 0; i--) { const p = G.fx[i]; p.life -= dt; if (p.life <= 0) { G.fx.splice(i, 1); continue } p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 400 * dt; cx.globalAlpha = Math.max(0, p.life * 1.5); cx.fillStyle = p.c; cx.fillRect(p.x | 0, p.y | 0, 4, 4) }
   cx.globalAlpha = 1; cx.textAlign = 'center';
@@ -287,8 +287,8 @@ function finish() {
   show('resultPanel');
 }
 function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } show('mainPanel'); }
-async function pauseGame() { if (!G || G.ended) return; G.paused = true; $('pauseBtn').textContent = '[ RESUME ]'; try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); }
-async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; $('pauseBtn').textContent = '[ PAUSE ]'; }
+async function pauseGame() { if (!G || G.ended) return; G.paused = true; if($('pauseBtn')) $('pauseBtn').textContent = '[ RESUME ]'; try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); }
+async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; if($('pauseBtn')) $('pauseBtn').textContent = '[ PAUSE ]'; }
 async function togglePause() { if (!G) return; if (G.paused) await resumeGame(); else await pauseGame(); }
 
 const KEY_LANES = { ArrowLeft: 0, a: 0, A: 0, '1': 0, ArrowDown: 1, s: 1, S: 1, '2': 1, ArrowRight: 2, d: 2, D: 2, '3': 2 };
@@ -299,7 +299,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'm' || e.key === 'M') { toggleMute(); }
   if (e.key === ' ' && G && !G.ended) { e.preventDefault(); judge(1); }
 });
-cv.addEventListener('pointerdown', e => { e.preventDefault(); if (G && G.paused) { resumeGame(); return } const r = cv.getBoundingClientRect(); judge(Math.min(LANES - 1, Math.max(0, Math.floor((e.clientX - r.left) / r.width * LANES)))); }, { passive: false });
+if(cv) cv.addEventListener('pointerdown', e => { e.preventDefault(); if (G && G.paused) { resumeGame(); return } const r = cv.getBoundingClientRect(); judge(Math.min(LANES - 1, Math.max(0, Math.floor((e.clientX - r.left) / r.width * LANES)))); }, { passive: false });
 document.addEventListener('visibilitychange', () => { if (document.hidden && G && !G.ended && !G.paused) { pauseGame(); } });
 
 // ==========================================
@@ -354,7 +354,6 @@ async function generateCard() {
   ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6; ctx.strokeRect(3, 3, CW - 6, CH - 6);
   ctx.fillStyle = '#00ff00'; ctx.fillRect(3, 3, CW - 6, 40);
   
-  // FIX TEKS KARTU KEPOTONG (Ukuran font dikecilkan)
   ctx.textAlign = 'left'; ctx.fillStyle = '#000'; ctx.font = 'bold 16px "Space Mono"';
   ctx.fillText('SQUEEK CITIZEN // ID CARD', 15, 26);
 
@@ -401,12 +400,17 @@ function preview() {
   $('anthemInfo').textContent = `>> ANTHEM: ${a.key} ${a.scaleName} [${a.bpm} BPM] // NOTES: ${a.chart.length}${b ? ' // BEST: ' + b.score : ''}`;
 }
 
-$('walletInput').addEventListener('input', preview);
-$('playBtn').onclick = play; $('genBtn').onclick = generateCard;
-$('dlBtn').onclick = download; $('shareBtn').onclick = share;
-$('stopBtn').onclick = stop; $('againBtn').onclick = play;
-$('pauseBtn').onclick = togglePause;
-$('muteBtn').onclick = toggleMute;
-$('homeBtn').onclick = () => show('mainPanel');
-$('toCardBtn').onclick = () => { show('mainPanel'); generateCard() };
+// PENGAMAN: Hanya pasang event jika elemennya ada di HTML
+if($('walletInput')) $('walletInput').addEventListener('input', preview);
+if($('playBtn')) $('playBtn').onclick = play; 
+if($('genBtn')) $('genBtn').onclick = generateCard;
+if($('dlBtn')) $('dlBtn').onclick = download; 
+if($('shareBtn')) $('shareBtn').onclick = share;
+if($('stopBtn')) $('stopBtn').onclick = stop; 
+if($('againBtn')) $('againBtn').onclick = play;
+if($('pauseBtn')) $('pauseBtn').onclick = togglePause;
+if($('muteBtn')) $('muteBtn').onclick = toggleMute;
+if($('homeBtn')) $('homeBtn').onclick = () => show('mainPanel');
+if($('toCardBtn')) $('toCardBtn').onclick = () => { show('mainPanel'); generateCard() };
+
 preview();
