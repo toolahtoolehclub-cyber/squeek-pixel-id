@@ -15,20 +15,18 @@ body {
     margin: 0; min-height: 100dvh; background-color: var(--bg); color: var(--fg);
     font-family: 'Space Mono', monospace; overflow-x: hidden;
     display: flex; flex-direction: column; align-items: center;
-    /* Animated Grid Background */
     background-image: linear-gradient(rgba(57,255,20,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(57,255,20,0.05) 1px, transparent 1px);
     background-size: 30px 30px;
     animation: bgPan 20s linear infinite;
 }
 
-@keyframes bgPan {
-    0% { background-position: 0 0; }
-    100% { background-position: 30px 30px; }
-}
+@keyframes bgPan { 0% { background-position: 0 0; } 100% { background-position: 30px 30px; } }
 
 #bg-gl { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; opacity: 0.6; pointer-events: none; }
 body.no-gl #bg-gl { display: none; }
 body.no-gl { background: radial-gradient(circle at 20% 20%, rgba(0,255,0,.18), transparent 55%), radial-gradient(circle at 80% 80%, rgba(255,0,255,.18), transparent 55%), #000; }
+body.hemat { background: #181818; }
+body.hemat #bg-gl { opacity: .1; }
 
 #ui-layer { width: 100%; max-width: 420px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 10; display: flex; flex-direction: column; gap: 20px; }
 
@@ -36,7 +34,6 @@ header { text-align: center; margin-bottom: 10px; }
 .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; text-align: left; }
 .header-row > div { flex: 1; text-align: center; }
 
-/* FLICKER ANIMATION UNTUK JUDUL */
 @keyframes neonFlicker {
     0%, 18%, 22%, 25%, 53%, 57%, 100% { text-shadow: 3px 3px 0 var(--pink), 0 0 10px var(--green), 0 0 20px var(--green); opacity: 1; }
     20%, 24%, 55% { text-shadow: none; opacity: 0.5; }
@@ -71,6 +68,7 @@ input[type=text]:focus { border-color: var(--green); box-shadow: 0 0 10px var(--
 input[type=text].invalid { border-color: var(--pink); box-shadow: 0 0 10px var(--pink); }
 
 .msg { text-align: center; color: var(--green); font-size: 12px; font-weight: bold; margin: 15px 0 0 0; border: 1px dashed var(--green); padding: 10px; word-break: break-word; }
+#glStatus, #gameAudioStatus { border-color: var(--cyan); color: var(--cyan); }
 .anthem { font-size: 12px; color: var(--cyan); text-align: center; margin: 0; word-break: break-word; }
 .warn { font-size: 11px; color: var(--yellow); text-align: left; margin: 0; border: 1px dashed var(--yellow); padding: 8px 10px; line-height: 1.5; }
 
@@ -83,18 +81,14 @@ canvas { display: block; width: 100%; height: auto; border: none; box-shadow: no
 .canvas-wrapper { width: 100%; border: var(--border); box-shadow: 6px 6px 0 var(--cyan); background: #050505; margin-bottom: 15px; position: relative; overflow: hidden; }
 .canvas-wrapper canvas { box-shadow: none; border: none; }
 #game-canvas { touch-action: none; background: #050505; }
-#card-canvas { background: transparent; }
+#card-canvas { background: #050505; }
 
-/* 3D ROTATING AVATAR */
-.avatar-container { width: 100%; display: flex; justify-content: center; perspective: 1000px; }
-.avatar-wrapper { width: 100px; height: 100px; animation: spin3D 8s linear infinite; transform-style: preserve-3d; margin: 0 auto; }
-@keyframes spin3D { 
-    0% { transform: rotateY(0deg); } 
-    100% { transform: rotateY(360deg); } 
-}
 #avatarPreviewWrap { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 2px dashed var(--accent); padding: 10px; }
 #avatarPreviewWrap.hidden { display: none; }
-#avatar-preview { width: 100%; height: 100%; border: 3px solid #fff; box-shadow: 4px 4px 0 var(--pink); image-rendering: pixelated; }
+#avatar-preview { width: 128px; height: 128px; border: 3px solid #fff; box-shadow: 4px 4px 0 var(--pink); image-rendering: pixelated; }
+#avatarLabel { margin: 0; font-size: 10px; color: var(--cyan); letter-spacing: 2px; }
+
+#duelOut { width: 100%; background: #000; color: var(--cyan); border: 2px solid var(--cyan); font: 11px 'Space Mono', monospace; padding: 8px; }
 
 .hint { text-align: center; font-size: 11px; color: #aaa; margin: 15px 0; line-height: 1.7; }
 .kbd-hint { color: #888; font-size: 10px; }
