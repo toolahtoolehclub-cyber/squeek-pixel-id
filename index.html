@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
+<meta name="description" content="SQUEEKCHAIN v25 ULTIMATE — Daily Anthem, XP, Misi, Duel, dan Spektakel Visual.">
 <meta name="theme-color" content="#000000">
-<title>SQUEEKCHAIN // v22 PRECISION</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect x='3' y='3' width='10' height='10' fill='%2300ff00'/%3E%3C/svg%3E">
+<title>SQUEEKCHAIN // v25 ULTIMATE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -13,49 +15,80 @@
 </head>
 <body>
 <canvas id="bg-gl" aria-hidden="true"></canvas>
+<div id="crt" aria-hidden="true"></div>
 
 <div id="ui-layer">
     <header>
         <div class="header-row">
             <div>
-                <h1>SQUEEKCHAIN</h1>
-                <h2>PIXEL ID // v22</h2>
+                <h1 id="mainTitle" class="flicker">SQUEEKCHAIN</h1>
+                <h2>PIXEL ID // v25 ULTIMATE</h2>
             </div>
-            <button class="btn-icon" id="muteBtn" type="button" aria-label="Mute">🔊</button>
+            <button class="btn-icon" id="qualityBtn" type="button" aria-label="Ganti kualitas grafis" title="Kualitas: ULTRA / HEMAT">QLTY: ULTRA</button>
+            <button class="btn-icon" id="muteBtn" type="button" aria-label="Mute / unmute suara" aria-pressed="false" title="Mute (M)">🔊</button>
         </div>
     </header>
 
     <main class="container">
-        <section class="panel" id="mainPanel">
+        <section class="panel" id="mainPanel" aria-label="Menu utama">
             <div class="stack">
                 <label for="walletInput">WALLET ADDRESS</label>
-                <input id="walletInput" type="text" maxlength="42" placeholder="0x...">
-                <p class="warn">⚠️ HANYA alamat 0x. JANGAN masukkan seed phrase / private key.</p>
-                <p class="anthem" id="anthemInfo">AWAITING INPUT...</p>
+                <input id="walletInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+                       inputmode="text" maxlength="42" placeholder="0x..." aria-describedby="walletWarn anthemInfo">
+                <p class="warn" id="walletWarn">⚠️ HANYA alamat 0x. JANGAN PERNAH masukkan seed phrase / private key di sini, di mana pun.</p>
+                <p class="anthem" id="anthemInfo" aria-live="polite">AWAITING INPUT...</p>
+                
+                <!-- WRAPPER UNTUK 3D AVATAR -->
+                <div id="avatarPreviewWrap" class="hidden">
+                    <div class="avatar-wrapper">
+                        <canvas id="avatar-preview" width="128" height="128" aria-label="Preview avatar dari wallet kamu"></canvas>
+                    </div>
+                    <p id="avatarLabel">YOUR PIXEL SELF</p>
+                    <p id="levelLabel">LV 1 • 0 XP</p>
+                    <p id="anthemHash" class="hash"></p>
+                </div>
 
                 <label id="genreLabel">// GENRE</label>
-                <div class="diff-row" id="genreRow">
-                    <button class="btn-diff active" data-genre="cyber">CYBER</button>
-                    <button class="btn-diff" data-genre="synth">SYNTH</button>
-                    <button class="btn-diff" data-genre="chip">CHIP</button>
+                <div class="diff-row" id="genreRow" role="group" aria-labelledby="genreLabel">
+                    <button class="btn-diff active" type="button" data-genre="cyber" aria-pressed="true">CYBER</button>
+                    <button class="btn-diff" type="button" data-genre="synth" aria-pressed="false">SYNTH</button>
+                    <button class="btn-diff" type="button" data-genre="chip" aria-pressed="false">CHIP</button>
                 </div>
 
                 <label id="diffLabel">// DIFFICULTY</label>
-                <div class="diff-row" id="diffRow">
-                    <button class="btn-diff active" data-diff="easy">EASY</button>
-                    <button class="btn-diff" data-diff="normal">NORMAL</button>
-                    <button class="btn-diff" data-diff="hard">HARD</button>
+                <div class="diff-row" id="diffRow" role="group" aria-labelledby="diffLabel">
+                    <button class="btn-diff active" type="button" data-diff="easy" aria-pressed="true">EASY</button>
+                    <button class="btn-diff" type="button" data-diff="normal" aria-pressed="false">NORMAL</button>
+                    <button class="btn-diff" type="button" data-diff="hard" aria-pressed="false">HARD</button>
                 </div>
 
+                <label id="modeLabel">// MODE</label>
+                <div class="diff-row" id="modeRow" role="group" aria-labelledby="modeLabel">
+                    <button class="btn-diff active" type="button" data-mode="free" aria-pressed="true">FREE</button>
+                    <button class="btn-diff" type="button" data-mode="daily" aria-pressed="false">DAILY</button>
+                </div>
+                <div id="dailyBox" class="hidden">
+                    <p id="dailyTitle">DAILY ANTHEM</p>
+                    <p id="dailyInfo">Lagu hari ini sama untuk semua orang. Main hari ini, balik besok — lagunya ganti.</p>
+                    <p id="streakLine">STREAK: 0 HARI</p>
+                    <div id="missionList"></div>
+                </div>
+                <div id="masteryBox">
+                    <p class="mastery-title">MASTERY — 10 GAME TERAKHIR</p>
+                    <div id="historyBars"></div>
+                    <p id="masteryStats">Belum ada game tercatat di browser ini.</p>
+                </div>
                 <button class="btn-primary" type="button" id="playBtn">INITIALIZE RHYTHM</button>
                 <button class="btn-secondary" type="button" id="genBtn">GENERATE ID CARD</button>
             </div>
-            <p class="msg" id="message">SYSTEM READY.</p>
+            <p class="msg" id="message" role="status" aria-live="polite">SYSTEM READY.</p>
 
-            <!-- FIX: Canvas dibungkus div (canvas-wrapper) agar border tidak merusak layout -->
             <div id="cardArea" class="hidden stack">
-                <div class="canvas-wrapper">
-                    <canvas id="card-canvas"></canvas>
+                <!-- 3D Avatar Container untuk ID Card -->
+                <div class="avatar-container" style="margin-bottom: -50px; z-index: 2; position: relative;">
+                    <div class="avatar-wrapper" style="width: 140px; height: 140px;">
+                        <canvas id="card-canvas" aria-label="ID Card Squeek Citizen"></canvas>
+                    </div>
                 </div>
                 <div class="row">
                     <button class="btn-primary" type="button" id="dlBtn">[ DOWNLOAD ]</button>
@@ -64,38 +97,41 @@
             </div>
         </section>
 
-        <section class="panel hidden" id="gamePanel">
-            <div class="stats">
+        <section class="panel hidden" id="gamePanel" aria-label="Game rhythm">
+            <div class="stats" role="status">
                 <div class="stat"><b id="scoreVal">0</b><span>SCORE</span></div>
                 <div class="stat"><b id="comboVal">0</b><span>COMBO</span></div>
                 <div class="stat"><b id="accVal">100%</b><span>ACC</span></div>
                 <div class="stat"><b id="bpmVal">120</b><span>BPM</span></div>
             </div>
-            
-            <!-- FIX: Canvas dibungkus div (canvas-wrapper) -->
-            <div class="canvas-wrapper">
-                <canvas id="game-canvas" tabindex="0"></canvas>
-            </div>
-            
-            <p class="hint">TAP LANE WHEN BLOCK HITS THE LINE.<br><span class="kbd-hint">KEYBOARD: ← ↓ → / A S D</span></p>
+            <div class="canvas-wrapper"><canvas id="game-canvas" tabindex="0" aria-label="Area game. Gunakan tombol panah kiri, bawah, kanan atau A S D untuk memukul lane."></canvas></div>
+            <div id="precisionBox" aria-live="polite"><span>LAST HIT <b id="lastHit">-- ms</b></span><span>AVG <b id="avgHit">-- ms</b></span><span id="hitDir">—</span></div>
+            <div id="vizBars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <p class="hint">TAP LANE WHEN BLOCK HITS THE LINE.<br><span class="kbd-hint">KEYBOARD: ← ↓ → / A S D &nbsp;•&nbsp; P = PAUSE &nbsp;•&nbsp; M = MUTE</span></p>
             <div class="row">
                 <button class="btn-secondary" type="button" id="pauseBtn">[ PAUSE ]</button>
                 <button class="btn-danger" type="button" id="stopBtn">[ TERMINATE ]</button>
             </div>
         </section>
 
-        <section class="panel hidden" id="resultPanel">
+        <section class="panel hidden" id="resultPanel" aria-label="Hasil game">
             <div class="grade" id="gradeVal">S</div>
             <div class="kv" id="resultKv"></div>
             <p class="msg" id="bestMsg"></p>
+            <p class="msg" id="xpMsg"></p>
+            <div id="missionResult"></div>
             <div class="stack">
                 <button class="btn-primary" type="button" id="againBtn">RETRY</button>
                 <button class="btn-secondary" type="button" id="toCardBtn">GENERATE CARD</button>
+                <button class="btn-secondary" type="button" id="duelBtn">[ DUEL LINK ]</button>
                 <button class="btn-danger" type="button" id="homeBtn">EXIT TO MENU</button>
             </div>
         </section>
     </main>
+    <footer class="footer">v25 ULTIMATE — UNOFFICIAL. Data on-chain dibaca read-only (token Sepolia, bukan BNB mainnet), tidak ada transaksi, tidak ada koneksi wallet.</footer>
 </div>
-<script src="script.js"></script>
+
+<noscript><p style="color:#ff00ff;text-align:center;padding:20px">Game ini butuh JavaScript. Aktifkan JavaScript untuk bermain.</p></noscript>
+<script src="script.js" defer></script>
 </body>
 </html>
