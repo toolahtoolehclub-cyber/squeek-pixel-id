@@ -4,7 +4,7 @@ const $ = id => document.getElementById(id);
 const isAddr = s => /^0x[a-fA-F0-9]{40}$/.test(s);
 
 function setText(id, txt) { const e = $(id); if (e) e.textContent = txt; }
-function bindClick(id, fn) { const e = $(id); if (e) e.onclick = fn; }
+function bindClick(id, fn) { const e = $(id); if (e) e.onclick = fn; else console.warn('v26: elemen #' + id + ' tidak ada di HTML, dilewati (bukan crash)'); }
 let lastAnthem = null;
 
 let playMode = 'free';
@@ -50,7 +50,7 @@ function show(id) { ['mainPanel', 'gamePanel', 'resultPanel'].forEach(p => $(p).
 window.addEventListener('error', (e) => { try { say('ERROR: ' + String(e.message || e.error || 'unknown').slice(0, 80), 'pink'); } catch (_) {} });
 
 // ==========================================
-// 1. WEBGL BACKGROUND (SHOCKWAVE & REACTIVE)
+// 1. WEBGL BACKGROUND
 // ==========================================
 const glCanvas = document.getElementById('bg-gl');
 let gl = null, prog = null, glSeed = 0, glAudio = 0, glGlitch = 0, glShockwave = 0, glCombo = 0;
@@ -68,16 +68,12 @@ function initGL() {
     gl = glCanvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' }) || glCanvas.getContext('experimental-webgl');
     if (!gl) throw new Error('no-webgl');
     const vsSource = `attribute vec2 position; void main() { gl_Position = vec4(position, 0.0, 1.0); }`;
-    
-    // SHADER DENGAN EFEK SHOCKWAVE & WARNA COMBO
     const fsSource = `
       precision highp float;
       uniform vec2 u_resolution; uniform float u_time; uniform float u_seed;
       uniform float u_audio; uniform float u_glitch; uniform float u_shock; uniform float u_combo;
-
       float map(vec3 p) {
-          float s = u_seed;
-          p.xz = mat2(cos(s), -sin(s), sin(s), cos(s)) * p.xz;
+          float s = u_seed; p.xz = mat2(cos(s), -sin(s), sin(s), cos(s)) * p.xz;
           float pulse = 1.0 + sin(u_time * 3.0) * 0.1 + u_audio * 0.5;
           float sphere = length(p) - (1.0 * pulse);
           float torus = length(vec2(length(p.xz)-1.5, p.y)) - 0.2;
@@ -87,12 +83,9 @@ function initGL() {
       }
       void main() {
           vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution) / min(u_resolution.x, u_resolution.y);
-          
-          // SHOCKWAVE DISTORTION
           float dist = length(uv);
           float ripple = sin(dist * 20.0 - u_time * 10.0) * u_shock * 0.1;
-          uv += normalize(uv) * ripple;
-
+          uv += (dist > 0.001 ? normalize(uv) : vec2(0.0)) * ripple;
           vec3 ro = vec3(0.0, 0.0, -3.0 - u_audio * 0.5);
           vec3 rd = normalize(vec3(uv, 1.0));
           float t = 0.0;
@@ -107,12 +100,9 @@ function initGL() {
               float d0 = map(p);
               vec3 n = normalize(vec3(map(p+vec3(e,0.,0.))-d0, map(p+vec3(0.,e,0.))-d0, map(p+vec3(0.,0.,e))-d0));
               float diff = max(dot(n, normalize(vec3(1.0, 1.0, -1.0))), 0.0);
-              
-              vec3 c1 = vec3(0.0, 1.0, 0.0); // Hijau
-              vec3 c2 = vec3(1.0, 0.0, 1.0); // Pink
-              if (u_combo > 20.0) c1 = vec3(0.0, 1.0, 1.0); // Cyan
-              if (u_combo > 50.0) c2 = vec3(1.0, 1.0, 0.0); // Kuning
-              
+              vec3 c1 = vec3(0.0, 1.0, 0.0); vec3 c2 = vec3(1.0, 0.0, 1.0);
+              if (u_combo > 20.0) c1 = vec3(0.0, 1.0, 1.0);
+              if (u_combo > 50.0) c2 = vec3(1.0, 1.0, 0.0);
               col = mix(c1, c2, n.x * 0.5 + 0.5) * diff;
           }
           if(u_glitch > 0.0) { col.r = mix(col.r, 1.0, u_glitch); col += vec3(sin(uv.y * 50.0) * u_glitch); }
@@ -129,30 +119,26 @@ function initGL() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const posLoc = gl.getAttribLocation(prog, 'position'); gl.enableVertexAttribArray(posLoc); gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
     uRes = gl.getUniformLocation(prog, 'u_resolution'); uTime = gl.getUniformLocation(prog, 'u_time'); uSeed = gl.getUniformLocation(prog, 'u_seed'); uAudio = gl.getUniformLocation(prog, 'u_audio'); uGlitch = gl.getUniformLocation(prog, 'u_glitch'); uShock = gl.getUniformLocation(prog, 'u_shock'); uCombo = gl.getUniformLocation(prog, 'u_combo');
-    resizeGL(); window.addEventListener('resize', resizeGL); glRunning = true; requestAnimationFrame(renderGL);
-  } catch (err) { gl = null; glRunning = false; document.body.classList.add('no-gl'); }
+    resizeGL(); window.addEventListener('resize', resizeGL); glRunning = true; requestAnimationFrame(renderGL); setText('glStatus', 'WEBGL: OK • QLTY: ' + quality.toUpperCase() + ' • BACKGROUND 3D BERGERAK');
+  } catch (err) { gl = null; glRunning = false; document.body.classList.add('no-gl'); setText('glStatus', 'WEBGL: GAGAL — BACKGROUND GRADIENT + GRID CSS (TETAP BERGERAK) • QLTY: ' + quality.toUpperCase()); }
 }
 function resizeGL() { if (!gl) return; const scale = 0.66; const dpr = Math.min(1.5, window.devicePixelRatio || 1); glCanvas.width = Math.max(2, Math.floor(window.innerWidth * dpr * scale)); glCanvas.height = Math.max(2, Math.floor(window.innerHeight * dpr * scale)); gl.viewport(0, 0, glCanvas.width, glCanvas.height); }
 let lastGlFrame = 0;
 function renderGL(time) {
   if (!glRunning || !gl) return; requestAnimationFrame(renderGL);
   if (document.hidden) return; if (prefersReducedMotion && time - lastGlFrame < 66) return; lastGlFrame = time;
-  gl.uniform2f(uRes, glCanvas.width, glCanvas.height); 
-  gl.uniform1f(uTime, time * 0.001); gl.uniform1f(uSeed, glSeed); 
-  gl.uniform1f(uAudio, prefersReducedMotion ? 0 : glAudio); 
-  gl.uniform1f(uGlitch, prefersReducedMotion ? 0 : glGlitch);
-  gl.uniform1f(uShock, prefersReducedMotion ? 0 : glShockwave);
-  gl.uniform1f(uCombo, glCombo);
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); 
-  glGlitch *= 0.95; 
-  glShockwave *= 0.92; // Shockwave mereda
+  gl.uniform2f(uRes, glCanvas.width, glCanvas.height); gl.uniform1f(uTime, time * 0.001); gl.uniform1f(uSeed, glSeed); gl.uniform1f(uAudio, prefersReducedMotion ? 0 : glAudio); gl.uniform1f(uGlitch, prefersReducedMotion ? 0 : glGlitch); gl.uniform1f(uShock, prefersReducedMotion ? 0 : glShockwave); gl.uniform1f(uCombo, glCombo);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); glGlitch *= 0.95; glShockwave *= 0.92;
 }
 initGL();
 
 function setQuality(q) {
   quality = q; const b = $('qualityBtn'); if (b) b.textContent = q === 'ultra' ? 'QLTY: ULTRA' : 'QLTY: HEMAT';
+  document.body.classList.toggle('hemat', q === 'hemat');
   if (q === 'hemat') { glRunning = false; document.body.classList.add('no-gl'); }
   else { document.body.classList.remove('no-gl'); if (gl && !glRunning) { glRunning = true; requestAnimationFrame(renderGL); } }
+  setText('glStatus', 'WEBGL: ' + (gl ? 'OK' : 'GAGAL') + ' • QLTY: ' + q.toUpperCase() + (q === 'hemat' ? ' • BACKGROUND: GRADIENT DIAM' : ' • BACKGROUND: 3D / GRID BERGERAK'));
+  say('QLTY: ' + q.toUpperCase() + (q === 'hemat' ? ' — WebGL dimatikan, background gradient diam.' : ' — WebGL / grid bergerak.'), 'cyan');
   try { localStorage.setItem('sqk-quality', q); } catch (_) {}
 }
 try { const savedQ = localStorage.getItem('sqk-quality'); if (savedQ === 'hemat') quality = 'hemat'; } catch (_) {}
@@ -166,7 +152,7 @@ class CircuitBreaker {
   async execute(fn) { if (this.state === 'OPEN') { if (Date.now() > this.next) this.state = 'HALF_OPEN'; else throw new Error('CIRCUIT_OPEN'); } try { const res = await fn(); this.fails = 0; this.state = 'CLOSED'; return res; } catch (e) { this.fails++; if (this.fails >= this.threshold) { this.state = 'OPEN'; this.next = Date.now() + this.timeout; } throw e; } }
 }
 const rpcBreaker = new CircuitBreaker(3, 10000);
-const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0x810239d271e80a86023f4f315943acbd65b59281', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } }; // BARS 32 (Lagu lebih panjang)
+const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0x810239d271e80a86023f4f315943acbd65b59281', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } };
 const DIFFICULTIES = { easy: { speed: 350, density: 0.4, chord: 0.0 }, normal: { speed: 480, density: 0.7, chord: 0.1 }, hard: { speed: 600, density: 0.9, chord: 0.25 } };
 const GENRES = { cyber: { scales: ['Phrygian', 'Harmonic Minor', 'Minor Pentatonic'], bpm: 120 }, synth: { scales: ['Dorian', 'Major Pentatonic'], bpm: 100 }, chip: { scales: ['Major Pentatonic', 'Dorian'], bpm: 140 } };
 let currentDiff = 'easy', currentGenre = 'cyber';
@@ -227,39 +213,37 @@ async function initAudio() {
   if (ac.state !== 'running') await ac.resume();
 }
 
-// FUNGSI INTRO MUSIC
 function playIntroMusic() {
     if (!ac || muted) return;
     stopIntroMusic();
     introOsc = ac.createOscillator();
     introGain = ac.createGain();
-    introOsc.type = 'sawtooth';
-    introOsc.frequency.setValueAtTime(50, ac.currentTime);
-    
+    introOsc.type = 'triangle';
+    introOsc.frequency.setValueAtTime(220, ac.currentTime);
     const filter = ac.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(400, ac.currentTime);
-    
+    filter.frequency.setValueAtTime(1200, ac.currentTime);
     introOsc.connect(filter); filter.connect(introGain); introGain.connect(master);
     introGain.gain.setValueAtTime(0, ac.currentTime);
-    introGain.gain.linearRampToValueAtTime(0.15, ac.currentTime + 2); // Fade in
+    introGain.gain.linearRampToValueAtTime(0.15, ac.currentTime + 2);
     introOsc.start();
-    
-    // Modulasi filter agar terasa hidup
     let t = 0;
     introInterval = setInterval(() => {
         if(!ac || !filter || !introOsc) return;
         t += 0.1;
-        filter.frequency.setTargetAtTime(300 + Math.sin(t) * 200, ac.currentTime, 0.1);
-        introOsc.frequency.setTargetAtTime(50 + Math.sin(t*0.5) * 10, ac.currentTime, 0.1);
+        filter.frequency.setTargetAtTime(800 + Math.sin(t) * 400, ac.currentTime, 0.1);
+        introOsc.frequency.setTargetAtTime(220 + Math.sin(t*0.5) * 60, ac.currentTime, 0.1);
     }, 100);
+    if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('INTRO: ON (220 Hz, TERDENGAR) — KETUK MUTE UNTUK MATI.', 'green');
 }
 
 function stopIntroMusic() {
-    if (introInterval) clearInterval(introInterval);
-    if (introGain) {
-        introGain.gain.setTargetAtTime(0, ac.currentTime, 0.5);
-        setTimeout(() => { try { introOsc.stop(); introOsc.disconnect(); } catch(e){} }, 1000);
+    const oldOsc = introOsc, oldGain = introGain, oldInterval = introInterval;
+    introOsc = null; introGain = null; introInterval = null;
+    if (oldInterval) clearInterval(oldInterval);
+    if (oldGain) {
+        try { oldGain.gain.setTargetAtTime(0, ac.currentTime, 0.2); } catch (_) {}
+        setTimeout(() => { try { oldOsc.stop(); oldOsc.disconnect(); } catch(e){} }, 600);
     }
 }
 
@@ -267,7 +251,7 @@ function toggleMute() {
     muted = !muted; 
     if (master) master.gain.value = muted ? 0 : .4; 
     const b = $('muteBtn'); if (b) { b.textContent = muted ? '🔇' : '🔊'; b.setAttribute('aria-pressed', String(muted)); } 
-    if (!muted) playIntroMusic(); else stopIntroMusic();
+    if (!muted && !G) playIntroMusic(); else if (muted) stopIntroMusic();
     return muted; 
 }
 
@@ -278,7 +262,6 @@ function kick(t) { if (!ac || muted) return; const o = ac.createOscillator(), g 
 function noise(t, hp, p, d) { if (!ac || muted) return; const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = hp; s.connect(f); f.connect(g); g.connect(master); env(g, t, .001, p, d); s.start(t); s.stop(t + d + .05) }
 function getAudioLevel() { if (!analyser || muted) return 0; if (!audioDataArray) audioDataArray = new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(audioDataArray); let s = 0; for (let i = 0; i < audioDataArray.length; i++) s += audioDataArray[i]; return (s / audioDataArray.length) / 255; }
 
-// Mulai intro saat web dibuka
 window.addEventListener('pointerdown', () => { if(!ac) initAudio(); playIntroMusic(); }, {once: true});
 
 // ==========================================
@@ -303,11 +286,11 @@ async function play() {
   const seedKey = seedKeyFor(playMode);
   anthem = makeAnthem(w, false, seedKey); lastAnthem = anthem; hitOffsets = []; CONFIG.SPEED = DIFFICULTIES[currentDiff].speed; applyHue(anthem.hue);
   glSeed = w ? Math.abs(cyrb53(w) % 1000) / 100 : Math.random() * 10;
-  glShockwave = 1.0; // Shockwave saat mulai
+  glShockwave = 1.0;
 
   G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: [0, 0, 0], ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff };
   floatTexts = [];
-  show('gamePanel'); setText('bpmVal', anthem.bpm); hud();
+  show('gamePanel'); setText('bpmVal', anthem.bpm); setText('gameAudioStatus', 'AUDIO: RUNNING • ' + anthem.bpm + ' BPM • AC: ' + (ac ? ac.state : '-')); hud();
   setText('pauseBtn', '[ PAUSE ]');
   clearInterval(sched); sched = setInterval(schedule, 25);
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
@@ -336,7 +319,7 @@ function judge(lane) {
     const dt = Math.abs(n.t - st); if (dt < bd) { bd = dt; target = n; }
   }
   G.flash[lane] = 1;
-  glShockwave = 0.5; // Shockwave kecil tiap tap
+  glShockwave = 0.5;
   if (!target || bd > CONFIG.W.good) return;
   updatePrecision((target.t - st) * 1000, 'hit');
   const k = bd <= CONFIG.W.perfect ? 'perfect' : bd <= CONFIG.W.great ? 'great' : 'good';
@@ -407,7 +390,7 @@ function finish() {
   const doneBefore = loadJSON(doneKey, []);
   const newlyDone = missions.filter(m => !doneBefore.includes(m.id) && m.check(res)).map(m => m.id);
   if (newlyDone.length) saveJSON(doneKey, doneBefore.concat(newlyDone));
-  const xpGain = Math.round(G.score / 20) + (a >= 95 ? 50 : a >= 88 ? 25 : 0) + (G.counts.miss === 0 ? 30 : 0) + newlyDone.length * 25;
+  const xpGain = Math.round(G.score / 30) + (a >= 95 ? 50 : a >= 88 ? 25 : 0) + (G.counts.miss === 0 ? 30 : 0) + newlyDone.length * 25;
   const xpBefore = totalXP(G.wallet), xpAfter = xpBefore + xpGain;
   saveJSON('sqk24:xp:' + walletKey(G.wallet), xpAfter);
   const lvBefore = levelFor(xpBefore), lvAfter = levelFor(xpAfter);
@@ -422,17 +405,14 @@ function finish() {
     if (st.last !== todayStr()) { st.count = st.last === yesterdayStr() ? st.count + 1 : 1; st.last = todayStr(); saveJSON(sk, st); }
     streakTxt = ` • STREAK ${st.count} HARI`;
   }
-  const xpEl = $('xpMsg');
-  if (xpEl) xpEl.textContent = `+${xpGain} XP • LV ${lvBefore} -> LV ${lvAfter}${lvAfter > lvBefore ? ' — LEVEL UP! AVATAR BEREVOLUSI' : ''} • TOTAL ${xpAfter} XP${streakTxt}`;
-  const mr = $('missionResult');
-  if (mr) mr.innerHTML = missions.map(m => `<div class="mission${doneBefore.concat(newlyDone).includes(m.id) ? ' done' : ''}">${m.text}</div>`).join('');
+  const xpEl = $('xpMsg'); if (xpEl) xpEl.textContent = `+${xpGain} XP • LV ${lvBefore} -> LV ${lvAfter}${lvAfter > lvBefore ? ' — LEVEL UP! AVATAR BEREVOLUSI' : ''} • TOTAL ${xpAfter} XP${streakTxt}`;
+  const mr = $('missionResult'); if (mr) mr.innerHTML = missions.map(m => `<div class="mission${doneBefore.concat(newlyDone).includes(m.id) ? ' done' : ''}">${m.text}</div>`).join('');
   renderDailyBox(); renderMastery(); renderAvatarPreview(G.wallet);
   $('gradeVal').textContent = g; $('gradeVal').style.color = g.startsWith('S') ? 'var(--green)' : g === 'A' ? 'var(--cyan)' : 'var(--pink)';
   const c = G.counts;
   $('resultKv').innerHTML = `<span>SCORE</span><b>${G.score}</b><span>ACCURACY</span><b>${a.toFixed(2)}%</b><span>MAX COMBO</span><b>${G.maxCombo}</b><span>PERFECT/GREAT</span><b>${c.perfect}/${c.great}</b><span>GOOD/MISS</span><b>${c.good}/${c.miss}</b><span>ANTHEM</span><b>${anthem.key} ${anthem.scaleName}</b>`;
   $('bestMsg').textContent = isNew ? 'NEW HIGH SCORE!' : `BEST: ${prev.score} (${prev.grade})`;
-  show('resultPanel');
-  playIntroMusic(); // Kembalikan intro setelah selesai
+  show('resultPanel'); playIntroMusic(); 
 }
 function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } show('mainPanel'); playIntroMusic(); }
 async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', '[ RESUME ]'); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); }
@@ -507,7 +487,6 @@ async function generateCard() {
   ctx.textAlign = 'left'; ctx.fillStyle = '#000'; ctx.font = 'bold 16px "Space Mono"';
   ctx.fillText('SQUEEK CITIZEN // ID CARD', 15, 26);
 
-  // 3D Avatar draw
   avatar(ctx, w, CW / 2 - 64, 60, 8, levelFor(totalXP(w)));
 
   const row = (l, v, x, y, col) => { ctx.fillStyle = '#888'; ctx.font = '12px "Space Mono"'; ctx.fillText(l, x, y); ctx.fillStyle = col; ctx.font = 'bold 16px "Space Mono"'; ctx.fillText(v, x, y + 20); };
@@ -547,6 +526,17 @@ async function share() {
 // 6. UI WIRING
 // ==========================================
 function applyHue(hue) { try { document.documentElement.style.setProperty('--accent', `hsl(${hue},90%,60%)`); document.documentElement.style.setProperty('--accent2', `hsl(${(hue + 180) % 360},90%,60%)`); } catch (_) {} }
+let previewSpin = null;
+function startPreviewSpin(w) {
+  const c = $('avatar-preview'); if (!c) return; const ctx = c.getContext('2d'); if (!ctx) return;
+  if (previewSpin) clearInterval(previewSpin);
+  let a = 0;
+  previewSpin = setInterval(() => {
+    a += 0.08; const sx = Math.max(0.15, Math.abs(Math.cos(a)));
+    ctx.save(); ctx.clearRect(0, 0, 128, 128); ctx.translate(64, 64); ctx.scale(sx, 1); ctx.translate(-64, -64);
+    avatar(ctx, w, 0, 0, 8, levelFor(totalXP(w))); ctx.restore();
+  }, 50);
+}
 function renderAvatarPreview(w) {
   const wrap = $('avatarPreviewWrap'), c = $('avatar-preview');
   if (!wrap || !c || !isAddr(w)) { if (wrap) wrap.classList.add('hidden'); return; }
@@ -557,6 +547,7 @@ function renderAvatarPreview(w) {
   const ll = $('levelLabel');
   if (ll) { const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 }); ll.textContent = `LV ${lv} • ${totalXP(w)} XP${st.count ? ' • STREAK ' + st.count + ' HARI' : ''}`; }
   wrap.classList.remove('hidden');
+  startPreviewSpin(w);
   const h = $('anthemHash');
   if (h) { const a = makeAnthem(w); h.textContent = `SEED #${String(seedOf(w) % 100000).padStart(5, '0')} • ${a.key} ${a.scaleName} • ${a.bpm} BPM`; applyHue(a.hue); }
 }
@@ -638,12 +629,17 @@ function setMode(m) {
   playMode = m;
   document.querySelectorAll('#modeRow .btn-diff').forEach(x => { const on = x.dataset.mode === m; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); });
   renderDailyBox(); preview();
+  if (m === 'daily') { say('DAILY AKTIF — ' + todayStr() + ' • LAGU HARI INI SAMA UNTUK SEMUA ORANG (GENRE/DIFF SAMA).', 'yellow'); const db = $('dailyBox'); if (db) db.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 }
 function duelLink() { if (!G || !G.seedKey) return null; const base = location.href.split('?')[0]; return `${base}?challenge=${encodeURIComponent(G.seedKey)}&genre=${G.genre}&diff=${G.diff}`; }
 async function shareDuel() {
-  const link = duelLink(); if (!link) return say('MAIN DULU SATU LAGU, BARU DUEL BISA DIBAGIKAN.', 'pink');
-  try { await navigator.clipboard.writeText(link); say('DUEL LINK TERSALIN — KIRIM KE TEMAN, MEREKA MAIN LAGU YANG SAMA PERSIS.', 'green'); }
-  catch (_) { say('DUEL LINK: ' + link, 'cyan'); }
+  const link = duelLink();
+  const dm = $('duelMsg'), out = $('duelOut');
+  if (!link) { if (dm) dm.textContent = 'MAIN DULU SATU LAGU, BARU DUEL BISA DIBAGIKAN.'; return; }
+  if (out) out.value = link;
+  try { await navigator.clipboard.writeText(link); if (dm) dm.textContent = 'DUEL LINK TERSALIN — KIRIM KE TEMAN, MEREKA MAIN LAGU YANG SAMA PERSIS.'; }
+  catch (e) { if (dm) dm.textContent = 'CLIPBOARD DIBLOKIR — LINK ADA DI KOTAK DI BAWAH, COPY MANUAL.'; }
+  if (out) { out.focus(); out.select(); }
 }
 document.querySelectorAll('#modeRow .btn-diff').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
 bindClick('duelBtn', shareDuel);
