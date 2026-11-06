@@ -3,26 +3,39 @@ const CONFIG={
  API_URL:'https://api.squeekchain.com/v1/status',
  RPC_URL:'https://ethereum-sepolia-rpc.publicnode.com',
  TOKEN:'0x810239d271e80a86023f4f315943acbd65b59281',
- BARS:24, LEAD_IN:2, HIT_Y:450,
+ BARS:20, LEAD_IN:2, HIT_Y:450,
  W:{perfect:.045,great:.09,good:.135}
 };
 
 const DIFFICULTIES = {
-    easy:   { speed: 320, density: 0.3, chord: 0.0 },
-    normal: { speed: 450, density: 0.6, chord: 0.15 },
-    hard:   { speed: 600, density: 0.85, chord: 0.3 }
+    easy:   { speed: 350, density: 0.4, chordChance: 0.0 },
+    normal: { speed: 480, density: 0.7, chordChance: 0.1 },
+    hard:   { speed: 600, density: 0.9, chordChance: 0.25 }
+};
+
+const GENRES = {
+    cyber: { scales: ['Phrygian','Harmonic Minor','Minor Pentatonic'], bpmBase: 120 },
+    synth: { scales: ['Dorian','Major Pentatonic'], bpmBase: 100 },
+    chip:  { scales: ['Major Pentatonic','Dorian'], bpmBase: 140 }
 };
 
 const $=id=>document.getElementById(id);
 const isAddr=s=>/^0x[a-fA-F0-9]{40}$/.test(s);
 let currentDiff = 'easy';
+let currentGenre = 'cyber';
 
-// Handle difficulty buttons
-document.querySelectorAll('.diff-btn').forEach(btn => {
+document.querySelectorAll('#diffRow .diff-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#diffRow .diff-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentDiff = btn.dataset.diff;
+    });
+});
+document.querySelectorAll('#genreRow .diff-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#genreRow .diff-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentGenre = btn.dataset.genre;
     });
 });
 
@@ -33,46 +46,50 @@ const seedOf=w=>cyrb53((w||'GUEST').toLowerCase());
 const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const SCALES={'Minor Pentatonic':[0,3,5,7,10],'Dorian':[0,2,3,5,7,9,10],'Phrygian':[0,1,3,5,7,8,10],'Major Pentatonic':[0,2,4,7,9],'Harmonic Minor':[0,2,3,5,7,8,11]};
 
-// FUNGSI BARU: Ditambahkan parameter randomize agar setiap main beatmap beda
 function makeAnthem(wallet, randomize = false){
- // Seed tetap dari wallet, tapi jika randomize, tambahkan Math.random()
  let seed = seedOf(wallet);
  if(randomize) seed += Math.floor(Math.random() * 999999);
 
- const r=rng(seed),names=Object.keys(SCALES);
- const scaleName=names[Math.floor(r()*names.length)],scale=SCALES[scaleName],root=Math.floor(r()*12);
- const bpm=100+Math.floor(r()*5)*8,step=60/bpm/4,span=scale.length*2;
- const motif=Array.from({length:16},()=>r()<.55?Math.floor(r()*span):-1);
- const bassLine=Array.from({length:4},()=>[0,3,4,5,2][Math.floor(r()*5)]%scale.length);
- const chart=[],drums=[];
+ const r=rng(seed);
+ const genreInfo = GENRES[currentGenre];
+ const scaleName = genreInfo.scales[Math.floor(r()*genreInfo.scales.length)];
+ const scale = SCALES[scaleName];
+ const root = Math.floor(r()*12);
  
+ // BPM variations based on genre
+ const bpm = genreInfo.bpmBase + Math.floor(r()*20) - 10;
+ const step = 60/bpm/4;
+ const span = scale.length * 2;
+ 
+ const chart=[], drums=[];
  const diff = DIFFICULTIES[currentDiff];
+ 
+ let lastNoteTime = -1; // Track global note spacing
 
  for(let bar=0;bar<CONFIG.BARS;bar++){
   for(let s=0;s<16;s++){
    const t=(bar*16+s)*step;
-   drums.push({t,kick:s%4===0||(s===10&&r()<.4),hat:s%2===0,snare:s===4||s===12,bass:s%8===0?bassLine[bar%4]:null});
    
-   let deg=motif[s];
-   const onBeat=s%4===0;
-   const onEighth=s%2===0;
+   // Drums pattern
+   drums.push({t,kick:s%4===0||(s===10&&r()<.3),hat:s%2===0,snare:s===4||s===12,bass:s%8===0?[0,3,4,5,2][Math.floor(r()*5)]%scale.length:null});
    
-   // Density logic berdasarkan difficulty
-   const want = bar<2 ? (onBeat&&s%8===0) : (onEighth ? r()<diff.density : (onBeat && r()<diff.density*1.5));
+   const onBeat = s%4===0;
+   const onEighth = s%2===0;
+   const want = bar<2 ? (onBeat&&s%8===0) : (onEighth ? r()<diff.density : (onBeat && r()<diff.density*1.2));
    
-   if(want){
-       if(deg<0)deg=Math.floor(r()*span);
-       const oct=Math.floor(deg/scale.length),midi=60+root+scale[deg%scale.length]+12*oct;
-       const lane=Math.min(2,Math.floor(deg/span*3));
+   // Anti-slip: Minimum 250ms gap between notes
+   const minGap = 0.25; 
+   
+   if(want && (t - lastNoteTime > minGap)){
+       let deg = Math.floor(r()*span);
+       const oct = Math.floor(deg/scale.length), midi = 60+root+scale[deg%scale.length]+12*oct;
+       const lane = Math.min(2,Math.floor(deg/span*3));
        
-       // Cek jarak minimum antar not (Anti-Slip)
-       const lastNote = chart.length > 0 ? chart[chart.length-1] : null;
-       if(!lastNote || (t - lastNote.t) > 0.15) {
-           chart.push({t,lane,midi,judged:null});
-       }
+       chart.push({t,lane,midi,judged:null});
+       lastNoteTime = t;
 
-       // Chord / Not Ganda (hanya di Hard atau Normal sesekali)
-       if(s%4===0 && r()<diff.chord){
+       // Chords (only if not too close to next beat to prevent overlap)
+       if(s%4===0 && r()<diff.chordChance){
            const lane2=(lane+1+Math.floor(r()*2))%3;
            chart.push({t,lane:lane2,midi:midi-12,judged:null});
        }
@@ -104,25 +121,24 @@ const cv=$('game'),cx=cv.getContext('2d');
 const GW=360,GH=540,LANES=3,LW=GW/LANES;
 function fitCanvas(c,ctx,w,h,scale){const d=scale||Math.max(1,window.devicePixelRatio||1);c.width=w*d;c.height=h*d;c.style.width=w+'px';c.style.height=h+'px';ctx.setTransform(d,0,0,d,0,0)}
 fitCanvas(cv,cx,GW,GH);
-let G=null,raf=0,sched=0,anthem=null;
-const best=w=>{try{return JSON.parse(localStorage.getItem('sqk15:'+(w||'GUEST').toLowerCase())||'null')}catch{return null}};
-const songTime=()=>ac.currentTime-G.start-(+$('offset').value)/1000;
+let G=null,raf=0,sched=0,anthem=null,floatTexts=[];
+const best=w=>{try{return JSON.parse(localStorage.getItem('sqk16:'+(w||'GUEST').toLowerCase())||'null')}catch{return null}};
+const songTime=()=>ac.currentTime-G.start-(+$('offset')?.value || 0)/1000;
 
 async function play(){
  const w=$('walletInput').value.trim();
  if(w&&!isAddr(w))return say('Alamat wallet tidak valid.','red');
  await initAudio();
- // Panggil makeAnthem dengan randomize = true agar selalu berbeda
- anthem=makeAnthem(w, true);
- 
- // Update speed berdasarkan difficulty
+ anthem=makeAnthem(w, true); // Selalu randomize beatmap
  CONFIG.SPEED = DIFFICULTIES[currentDiff].speed;
 
- G={wallet:w,start:ac.currentTime+CONFIG.LEAD_IN,next:0,score:0,combo:0,maxCombo:0,counts:{perfect:0,great:0,good:0,miss:0},fx:[],flash:[0,0,0],judge:null,shake:0,ended:false,paused:false};
+ G={wallet:w,start:ac.currentTime+CONFIG.LEAD_IN,next:0,score:0,combo:0,maxCombo:0,counts:{perfect:0,great:0,good:0,miss:0},fx:[],flash:[0,0,0],judge:null,ended:false,paused:false};
+ floatTexts = [];
  show('gamePanel');$('bpmVal').textContent=anthem.bpm;hud();
  clearInterval(sched);sched=setInterval(schedule,25);
  cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
 }
+
 function schedule(){
  if(!G||G.paused||G.ended)return;
  const ahead=ac.currentTime+.15;
@@ -135,6 +151,11 @@ function schedule(){
   G.next++;
  }
 }
+
+function addFloatText(txt, color) {
+    floatTexts.push({txt, color, x: GW/2, y: 250, life: 1.0});
+}
+
 function judge(lane){
  if(!G||G.ended||G.paused)return;
  const st=songTime();let target=null,bd=1;
@@ -145,83 +166,114 @@ function judge(lane){
  }
  G.flash[lane]=1;
  if(!target||bd>CONFIG.W.good)return;
+ 
  const k=bd<=CONFIG.W.perfect?'perfect':bd<=CONFIG.W.great?'great':'good';
  target.judged=k;G.counts[k]++;G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);
- if(G.combo%10===0) G.shake=4;
  
  const mult=Math.min(2,1+Math.floor(G.combo/10)*.1);
  G.score+=Math.round({perfect:300,great:200,good:100}[k]*mult);
+ 
  tone(mtof(target.midi),ac.currentTime,'square',k==='perfect'?.18:.12,.22);
- G.judge={k,txt:k==='perfect'?'PERFECT':k.toUpperCase()+' · '+(target.t>st?'EARLY':'LATE'),a:1};
- burst(lane*LW+LW/2,CONFIG.HIT_Y,k==='perfect'?'#fcee0a':'#00ffff',k==='perfect'?15:8);
+ 
+ // Text Feedback
+ if(k==='perfect') addFloatText('PERFECT!', '#fcee0a');
+ else if(G.combo > 0 && G.combo % 10 === 0) addFloatText(`COMBO x${G.combo}!`, '#00ffff');
+
+ // Particle burst
+ for(let i=0;i<8;i++){
+     const a=Math.random()*Math.PI*2,s=50+Math.random()*150;
+     G.fx.push({x:lane*LW+LW/2,y:CONFIG.HIT_Y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-50,life:.4,c:k==='perfect'?'#fcee0a':'#00ffff'});
+ }
  hud();
 }
-function burst(x,y,c,n){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=80+Math.random()*250;G.fx.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-100,life:.6,c})}}
+
 function loop(){
  if(!G||G.ended)return;
  raf=requestAnimationFrame(loop);
  const st=songTime();
  for(const n of anthem.chart){
   if(n.judged)continue;
-  if(st-n.t>CONFIG.W.good){n.judged='miss';G.counts.miss++;G.combo=0;G.judge={k:'miss',txt:'MISS',a:1};G.shake=8;hud()}
+  if(st-n.t>CONFIG.W.good){n.judged='miss';G.counts.miss++;G.combo=0;addFloatText('MISS', '#ff365f');hud()}
   else if(n.t>st)break;
  }
  if(st>anthem.duration+.8)return finish();
  draw(st);
 }
+
 function draw(st){
- const dt=1/60;cx.save();
- if(G.shake>0){cx.translate((Math.random()-.5)*G.shake,(Math.random()-.5)*G.shake);G.shake*=.85;if(G.shake<.3)G.shake=0}
- cx.fillStyle='#05020a';cx.fillRect(-10,-10,GW+20,GH+20);
+ const dt=1/60;
+ cx.clearRect(0,0,GW,GH);
+ cx.fillStyle='#05020a';cx.fillRect(0,0,GW,GH);
+ 
  const spb=60/anthem.bpm,beat=((st/spb)%1+1)%1,pulse=st>0?Math.max(0,1-beat*4):0;
  
  for(let l=0;l<LANES;l++){const f=G.flash[l];cx.fillStyle=`rgba(0,255,255,${.04+f*.18})`;cx.fillRect(l*LW+2,0,LW-4,GH);G.flash[l]=Math.max(0,f-dt*5)}
  cx.strokeStyle='#30204d';cx.lineWidth=2;
  for(let l=1;l<LANES;l++){cx.beginPath();cx.moveTo(l*LW,0);cx.lineTo(l*LW,GH);cx.stroke()}
  
- cx.strokeStyle='rgba(160,144,176,.12)';cx.lineWidth=1;
+ // Draw beat lines
+ cx.strokeStyle='rgba(160,144,176,.1)';cx.lineWidth=1;
  for(let b=Math.ceil(st/spb);b<st/spb+GH/CONFIG.SPEED/spb+1;b++){const y=CONFIG.HIT_Y-(b*spb-st)*CONFIG.SPEED;cx.beginPath();cx.moveTo(0,y);cx.lineTo(GW,y);cx.stroke()}
  
- cx.fillStyle=`rgba(57,255,20,${.15+pulse*.25})`;cx.fillRect(0,CONFIG.HIT_Y-15,GW,30);
+ // Target Area
+ cx.fillStyle=`rgba(57,255,20,${.1+pulse*.2})`;cx.fillRect(0,CONFIG.HIT_Y-15,GW,30);
  cx.fillStyle='#39ff14';cx.fillRect(0,CONFIG.HIT_Y-2,GW,4);
  
+ // Notes
  for(const n of anthem.chart){
   const y=CONFIG.HIT_Y-(n.t-st)*CONFIG.SPEED;
   if(y<-30)break;
   if(y>GH+30||(n.judged&&n.judged!=='miss'))continue;
   const x=n.lane*LW+LW/2;
   cx.fillStyle=n.judged==='miss'?'#ff365f':['#ff5cf0','#00ffff','#fcee0a'][n.lane];
-  cx.shadowColor=cx.fillStyle;cx.shadowBlur=n.judged?0:15;
-  cx.fillRect(Math.round(x-35),Math.round(y-12),70,24);cx.shadowBlur=0;
+  // Simple gradient for visual flair without shadowBlur lag
+  cx.fillRect(Math.round(x-35),Math.round(y-12),70,24);
  }
  
- for(let i=G.fx.length-1;i>=0;i--){const p=G.fx[i];p.life-=dt;if(p.life<=0){G.fx.splice(i,1);continue}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=500*dt;cx.globalAlpha=p.life*1.5;cx.fillStyle=p.c;cx.fillRect(p.x|0,p.y|0,4,4)}
- cx.globalAlpha=1;cx.textAlign='center';
+ // Particles
+ for(let i=G.fx.length-1;i>=0;i--){const p=G.fx[i];p.life-=dt;if(p.life<=0){G.fx.splice(i,1);continue}p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=400*dt;cx.globalAlpha=p.life*1.5;cx.fillStyle=p.c;cx.fillRect(p.x|0,p.y|0,3,3)}
+ cx.globalAlpha=1;
  
+ // Floating Text
+ cx.textAlign='center';
+ for(let i=floatTexts.length-1;i>=0;i--){
+     const t=floatTexts[i]; t.life-=dt*1.5; t.y-=dt*50;
+     if(t.life<=0) { floatTexts.splice(i,1); continue; }
+     cx.globalAlpha = Math.min(1, t.life);
+     cx.fillStyle = t.color;
+     cx.font = '14px "Press Start 2P"';
+     cx.fillText(t.txt, t.x, t.y);
+ }
+ cx.globalAlpha=1;
+
+ // Countdown
  if(st<0){cx.fillStyle='#fcee0a';cx.font='24px "Press Start 2P"';cx.fillText(Math.ceil(-st),GW/2,GH/2)}
  
- if(G.judge&&G.judge.a>0){const j=G.judge;cx.globalAlpha=Math.min(1,j.a*1.5);cx.fillStyle={perfect:'#fcee0a',great:'#00ffff',good:'#39ff14',miss:'#ff365f'}[j.k];cx.font='16px "Press Start 2P"';cx.fillText(j.txt,GW/2,CONFIG.HIT_Y-80);j.a-=dt*1.5;cx.globalAlpha=1}
- cx.fillStyle='#39ff14';cx.fillRect(0,0,GW*Math.max(0,Math.min(1,st/anthem.duration)),4);
+ // Pause
+ if(G.paused){cx.fillStyle='rgba(0,0,0,.8)';cx.fillRect(0,0,GW,GH);cx.fillStyle='#fff';cx.font='14px "Press Start 2P"';cx.fillText('KETUK UNTUK LANJUT',GW/2,GH/2)}
  
- if(G.paused){cx.fillStyle='rgba(0,0,0,.7)';cx.fillRect(0,0,GW,GH);cx.fillStyle='#fff';cx.font='14px "Press Start 2P"';cx.fillText('KETUK UNTUK LANJUT',GW/2,GH/2)}
- cx.restore();
+ // Progress bar
+ cx.fillStyle='#39ff14';cx.fillRect(0,0,GW*Math.max(0,Math.min(1,st/anthem.duration)),4);
 }
+
 function accuracy(){const c=G.counts,tot=c.perfect+c.great+c.good+c.miss;return tot?(c.perfect*300+c.great*200+c.good*100)/(tot*300)*100:100}
 const grade=(a,miss)=>a>=95&&miss===0?'SS':a>=95?'S':a>=88?'A':a>=75?'B':a>=60?'C':'D';
 function hud(){$('scoreVal').textContent=G.score;$('comboVal').textContent=G.combo;$('accVal').textContent=accuracy().toFixed(1)+'%'}
+
 function finish(){
  G.ended=true;clearInterval(sched);cancelAnimationFrame(raf);
  const a=accuracy(),g=grade(a,G.counts.miss),key=(G.wallet||'GUEST').toLowerCase(),prev=best(G.wallet);
  const rec={score:G.score,acc:+a.toFixed(2),grade:g,maxCombo:G.maxCombo,at:Date.now()};
  const isNew=!prev||rec.score>prev.score;
- if(isNew)localStorage.setItem('sqk15:'+key,JSON.stringify(rec));
+ if(isNew)localStorage.setItem('sqk16:'+key,JSON.stringify(rec));
  $('gradeVal').textContent=g;
  $('gradeVal').style.color=g.startsWith('S')?'var(--yellow)':g==='A'?'var(--green)':g==='D'?'var(--red)':'var(--blue)';
  const c=G.counts;
- $('resultKv').innerHTML=`<span>Skor</span><b>${G.score}</b><span>Akurasi</span><b>${a.toFixed(2)}%</b><span>Max combo</span><b>${G.maxCombo}</b><span>Perfect / Great</span><b>${c.perfect} / ${c.great}</b><span>Good / Miss</span><b>${c.good} / ${c.miss}</b><span>Anthem</span><b>${anthem.key} ${anthem.scaleName}</b>`;
+ $('resultKv').innerHTML=`<span>Skor</span><b>${G.score}</b><span>Akurasi</span><b>${a.toFixed(2)}%</b><span>Max combo</span><b>${G.maxCombo}</b><span>Perfect/Great</span><b>${c.perfect}/${c.great}</b><span>Good/Miss</span><b>${c.good}/${c.miss}</b><span>Anthem</span><b>${anthem.key} ${anthem.scaleName}</b>`;
  $('bestMsg').textContent=isNew?'REKOR BARU untuk wallet ini!':`Rekor: ${prev.score} (${prev.grade})`;
  show('resultPanel');
 }
+
 function stop(){if(G){clearInterval(sched);cancelAnimationFrame(raf);G=null}show('mainPanel')}
 
 cv.addEventListener('pointerdown',e=>{
@@ -230,13 +282,6 @@ cv.addEventListener('pointerdown',e=>{
  const r=cv.getBoundingClientRect();
  judge(Math.min(LANES-1,Math.max(0,Math.floor((e.clientX-r.left)/r.width*LANES))));
 },{passive:false});
-const KEYS={KeyD:0,KeyF:1,KeyJ:2,ArrowLeft:0,ArrowDown:1,ArrowRight:2};
-addEventListener('keydown',e=>{
- if(e.repeat||!G||G.ended||e.target.tagName==='INPUT'||!(e.code in KEYS))return;
- e.preventDefault();
- if(G.paused){resume();return}
- judge(KEYS[e.code]);
-});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!G.ended&&!G.paused){G.paused=true;ac.suspend()}});
 async function resume(){await ac.resume();G.paused=false}
 
@@ -290,7 +335,7 @@ async function generateCard(){
  ctx.strokeStyle='rgba(255,92,240,.5)';ctx.lineWidth=1;ctx.strokeRect(10,10,CW-20,CH-20);
  ctx.fillStyle='rgba(255,255,255,.025)';for(let y=12;y<CH-12;y+=4)ctx.fillRect(12,y,CW-24,1);
  ctx.textAlign='center';ctx.fillStyle='#00ffff';ctx.font='12px "Press Start 2P"';ctx.fillText('SQUEEK CITIZEN',CW/2,38);
- ctx.fillStyle='#a090b0';ctx.font='9px "Space Mono"';ctx.fillText('PIXEL ID v15 · WALLET ANTHEM',CW/2,54);
+ ctx.fillStyle='#a090b0';ctx.font='9px "Space Mono"';ctx.fillText('PIXEL ID v16 · WALLET ANTHEM',CW/2,54);
  avatar(ctx,w,CW/2-56,68,7);
  const row=(l,v,x,y,col)=>{ctx.textAlign='left';ctx.fillStyle='#a090b0';ctx.font='9px "Space Mono"';ctx.fillText(l,x,y);ctx.fillStyle=col;ctx.font='bold 13px "Space Mono"';ctx.fillText(v,x,y+16)};
  row('WALLET',w.slice(0,8)+'...'+w.slice(-6),24,206,'#39ff14');
@@ -318,8 +363,6 @@ function say(t,c){$('message').textContent=t;$('message').style.color=`var(--${c
 function show(id){['mainPanel','gamePanel','resultPanel'].forEach(p=>$(p).classList.toggle('hidden',p!==id))}
 function preview(){const w=$('walletInput').value.trim();if(w&&!isAddr(w)){$('anthemInfo').textContent='';return}const a=makeAnthem(w),b=best(w);$('anthemInfo').textContent=`♪ ${w?'Anthem':'Guest anthem'}: ${a.key} ${a.scaleName} · ${a.bpm} BPM · ${a.chart.length} not${b?' · rekor '+b.score:''}`}
 $('walletInput').addEventListener('input',preview);
-$('offset').value=localStorage.getItem('sqk15:offset')||0;$('offVal').textContent=$('offset').value;
-$('offset').addEventListener('input',e=>{$('offVal').textContent=e.target.value;localStorage.setItem('sqk15:offset',e.target.value)});
 $('connectBtn').onclick=async()=>{
  if(!window.ethereum)return say('Wallet tidak terdeteksi. Buka di browser MetaMask/Trust Wallet.','red');
  try{const[a]=await window.ethereum.request({method:'eth_requestAccounts'});$('walletInput').value=a;preview();say('Alamat diambil (read-only).','green')}catch{say('Dibatalkan.','yellow')}
