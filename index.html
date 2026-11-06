@@ -2,441 +2,86 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>SQUEEKCHAIN // VOLUMETRIC ORGANISM</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
-    :root {
-        --bg: #000000; --fg: #00ff00; --accent: #ff00ff; --white: #ffffff;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-    body {
-        background: var(--bg); color: var(--fg); font-family: 'Space Mono', monospace;
-        display: flex; flex-direction: column; height: 100vh; overflow: hidden;
-    }
-    
-    /* UI Overlay Neo-Brutalis */
-    #ui-layer {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
-        padding: 20px; z-index: 10;
-    }
-    .header { font-size: 16px; font-weight: bold; text-shadow: 2px 2px 0 #000; }
-    .stats { display: flex; gap: 15px; font-size: 14px; background: rgba(0,0,0,0.8); padding: 10px; border: 2px solid var(--fg); }
-    .stats b { color: var(--white); }
-    
-    .controls { pointer-events: auto; display: flex; flex-direction: column; gap: 10px; max-width: 400px; margin: 0 auto; width: 100%; }
-    input {
-        width: 100%; padding: 15px; background: #000; border: 3px solid var(--fg);
-        color: var(--fg); font: 14px 'Space Mono', monospace; outline: none;
-    }
-    input:focus { border-color: var(--accent); }
-    button {
-        width: 100%; padding: 15px; background: var(--fg); color: #000;
-        font: bold 16px 'Space Mono', monospace; border: 3px solid #fff;
-        box-shadow: 6px 6px 0 var(--accent); cursor: pointer; transition: all 0.1s;
-        text-transform: uppercase;
-    }
-    button:active { transform: translate(4px, 4px); box-shadow: none; }
-    button.secondary { background: #000; color: var(--fg); border-color: var(--fg); box-shadow: none; }
-    
-    #glcanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; touch-action: none; }
-    
-    #msg { font-size: 12px; text-align: center; background: #000; padding: 5px; border: 1px dashed var(--accent); margin-top: 10px; height: 28px; }
-    
-    .hidden { display: none !important; }
-    
-    /* Glitch Animasi untuk teks UI */
-    @keyframes glitch {
-        0% { transform: translate(0) }
-        20% { transform: translate(-2px, 2px) }
-        40% { transform: translate(-2px, -2px) }
-        60% { transform: translate(2px, 2px) }
-        80% { transform: translate(2px, -2px) }
-        100% { transform: translate(0) }
-    }
-    .glitch-text { animation: glitch 0.3s cubic-bezier(.25,.46,.45,.94) both infinite; color: var(--accent); }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>SQUEEKCHAIN // ULTIMATE v19</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<canvas id="glcanvas"></canvas>
+<!-- Background WebGL (Organism) -->
+<canvas id="bg-gl"></canvas>
 
 <div id="ui-layer">
-    <div class="header">
-        SQUEEKCHAIN // <span id="statusText">AWAITING SEED</span>
-    </div>
-    
-    <div class="stats hidden" id="gameStats">
-        <div>SCORE: <b id="scoreVal">0</b></div>
-        <div>COMBO: <b id="comboVal">0</b></div>
-        <div>ACC: <b id="accVal">100%</b></div>
-    </div>
+    <header>
+        <h1>SQUEEKCHAIN</h1>
+        <h2>PIXEL ID // v19 ULTIMATE</h2>
+    </header>
 
-    <div class="controls" id="mainControls">
-        <input id="walletInput" type="text" placeholder="ENTER WALLET ADDRESS (0x...)" autocomplete="off">
-        <button id="startBtn">INITIALIZE ORGANISM</button>
-        <p id="msg">Wallet address acts as the mathematical seed.</p>
-    </div>
+    <main class="container">
+        <!-- PANEL UTAMA (MENU) -->
+        <section class="panel" id="mainPanel">
+            <div class="stack">
+                <label>WALLET ADDRESS (SEED)</label>
+                <input id="walletInput" type="text" autocomplete="off" placeholder="0x...">
+                <p class="anthem" id="anthemInfo">AWAITING INPUT...</p>
+                
+                <label>// GENRE</label>
+                <div class="diff-row" id="genreRow">
+                    <button class="btn-diff active" data-genre="cyber">CYBER</button>
+                    <button class="btn-diff" data-genre="synth">SYNTH</button>
+                    <button class="btn-diff" data-genre="chip">CHIP</button>
+                </div>
 
-    <div class="controls hidden" id="gameControls">
-        <button id="stopBtn" class="secondary">TERMINATE</button>
-        <p id="msg2" style="text-align:center; font-size:12px; color:var(--accent)">TAP SCREEN TO THE RHYTHM.</p>
-    </div>
+                <label>// DIFFICULTY</label>
+                <div class="diff-row" id="diffRow">
+                    <button class="btn-diff active" data-diff="easy">EASY</button>
+                    <button class="btn-diff" data-diff="normal">NORMAL</button>
+                    <button class="btn-diff" data-diff="hard">HARD</button>
+                </div>
+
+                <button class="btn-primary" id="playBtn">INITIALIZE RHYTHM</button>
+                <button class="btn-secondary" id="genBtn">GENERATE ID CARD</button>
+            </div>
+            <p class="msg" id="message">SYSTEM READY.</p>
+            
+            <!-- AREA KARTU -->
+            <div id="cardArea" class="hidden stack">
+                <canvas id="card-canvas"></canvas>
+                <div class="row">
+                    <button class="btn-primary" id="dlBtn">[ DOWNLOAD ]</button>
+                    <button class="btn-secondary" id="shareBtn">[ SHARE ]</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANEL GAME -->
+        <section class="panel hidden" id="gamePanel">
+            <div class="stats">
+                <div class="stat"><b id="scoreVal">0</b><span>SCORE</span></div>
+                <div class="stat"><b id="comboVal">0</b><span>COMBO</span></div>
+                <div class="stat"><b id="accVal">100%</b><span>ACC</span></div>
+                <div class="stat"><b id="bpmVal">120</b><span>BPM</span></div>
+            </div>
+            <canvas id="game-canvas"></canvas>
+            <p class="hint">TAP LANE WHEN BLOCK HITS THE LINE.</p>
+            <button class="btn-danger" id="stopBtn">[ TERMINATE ]</button>
+        </section>
+
+        <!-- PANEL HASIL -->
+        <section class="panel hidden" id="resultPanel">
+            <div class="grade" id="gradeVal">S</div>
+            <div class="kv" id="resultKv"></div>
+            <p class="msg" id="bestMsg"></p>
+            <div class="stack">
+                <button class="btn-primary" id="againBtn">RETRY</button>
+                <button class="btn-secondary" id="toCardBtn">GENERATE CARD</button>
+                <button class="btn-danger" id="homeBtn">EXIT TO MENU</button>
+            </div>
+        </section>
+    </main>
 </div>
 
-<script>
-// ==========================================
-// 1. WEBGL SHADER ENGINE (ORGANISM RAYMARCHING)
-// ==========================================
-const canvas = document.getElementById('glcanvas');
-const gl = canvas.getContext('webgl');
-
-if (!gl) { alert("WebGL not supported"); }
-
-// Vertex Shader (Full Screen Quad)
-const vsSource = `
-    attribute vec2 position;
-    void main() { gl_Position = vec4(position, 0.0, 1.0); }
-`;
-
-// Fragment Shader (Raymarching SDF + Audio Reactivity + Glitch)
-const fsSource = `
-    precision highp float;
-    uniform vec2 u_resolution;
-    uniform float u_time;
-    uniform float u_seed;
-    uniform float u_audio;
-    uniform float u_glitch; 
-    uniform float u_hit;
-    uniform vec2 u_mouse;
-
-    // SDF Sphere
-    float sdSphere(vec3 p, float r) {
-        return length(p) - r;
-    }
-
-    // SDF Torus
-    float sdTorus(vec3 p, vec2 t) {
-        vec2 q = vec2(length(p.xz)-t.x, p.y);
-        return length(q)-t.y;
-    }
-
-    // Scene SDF (Mutates based on seed & audio)
-    float map(vec3 p) {
-        // Seed-based rotation
-        float s = u_seed;
-        p.xz = mat2(cos(s), -sin(s), sin(s), cos(s)) * p.xz;
-        
-        // Pulse based on audio & time
-        float pulse = 1.0 + sin(u_time * 3.0) * 0.1 + u_audio * 0.5;
-        
-        float sphere = sdSphere(p, 1.0 * pulse);
-        float torus = sdTorus(p + vec3(0.0, 0.0, sin(u_time)*0.5), vec2(1.5, 0.2));
-        
-        // Morphing between sphere and torus based on seed
-        float shape = mix(sphere, torus, fract(s));
-        
-        // Add glitch distortion based on network error
-        shape += sin(p.x * 10.0 + u_time * 5.0) * u_glitch * 0.2;
-        
-        return shape;
-    }
-
-    // Normal calculation
-    vec3 getNormal(vec3 p) {
-        vec2 e = vec2(0.01, 0.0);
-        return normalize(vec3(
-            map(p + e.xyy) - map(p - e.xyy),
-            map(p + e.yxy) - map(p - e.yxy),
-            map(p + e.yyx) - map(p - e.yyx)
-        ));
-    }
-
-    void main() {
-        // High DPI pixel perfect
-        vec2 uv = (gl_FragCoord.xy * 2.0 - u_resolution) / min(u_resolution.x, u_resolution.y);
-        
-        // Camera setup
-        vec3 ro = vec3(0.0, 0.0, -3.0 - u_audio * 0.5);
-        vec3 rd = normalize(vec3(uv, 1.0));
-        
-        // Mouse rotation
-        float mx = (u_mouse.x / u_resolution.x - 0.5) * 2.0;
-        float my = (u_mouse.y / u_resolution.y - 0.5) * 2.0;
-        mat2 rotX = mat2(cos(my), -sin(my), sin(my), cos(my));
-        mat2 rotY = mat2(cos(mx), -sin(mx), sin(mx), cos(mx));
-        rd.yz = rotX * rd.yz;
-        rd.xz = rotY * rd.xz;
-
-        // Raymarch
-        float t = 0.0;
-        for(int i = 0; i < 80; i++) {
-            vec3 p = ro + rd * t;
-            float d = map(p);
-            if(d < 0.001 || t > 20.0) break;
-            t += d * 0.8; // Step size
-        }
-
-        // Coloring
-        vec3 p = ro + rd * t;
-        vec3 n = getNormal(p);
-        vec3 lightDir = normalize(vec3(1.0, 1.0, -1.0));
-        float diff = max(dot(n, lightDir), 0.0);
-        
-        // Neon Color based on seed and hit
-        vec3 baseColor = vec3(0.0, 1.0, 0.0); // Green
-        vec3 accent = vec3(1.0, 0.0, 1.0); // Magenta
-        vec3 col = mix(baseColor, accent, n.x * 0.5 + 0.5);
-        
-        // Chromatic Aberration (Glitch)
-        if(u_glitch > 0.0) {
-            col.r = mix(col.r, 1.0, u_glitch);
-            col.b = mix(col.b, 0.0, u_glitch);
-            col += vec3(sin(uv.y * 50.0) * u_glitch);
-        }
-
-        // Hit Flash
-        col += u_hit * vec3(1.0, 1.0, 1.0);
-
-        // Background (Grid & Vignette)
-        vec3 bg = vec3(0.0);
-        float grid = step(0.98, fract(uv.x * 10.0)) + step(0.98, fract(uv.y * 10.0));
-        bg += grid * 0.05 * vec3(0.0, 1.0, 0.0);
-        
-        // Final mix
-        vec3 finalCol = mix(bg, col * diff, step(0.001, t < 20.0 ? 1.0 : 0.0));
-        
-        gl_FragColor = vec4(finalCol, 1.0);
-    }
-`;
-
-function createShader(gl, type, source) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(shader));
-        gl.deleteShader(shader);
-        return null;
-    }
-    return shader;
-}
-
-const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
-const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
-const program = gl.createProgram();
-gl.attachShader(program, vertexShader);
-gl.attachShader(program, fragmentShader);
-gl.linkProgram(program);
-gl.useProgram(program);
-
-// Setup Quad
-const positionBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-const positionLocation = gl.getAttribLocation(program, "position");
-gl.enableVertexAttribArray(positionLocation);
-gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-
-// Uniform Locations
-const uResolution = gl.getUniformLocation(program, "u_resolution");
-const uTime = gl.getUniformLocation(program, "u_time");
-const uSeed = gl.getUniformLocation(program, "u_seed");
-const uAudio = gl.getUniformLocation(program, "u_audio");
-const uGlitch = gl.getUniformLocation(program, "u_glitch");
-const uHit = gl.getUniformLocation(program, "u_hit");
-const uMouse = gl.getUniformLocation(program, "u_mouse");
-
-// State variables
-let seed = 0;
-let audioVal = 0;
-let glitchVal = 0;
-let hitVal = 0;
-let mouse = { x: 0, y: 0 };
-
-// Handle Resize (DPI Aware)
-function resize() {
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    gl.viewport(0, 0, canvas.width, canvas.height);
-}
-window.addEventListener('resize', resize);
-resize();
-
-// Mouse/Touch tracking
-window.addEventListener('pointermove', e => {
-    const dpr = window.devicePixelRatio || 1;
-    mouse.x = e.clientX * dpr;
-    mouse.y = (window.innerHeight - e.clientY) * dpr;
-});
-
-// ==========================================
-// 2. AUDIO & RHYTHM ENGINE
-// ==========================================
-let ac = null, master = null, analyser = null, dataArray = null;
-const CONFIG = { BPM: 120, HIT_WINDOW: 150 }; // ms
-let gameActive = false;
-let lastHitTime = 0;
-let score = 0, combo = 0, maxCombo = 0, hits = 0, misses = 0;
-let nextBeatTime = 0;
-
-async function initAudio() {
-    if (!ac) {
-        ac = new (window.AudioContext || window.webkitAudioContext)();
-        master = ac.createGain(); master.gain.value = 0.3;
-        analyser = ac.createAnalyser(); analyser.fftSize = 256;
-        dataArray = new Uint8Array(analyser.frequencyBinCount);
-        
-        master.connect(analyser);
-        analyser.connect(ac.destination);
-    }
-    if (ac.state !== 'running') await ac.resume();
-}
-
-function playBeat() {
-    if (!ac) return;
-    const osc = ac.createOscillator();
-    const gain = ac.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(150, ac.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(50, ac.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.5, ac.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.2);
-    osc.connect(gain); gain.connect(master);
-    osc.start(); osc.stop(ac.currentTime + 0.2);
-}
-
-function getAudioLevel() {
-    if (!analyser) return 0;
-    analyser.getByteFrequencyData(dataArray);
-    let sum = 0;
-    for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-    return (sum / dataArray.length) / 255; // Normalized 0-1
-}
-
-// ==========================================
-// 3. GAME LOOP & NETWORK LOGIC
-// ==========================================
-function renderLoop(time) {
-    time *= 0.001; // Convert to seconds
-    
-    // Audio Reactive
-    audioVal = getAudioLevel();
-    hitVal *= 0.9; // Decay hit flash
-    glitchVal *= 0.95; // Decay glitch
-
-    // Rhythm Logic
-    if (gameActive) {
-        const beatInterval = 60 / CONFIG.BPM;
-        if (ac.currentTime > nextBeatTime) {
-            playBeat();
-            nextBeatTime = ac.currentTime + beatInterval;
-        }
-    }
-
-    // WebGL Draw
-    gl.uniform2f(uResolution, canvas.width, canvas.height);
-    gl.uniform1f(uTime, time);
-    gl.uniform1f(uSeed, seed);
-    gl.uniform1f(uAudio, audioVal);
-    gl.uniform1f(uGlitch, glitchVal);
-    gl.uniform1f(uHit, hitVal);
-    gl.uniform2f(u_mouse, mouse.x, mouse.y);
-
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    requestAnimationFrame(renderLoop);
-}
-requestAnimationFrame(renderLoop);
-
-// ==========================================
-// 4. INTERACTION & UI
-// ==========================================
-const $ = id => document.getElementById(id);
-const isAddr = s => /^0x[a-fA-F0-9]{40}$/.test(s);
-
-function updateUI() {
-    $('scoreVal').textContent = score;
-    $('comboVal').textContent = combo;
-    const acc = hits > 0 ? (hits / (hits + misses) * 100) : 100;
-    $('accVal').textContent = acc.toFixed(1) + '%';
-}
-
-// TAP LOGIC
-canvas.addEventListener('pointerdown', async () => {
-    if (!gameActive) return;
-    
-    // Visual Hit Effect
-    hitVal = 1.0;
-
-    // Judgement
-    const now = ac.currentTime * 1000;
-    const timeDiff = Math.abs(now - (nextBeatTime * 1000));
-    
-    // If tap is within the window of the beat
-    if (timeDiff < CONFIG.HIT_WINDOW || timeDiff > (60000/CONFIG.BPM - CONFIG.HIT_WINDOW)) {
-        score += 100;
-        hits++;
-        combo++;
-        if (combo > maxCombo) maxCombo = combo;
-    } else {
-        misses++;
-        combo = 0;
-        glitchVal = 0.5; // Glitch on miss
-    }
-    updateUI();
-});
-
-$('startBtn').addEventListener('click', async () => {
-    const wallet = $('walletInput').value.trim();
-    // Generate seed from wallet (or random if guest)
-    if (wallet && isAddr(wallet)) {
-        let hash = 0;
-        for (let i = 0; i < wallet.length; i++) hash = ((hash << 5) - hash) + wallet.charCodeAt(i);
-        seed = Math.abs(hash % 1000) / 100; // Normalize 0-10
-    } else {
-        seed = Math.random() * 10;
-    }
-    
-    $('mainControls').classList.add('hidden');
-    $('gameStats').classList.remove('hidden');
-    $('gameControls').classList.remove('hidden');
-    $('statusText').textContent = 'ORGANISM ACTIVE';
-    
-    await initAudio();
-    gameActive = true;
-    nextBeatTime = ac.currentTime + (60 / CONFIG.BPM);
-    
-    // Simulate Network Glitch (Fake RPC check)
-    checkNetworkHealth();
-});
-
-$('stopBtn').addEventListener('click', () => {
-    gameActive = false;
-    $('mainControls').classList.remove('hidden');
-    $('gameStats').classList.add('hidden');
-    $('gameControls').classList.add('hidden');
-    $('statusText').textContent = 'TERMINATED';
-    $('msg').textContent = `FINAL SCORE: ${score} | MAX COMBO: ${maxCombo}`;
-    seed = 0;
-});
-
-// NETWORK SIMULATION (Glitch feedback)
-async function checkNetworkHealth() {
-    try {
-        const res = await fetch('https://api.squeekchain.com/v1/status');
-        if (!res.ok) throw new Error('RPC ERROR');
-        // If success, no glitch
-    } catch (e) {
-        // If fail, trigger massive glitch
-        glitchVal = 1.0;
-        $('statusText').textContent = 'NETWORK DEGRADED';
-        $('statusText').classList.add('glitch-text');
-        setTimeout(() => $('statusText').classList.remove('glitch-text'), 3000);
-    }
-}
-
-</script>
+<script src="script.js"></script>
 </body>
 </html>
