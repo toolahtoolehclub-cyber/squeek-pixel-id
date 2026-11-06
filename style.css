@@ -1,4 +1,4 @@
-:root{--bg:#05020a;--glass:rgba(26,17,48,.85);--green:#39ff14;--blue:#00ffff;--red:#ff365f;--yellow:#fcee0a;--pink:#ff5cf0;--text:#f0f0f0;--muted:#a090b0;--border:rgba(74,44,130,.85)}
+:root{--bg:#05020a;--glass:rgba(20,14,38,.85);--green:#39ff14;--blue:#00ffff;--red:#ff365f;--yellow:#fcee0a;--pink:#ff5cf0;--text:#f0f0f0;--muted:#a090b0;--border:rgba(74,44,130,.85)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 button,canvas,.stat,h1{user-select:none;-webkit-user-select:none}
 html,body{overscroll-behavior:none}
@@ -17,7 +17,7 @@ body{
 body::after {
     content: " "; display: block; position: fixed;
     top: 0; left: 0; bottom: 0; right: 0;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
     z-index: 999; background-size: 100% 3px, 3px 100%; pointer-events: none;
 }
 
@@ -39,20 +39,18 @@ button{width:100%;border:none;border-radius:10px;padding:14px;background:var(--b
 button:active{transform:translateY(2px) scale(0.98)}
 button:disabled{opacity:.4;cursor:wait}
 button.secondary{background:rgba(0,255,255,.05);border:1px solid var(--blue);color:var(--blue);box-shadow:none}
-button.secondary:hover{background:rgba(0,255,255,.15)}
 button.success{background:var(--green);box-shadow:0 0 15px rgba(57,255,20,.4)}
 button.danger{background:rgba(255,54,95,.1);border:1px solid var(--red);color:var(--red);box-shadow:none}
 
-/* Difficulty Selector */
-.diff-row{display:flex;gap:8px;margin:5px 0}
+/* Selectors */
+.diff-row{display:flex;gap:6px;margin:2px 0}
 .diff-btn{flex:1;padding:10px 0;background:rgba(0,0,0,0.5);border:1px solid var(--border);color:var(--muted);font:700 10px 'Space Mono';box-shadow:none}
-.diff-btn.active{background:rgba(255,255,255,0.1);border-color:var(--blue);color:var(--blue);box-shadow:0 0 10px rgba(0,255,255,0.2)}
+.diff-btn.active{background:rgba(0,255,255,0.15);border-color:var(--blue);color:var(--blue);box-shadow:0 0 10px rgba(0,255,255,0.2)}
 
-label{font-size:11px;color:var(--blue)}
+label{font-size:11px;color:var(--blue);margin-top:5px}
 input[type=text]{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:rgba(0,0,0,.6);color:var(--green);font:13px 'Space Mono',monospace;user-select:text;-webkit-user-select:text}
-input[type=range]{width:100%;accent-color:var(--blue)}
 .msg{text-align:center;color:var(--yellow);font-size:11px;margin:6px 0;min-height:15px}
-.anthem{font-size:11px;color:var(--pink);text-align:center;min-height:15px;margin:0}
+.anthem{font-size:11px;color:var(--pink);text-align:center;min-height:15px;margin:0;font-weight:bold}
 
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
 .stat{padding:8px 4px;background:rgba(0,0,0,.6);border:1px solid var(--border);border-radius:10px;text-align:center;box-shadow:inset 0 2px 5px rgba(0,0,0,0.5)}
@@ -68,4 +66,3 @@ canvas{display:block;border-radius:10px;margin:0 auto;max-width:100%;box-shadow:
 .result .grade{font:48px 'Press Start 2P',monospace;margin:10px 0}
 .kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;margin:12px 0;text-align:left;background:rgba(0,0,0,0.3);padding:12px;border-radius:10px}
 .kv b{color:var(--green);text-align:right}
-small.calib{font-size:10px;color:var(--muted)}
