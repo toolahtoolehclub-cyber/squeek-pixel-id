@@ -2,8 +2,9 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Squeekchain Pixel ID v11</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#05020a">
+<title>Squeekchain Pixel ID v12</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap');
 
@@ -81,7 +82,7 @@ canvas { display: block; border-radius: 10px; margin: 0 auto; }
 </head>
 <body>
 
-<h1>SQUEEKCHAIN<br>PIXEL ID v11</h1>
+<h1>SQUEEKCHAIN<br>PIXEL ID v12</h1>
 
 <div class="container">
   <section class="panel" id="mainPanel">
@@ -96,7 +97,7 @@ canvas { display: block; border-radius: 10px; margin: 0 auto; }
     </div>
     <p id="message">Pilih mode permainan atau masukkan wallet.</p>
     <div id="cardArea" style="text-align: center;">
-      <canvas id="cardCanvas" width="320" height="460"></canvas>
+      <canvas id="cardCanvas"></canvas>
       <button class="success" onclick="downloadCard()" style="margin-top: 15px;">Unduh PNG</button>
     </div>
   </section>
@@ -107,50 +108,86 @@ canvas { display: block; border-radius: 10px; margin: 0 auto; }
       <div class="stat"><b id="comboVal">0</b><span>COMBO</span></div>
       <div class="stat"><b id="bpmVal">120</b><span>BPM</span></div>
     </div>
-    <!-- Canvas Ukuran Standar, Tanpa DPR Scaling -->
-    <canvas id="gameCanvas" width="320" height="400"></canvas>
+    <canvas id="gameCanvas"></canvas>
     <p style="text-align:center; font-size:10px; color:#a090b0; margin: 10px 0;">Ketuk lane saat balok mendekati garis hijau.</p>
     <button class="danger" onclick="stopGame()">Berhenti Bermain</button>
   </section>
 </div>
 
 <script>
+// ====== KONFIGURASI ======
+const CONFIG = {
+    API_URL: 'https://api.squeekchain.com/v1/status',
+    RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com',
+    TOKEN_CONTRACT: '0x810239d271e80a86023f4f315943acbd65b59281',
+    BPM: 120,
+    NOTE_SPEED: 300,
+    TARGET_Y: 320,
+    HIT_WINDOW: 40,
+    PERFECT_WINDOW: 15
+};
+
 // ====== STATE ======
 let isPlaying = false;
-let score = 0, combo = 0, bpm = 120;
+let score = 0, combo = 0;
 let notes = [];
 let lastTime = 0;
+let spawnAccumulator = 0;
 let rafId = null;
 let audioCtx = null;
+let audioBuffer = null;
+let activePointers = new Set();
 
+// ====== CANVAS DPR SETUP ======
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const targetY = 320; // Garis target di bawah
-const noteSpeed = 300;
-const hitWindow = 40;
+const GAME_W = 320, GAME_H = 400;
 
-// ====== AUDIO ======
-function initAudio() {
-    if (!audioCtx) {
-        const AudioConstructor = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioConstructor();
+function setupCanvas(c, context, w, h) {
+    const dpr = window.devicePixelRatio || 1;
+    c.width = w * dpr;
+    c.height = h * dpr;
+    c.style.width = w + 'px';
+    c.style.height = h + 'px';
+    context.scale(dpr, dpr);
+}
+setupCanvas(canvas, ctx, GAME_W, GAME_H);
+
+// ====== AUDIO BUFFER (Bebas GC Spike) ======
+async function initAudio() {
+    if (audioCtx) return;
+    const AudioCtor = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AudioCtor();
+    
+    // Buat buffer suara sederhana (bebas osilator berulang)
+    const sampleRate = audioCtx.sampleRate;
+    const duration = 0.1;
+    const bufferSize = sampleRate * duration;
+    audioBuffer = audioCtx.createBuffer(1, bufferSize, sampleRate);
+    const data = audioBuffer.getChannelData(0);
+    
+    // Generate simple sine wave
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.sin(440 * 2 * Math.PI * i / sampleRate) * 0.1;
     }
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
 }
 
-function playBeep(freq, dur, vol) {
-    if (!audioCtx || audioCtx.state !== 'running') return;
-    const osc = audioCtx.createOscillator();
+function playSound(pitchMultiplier = 1, volume = 1) {
+    if (!audioCtx || !audioBuffer || audioCtx.state !== 'running') return;
+    const source = audioCtx.createBufferSource();
     const gain = audioCtx.createGain();
-    osc.type = 'square'; // Suara lebih tajam agar jelas
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + dur);
+    
+    source.buffer = audioBuffer;
+    source.playbackRate.value = pitchMultiplier;
+    gain.gain.value = volume;
+    
+    source.connect(gain); gain.connect(audioCtx.destination);
+    source.start();
 }
 
-// ====== GAME ENGINE ======
+// ====== GAME ENGINE (Delta-Time Accumulator) ======
 function startGame() {
     initAudio();
     document.getElementById('mainPanel').style.display = 'none';
@@ -158,26 +195,17 @@ function startGame() {
     
     isPlaying = true;
     score = 0; combo = 0; notes = [];
+    spawnAccumulator = 0;
     updateUI();
     
     lastTime = performance.now();
     if (rafId) cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(gameLoop);
-    
-    // Spawn note menggunakan interval waktu (bukan timer game loop)
-    if (window.spawnInterval) clearInterval(window.spawnInterval);
-    window.spawnInterval = setInterval(() => {
-        if (!isPlaying) return;
-        const lanes = [53, 160, 267];
-        notes.push({ x: lanes[Math.floor(Math.random() * 3)], y: -20, hit: false, missed: false });
-        playBeep(600, 0.03, 0.02); // Tick metronom
-    }, 60000 / bpm / 2); // BPM dipercepat 2x agar seru
 }
 
 function stopGame() {
     isPlaying = false;
     if (rafId) cancelAnimationFrame(rafId);
-    if (window.spawnInterval) clearInterval(window.spawnInterval);
     
     document.getElementById('gamePanel').style.display = 'none';
     document.getElementById('mainPanel').style.display = 'block';
@@ -192,96 +220,140 @@ function gameLoop(now) {
     lastTime = now;
     if (dt > 0.1) dt = 0.1; // Cap dt
 
-    // Bersihkan Canvas
-    ctx.fillStyle = '#0a0514'; ctx.fillRect(0, 0, 320, 400);
+    // --- SPAWN ACCUMULATOR ---
+    const interval = 60 / CONFIG.BPM;
+    spawnAccumulator += dt;
+    while (spawnAccumulator >= interval) {
+        const lanes = [53, 160, 267];
+        notes.push({ x: lanes[Math.floor(Math.random() * 3)], y: -20, hit: false, missed: false });
+        playSound(1.5, 0.05); // Metronome tick
+        spawnAccumulator -= interval;
+    }
+
+    // --- CLEAR & DRAW ---
+    ctx.clearRect(0, 0, GAME_W, GAME_H);
+    ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, GAME_W, GAME_H);
     
-    // Garis Lanes
     ctx.strokeStyle = '#30204d'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(106, 0); ctx.lineTo(106, 400); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(213, 0); ctx.lineTo(213, 400); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(106, 0); ctx.lineTo(106, GAME_H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(213, 0); ctx.lineTo(213, GAME_H); ctx.stroke();
 
-    // Garis Target
-    ctx.fillStyle = 'rgba(57,255,20,0.2)'; ctx.fillRect(0, targetY, 320, 20);
-    ctx.fillStyle = '#39ff14'; ctx.fillRect(0, targetY, 320, 3);
+    const targetY = Math.round(CONFIG.TARGET_Y);
+    ctx.fillStyle = 'rgba(57,255,20,0.2)'; ctx.fillRect(0, targetY, GAME_W, 20);
+    ctx.fillStyle = '#39ff14'; ctx.fillRect(0, targetY, GAME_W, 3);
 
-    // Update & Draw Notes
     for (let i = notes.length - 1; i >= 0; i--) {
         let n = notes[i];
         
-        // LOGIKA PENGHAPUSAN (Agar merah tidak menetap)
-        if (n.hit || n.y > 400) {
+        if (n.hit || n.y > GAME_H) {
             notes.splice(i, 1);
             continue;
         }
 
-        n.y += noteSpeed * dt;
+        n.y += CONFIG.NOTE_SPEED * dt;
         
-        // Cek Miss
-        if (!n.missed && n.y > targetY + hitWindow) {
+        if (!n.missed && n.y > targetY + CONFIG.HIT_WINDOW) {
             n.missed = true;
             combo = 0;
-            playBeep(200, 0.1, 0.05); // Suara Miss
+            playSound(0.5, 0.08); // Miss sound
             updateUI();
         }
 
-        // Gambar Note
         ctx.fillStyle = n.missed ? '#ff365f' : '#00ffff';
-        ctx.fillRect(n.x - 24, Math.round(n.y), 48, 20);
+        ctx.fillRect(Math.round(n.x - 24), Math.round(n.y), 48, 20);
     }
 
     rafId = requestAnimationFrame(gameLoop);
 }
 
-// ====== INPUT ======
+// ====== MULTI-TOUCH POINTER EVENTS ======
 canvas.addEventListener('pointerdown', (e) => {
-    if (!isPlaying) return;
+    if (!isPlaying || activePointers.has(e.pointerId)) return;
     e.preventDefault();
+    activePointers.add(e.pointerId);
     
-    // Konversi koordinat klik dengan tepat
     const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const x = (e.clientX - rect.left) * (GAME_W / rect.width);
+    const y = (e.clientY - rect.top) * (GAME_H / rect.height);
     
-    // Abaikan jika klik jauh dari garis target
-    if (Math.abs(y - targetY) > 60) return;
+    if (Math.abs(y - CONFIG.TARGET_Y) > 60) return;
 
     let hitSomething = false;
     for (let i = 0; i < notes.length; i++) {
         let n = notes[i];
         if (n.hit || n.missed) continue;
         
-        // Deteksi tabrakan (Bounding Box)
-        if (Math.abs(n.x - x) < 40 && Math.abs((n.y + 10) - targetY) < hitWindow) {
+        if (Math.abs(n.x - x) < 40 && Math.abs((n.y + 10) - CONFIG.TARGET_Y) < CONFIG.HIT_WINDOW) {
             n.hit = true;
             hitSomething = true;
             
-            // Hitung skor
-            if (Math.abs((n.y + 10) - targetY) < 15) {
-                score += 300;
-                playBeep(800, 0.05, 0.08); // Perfect
+            if (Math.abs((n.y + 10) - CONFIG.TARGET_Y) < CONFIG.PERFECT_WINDOW) {
+                score += 300; playSound(2.0, 0.1); // Perfect
             } else {
-                score += 100;
-                playBeep(500, 0.05, 0.05); // Good
+                score += 100; playSound(1.2, 0.08); // Good
             }
             combo++;
             break;
         }
     }
     
-    if (!hitSomething) {
-        combo = 0;
-    }
+    if (!hitSomething) combo = 0;
     updateUI();
 });
+
+canvas.addEventListener('pointerup', (e) => activePointers.delete(e.pointerId));
+canvas.addEventListener('pointercancel', (e) => activePointers.delete(e.pointerId));
 
 function updateUI() {
     document.getElementById('scoreVal').innerText = score;
     document.getElementById('comboVal').innerText = combo;
-    document.getElementById('bpmVal').innerText = bpm;
+    document.getElementById('bpmVal').innerText = CONFIG.BPM;
 }
 
-// ====== CARD GENERATOR (PIXEL ART) ======
-function generateCard() {
+// ====== WEB3 (Real Fetch & BigInt) ======
+async function timeoutFetch(url, options = {}, ms = 6000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
+function formatUnits(rawBigInt, decimals) {
+    const d = BigInt(decimals);
+    if (d === 0n) return rawBigInt.toString();
+    const scale = 10n ** d;
+    const whole = rawBigInt / scale;
+    const fraction = rawBigInt % scale;
+    let digits = fraction.toString().padStart(Number(d), '0').slice(0, 2).padEnd(2, '0');
+    return `${whole}.${digits}`;
+}
+
+async function fetchBalance(wallet) {
+    try {
+        const data = '0x70a08231' + wallet.slice(2).toLowerCase().padStart(64, '0');
+        const res = await timeoutFetch(CONFIG.RPC_URL, {
+            method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: CONFIG.TOKEN_CONTRACT, data }, 'latest'] })
+        });
+        if (res.status === 429) return { ok: false, status: 'RATE_LIMITED' };
+        const json = await res.json();
+        if (!json.result || json.result === '0x') return { ok: true, val: '0.00' };
+        return { ok: true, val: formatUnits(BigInt(json.result), 18) };
+    } catch { return { ok: false, status: 'RPC_ERROR' }; }
+}
+
+async function fetchWheel() {
+    try {
+        const res = await timeoutFetch(CONFIG.API_URL);
+        if (!res.ok) return { ok: false, status: 'HTTP_ERROR' };
+        const data = await res.json();
+        const m = data.measurement;
+        if (!m) return { ok: false, status: 'NO_DATA' };
+        return { ok: true, dist: Number(m.distanceMm) / 1000000, status: m.coreStatus };
+    } catch { return { ok: false, status: 'NETWORK_ERROR' }; }
+}
+
+// ====== CARD GENERATOR ======
+async function generateCard() {
     const wallet = document.getElementById('walletInput').value.trim();
     if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
         document.getElementById('message').innerText = 'Alamat wallet tidak valid.';
@@ -289,70 +361,75 @@ function generateCard() {
         return;
     }
 
-    const c = document.getElementById('cardCanvas');
-    const ctx = c.getContext('2d');
-    
-    ctx.fillStyle = '#1a1130'; ctx.fillRect(0, 0, 320, 460);
-    ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 4; ctx.strokeRect(2, 2, 316, 456);
+    document.getElementById('message').innerText = 'Mengambil data...';
+    document.getElementById('generateBtn').disabled = true;
 
-    ctx.textAlign = 'center'; ctx.fillStyle = '#00ffff'; ctx.font = 'bold 16px "Space Mono"';
-    ctx.fillText('SQUEEK CITIZEN', 160, 35);
+    const [wheel, balance] = await Promise.all([fetchWheel(), fetchBalance(wallet)]);
+
+    const c = document.getElementById('cardCanvas');
+    const context = c.getContext('2d');
+    const cw = 320, ch = 460;
+    
+    // Setup DPR untuk Card
+    const dpr = window.devicePixelRatio || 1;
+    c.width = cw * dpr;
+    c.height = ch * dpr;
+    c.style.width = cw + 'px';
+    c.style.height = ch + 'px';
+    context.scale(dpr, dpr);
+    
+    context.fillStyle = '#1a1130'; context.fillRect(0, 0, cw, ch);
+    context.strokeStyle = '#00ffff'; context.lineWidth = 4; context.strokeRect(2, 2, cw-4, ch-4);
+
+    context.textAlign = 'center'; context.fillStyle = '#00ffff'; context.font = 'bold 16px "Space Mono"';
+    context.fillText('SQUEEK CITIZEN', 160, 35);
 
     // --- Gambar Avatar Pixel ---
-    // Buat hash sederhana dari wallet
     let hash = 0;
     for (let i = 0; i < wallet.length; i++) hash += wallet.charCodeAt(i);
     
-    ctx.fillStyle = '#000'; ctx.fillRect(110, 60, 100, 100);
+    context.fillStyle = '#000'; context.fillRect(110, 60, 100, 100);
     
     const hue = hash % 360;
     const furColor = `hsl(${hue}, 80%, 60%)`;
     const darkColor = `hsl(${hue}, 80%, 30%)`;
     
-    // Gambar grid 16x16 sederhana
     for(let y=0; y<16; y++) {
         for(let x=0; x<8; x++) {
-            // Logika bentuk hamster bulat
             let dx = (x - 7.5) / 7;
             let dy = (y - 9) / 6;
             if (dx*dx + dy*dy > 1) continue;
             
-            ctx.fillStyle = furColor;
-            // Random spots gelap
-            if ((hash >> ((x+y)%10)) & 1) ctx.fillStyle = darkColor;
+            context.fillStyle = furColor;
+            if ((hash >> ((x+y)%10)) & 1) context.fillStyle = darkColor;
+            if (y < 3 && (x === 1 || x === 2 || x === 5 || x === 6)) context.fillStyle = darkColor;
+            if (y === 8 && (x === 4 || x === 5)) context.fillStyle = '#000';
+            if (y === 10 && x === 3) context.fillStyle = '#ff5c9a';
             
-            // Telinga
-            if (y < 3 && (x === 1 || x === 2 || x === 5 || x === 6)) ctx.fillStyle = darkColor;
-            // Mata
-            if (y === 8 && (x === 4 || x === 5)) ctx.fillStyle = '#000';
-            // Hidung
-            if (y === 10 && x === 3) ctx.fillStyle = '#ff5c9a';
-            
-            // Gambar pixel 6x6 di kiri dan kanan (simetris)
-            ctx.fillRect(112 + x*6, 62 + y*6, 6, 6);
-            ctx.fillRect(112 + (15-x)*6, 62 + y*6, 6, 6);
+            context.fillRect(112 + x*6, 62 + y*6, 6, 6);
+            context.fillRect(112 + (15-x)*6, 62 + y*6, 6, 6);
         }
     }
-    // --- Selesai Avatar ---
 
     const drawRow = (label, val, y, color) => {
-        ctx.textAlign = 'left'; ctx.fillStyle = '#a090b0'; ctx.font = '11px "Space Mono"';
-        ctx.fillText(label, 25, y);
-        ctx.fillStyle = color; ctx.font = 'bold 14px "Space Mono"';
-        ctx.fillText(val, 25, y+16);
+        context.textAlign = 'left'; context.fillStyle = '#a090b0'; context.font = '11px "Space Mono"';
+        context.fillText(label, 25, y);
+        context.fillStyle = color; context.font = 'bold 14px "Space Mono"';
+        context.fillText(val, 25, y+16);
     };
 
     drawRow('WALLET', wallet.slice(0,8)+'...'+wallet.slice(-6), 190, '#39ff14');
-    drawRow('STATUS RODA', 'IDLE (OFFLINE)', 240, '#fcee0a');
-    drawRow('DISTANCE', '6.349 km', 290, '#39ff14');
-    drawRow('SQK BALANCE', 'NOT VERIFIED', 340, '#ff365f');
+    drawRow('STATUS RODA', wheel.ok ? wheel.status : `ERROR (${wheel.status})`, 240, wheel.ok ? '#39ff14' : '#ff365f');
+    drawRow('DISTANCE', wheel.ok ? wheel.dist.toFixed(3) + ' km' : 'UNAVAILABLE', 290, '#39ff14');
+    drawRow('SQK BALANCE', balance.ok ? balance.val + ' SQK' : `ERROR (${balance.status})`, 340, balance.ok ? '#00ffff' : '#ff365f');
 
-    ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = '9px "Space Mono"';
-    ctx.fillText('UNOFFICIAL SNAPSHOT', 160, 430);
+    context.textAlign = 'center'; context.fillStyle = '#fff'; context.font = '9px "Space Mono"';
+    context.fillText('UNOFFICIAL SNAPSHOT', 160, 430);
 
     document.getElementById('cardCanvas').style.display = 'block';
     document.getElementById('message').innerText = 'Kartu berhasil dibuat!';
     document.getElementById('message').style.color = 'var(--green)';
+    document.getElementById('generateBtn').disabled = false;
 }
 
 function downloadCard() {
