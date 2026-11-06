@@ -2,154 +2,71 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Squeekchain Pixel ID v6</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Squeekchain Pixel ID v8</title>
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap');
-
     :root {
-        --bg: #0a0514;
-        --panel: #1a1130;
-        --neon-g: #39ff14;
-        --neon-b: #00ffff;
-        --neon-r: #ff003c;
-        --neon-y: #fcee0a;
-        --text: #e0e0e0;
-        --border: #4a2c82;
+        --bg: #0a0514; --panel: #1a1130; --neon-g: #39ff14; --neon-b: #00ffff;
+        --neon-r: #ff003c; --neon-y: #fcee0a; --text: #e0e0e0; --border: #4a2c82;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
-        background-color: var(--bg);
-        background-image: 
-            radial-gradient(circle at 50% 0%, rgba(74, 44, 130, 0.4), transparent 50%),
-            linear-gradient(rgba(57, 255, 20, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(57, 255, 20, 0.03) 1px, transparent 1px);
-        background-size: 100% 100%, 20px 20px, 20px 20px;
-        color: var(--text);
-        font-family: 'Space Mono', monospace;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-        overflow-x: hidden;
+        background-color: var(--bg); color: var(--text); font-family: 'Space Mono', monospace;
+        min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px;
     }
-
-    h1 {
-        font-family: 'Press Start 2P', cursive;
-        color: var(--neon-g);
-        font-size: 20px;
-        text-align: center;
-        margin-bottom: 20px;
-        text-shadow: 0 0 15px rgba(57,255,20,0.6);
-        line-height: 1.4;
-    }
-
-    .container {
-        width: 100%;
-        max-width: 400px;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    .panel {
-        background: var(--panel);
-        border: 2px solid var(--border);
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.8);
-        position: relative;
-    }
-
-    .input-group { display: flex; flex-direction: column; gap: 10px; }
-    label { font-size: 12px; color: var(--neon-b); font-weight: bold; letter-spacing: 1px;}
+    h1 { font-family: 'Press Start 2P', cursive; color: var(--neon-g); font-size: 18px; text-align: center; margin-bottom: 20px; text-shadow: 0 0 10px rgba(57,255,20,0.5); }
+    .container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; }
+    .panel { background: var(--panel); border: 2px solid var(--border); border-radius: 12px; padding: 20px; }
     
-    input {
-        background: #000;
-        border: 2px solid var(--border);
-        color: var(--neon-g);
-        padding: 14px;
-        border-radius: 8px;
-        font-family: 'Space Mono', monospace;
-        font-size: 14px;
-        outline: none;
-        width: 100%;
-    }
-    input:focus { border-color: var(--neon-g); box-shadow: 0 0 10px rgba(57,255,20,0.3); }
-
+    .btn-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
     button {
-        background: var(--neon-b);
-        color: #000;
-        border: none;
-        padding: 14px;
-        border-radius: 8px;
-        font-family: 'Space Mono', monospace;
-        font-weight: bold;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-transform: uppercase;
-        width: 100%;
+        background: var(--neon-b); color: #000; border: none; padding: 12px; border-radius: 8px;
+        font-family: 'Space Mono', monospace; font-weight: bold; cursor: pointer; text-transform: uppercase;
     }
-    button:hover { opacity: 0.8; transform: translateY(-2px); }
-    button:active { transform: translateY(0); }
+    button:disabled { background: #333; color: #666; cursor: not-allowed; }
     button.secondary { background: transparent; border: 2px solid var(--neon-b); color: var(--neon-b); }
     button.success { background: var(--neon-g); color: #000; }
 
-    #msg { color: var(--neon-y); text-align: center; font-size: 12px; min-height: 20px; margin-top: 10px; }
+    .input-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+    input { background: #000; border: 2px solid var(--border); color: var(--neon-g); padding: 10px; border-radius: 8px; font-family: inherit; }
+    #msg { color: var(--neon-y); text-align: center; font-size: 12px; min-height: 20px; margin-top: 10px; white-space: pre-wrap; }
 
     /* Card Area */
-    #card-area { display: none; margin-top: 15px; text-align: center; }
-    canvas#card-canvas { 
-        background: #000; 
-        border: 3px solid var(--neon-b); 
-        border-radius: 12px; 
-        box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-        width: 100%; 
-        max-width: 320px;
-    }
-    .card-actions { display: flex; gap: 10px; margin-top: 15px; }
-
-    /* Game Area */
-    #game-area { display: none; flex-direction: column; align-items: center; gap: 10px; margin-top: 15px;}
-    canvas#game-canvas { 
-        background: #000; 
-        border: 3px solid var(--border); 
-        border-radius: 12px; 
-        width: 100%; 
-        max-width: 350px;
-        touch-action: none;
-        box-shadow: 0 0 20px rgba(0,0,0,0.8);
-    }
+    #card-area { display: none; text-align: center; margin-top: 15px; }
+    canvas#card-canvas { background: #000; border: 3px solid var(--neon-b); width: 100%; max-width: 320px; height: auto; }
     
-    .game-controls { display: flex; gap: 10px; width: 100%; justify-content: center; }
-    .hidden { display: none !important; }
+    /* Game Area */
+    #game-area { display: none; flex-direction: column; align-items: center; gap: 10px; }
+    canvas#game-canvas { background: #000; border: 2px solid var(--border); width: 100%; max-width: 320px; touch-action: none; }
 </style>
 </head>
 <body>
 
-    <h1>SQUEEKCHAIN<br>PIXEL ID v6</h1>
+    <h1>SQUEEKCHAIN<br>PIXEL ID v8</h1>
 
     <div class="container">
-        <!-- PANEL INPUT & KARTU -->
+        <!-- PANEL UTAMA -->
         <div class="panel" id="main-panel">
-            <div class="input-group">
-                <label for="wallet-input">Wallet EVM (Sepolia)</label>
-                <input type="text" id="wallet-input" placeholder="0x..." autocomplete="off" maxlength="42">
-                <button onclick="generateCard()">Generate ID Card</button>
-                <button onclick="connectWallet()" class="secondary">Hubungkan Wallet</button>
+            <div class="btn-group">
+                <button class="success" onclick="startGame('practice')">Main Latihan (Metronome 120 BPM)</button>
+                <button onclick="startGame('live')" id="btn-live">Main Live (Cek API...)</button>
             </div>
-            <p id="msg">Masukkan alamat wallet untuk memulai.</p>
+            
+            <hr style="border-color: var(--border); margin: 15px 0;">
+            
+            <div class="input-group">
+                <label style="font-size: 12px; color: var(--neon-b);">Wallet EVM (Opsional)</label>
+                <input type="text" id="wallet-input" placeholder="0x..." maxlength="42">
+            </div>
+            <button onclick="generateCard()" class="secondary">Generate Community ID</button>
+            <p id="msg">Pilih mode main atau buat kartu.</p>
 
             <!-- AREA KARTU -->
             <div id="card-area">
-                <canvas id="card-canvas" width="320" height="460"></canvas>
-                <div class="card-actions">
-                    <button onclick="startGame('live')" class="success" id="btn-play-live">Main (Live)</button>
-                    <button onclick="startGame('practice')" class="secondary">Latihan</button>
+                <canvas id="card-canvas" width="640" height="920"></canvas>
+                <div style="margin-top: 10px;">
+                    <button onclick="downloadCard()" class="success">Unduh PNG</button>
                 </div>
             </div>
         </div>
@@ -157,313 +74,336 @@
         <!-- AREA GAME -->
         <div class="panel" id="game-area">
             <canvas id="game-canvas" width="320" height="480"></canvas>
-            <div class="game-controls">
-                <button onclick="endGame()" class="secondary">Berhenti Bermain</button>
+            <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
+                <button onclick="stopGame()" class="secondary">Berhenti & Lihat Hasil</button>
             </div>
         </div>
     </div>
 
 <script>
-// ====== KONFIGURASI ======
 const CFG = {
     API: 'https://api.squeekchain.com/v1/status',
     RPC: 'https://ethereum-sepolia-rpc.publicnode.com',
-    SQK: '0x810239d271e80a86023f4f315943acbd65b59281',
+    // Alamat kontrak masih dipertanyakan dalam audit, kita gunakan sebagai placeholder
+    // namun kita tangani error RPC-nya dengan jujur.
+    SQK: '0x810239d271e80a86023f4f315943acbd65b59281', 
 };
-
 const $ = id => document.getElementById(id);
-const setMsg = (t, c = 'var(--neon-y)') => { $('msg').textContent = t; $('msg').style.color = c; };
 
-let currentWallet = null;
-let wheelData = { rpm: 0, dist: 0, status: 'OFFLINE' };
-
-// ====== FETCH DATA API ======
-async function fetchWheelData() {
+// Helper Fetch dengan Timeout
+async function fetchTimeout(url, options = {}, ms = 6000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ms);
     try {
-        const res = await fetch(CFG.API);
-        const data = await res.json();
-        
-        // Ekstrak data dari JSON asli Squeekchain
-        const m = data.measurement;
-        wheelData = {
-            rpm: (m.rpmMilli || 0) / 1000,
-            dist: m.distanceMm || 0,
-            status: m.coreStatus || 'UNKNOWN'
-        };
-        return wheelData;
+        const res = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(timeoutId);
+        return res;
     } catch (e) {
-        console.error("API Error:", e);
-        wheelData = { rpm: 0, dist: 0, status: 'OFFLINE' };
-        return wheelData;
+        clearTimeout(timeoutId);
+        throw e;
     }
 }
 
-// ====== FETCH SALDO SQK ======
-async function fetchSQK(wallet) {
+// --- P0: VALIDASI API KETAT ---
+async function getWheelData() {
+    try {
+        const res = await fetchTimeout(CFG.API);
+        if (!res.ok) return { status: 'HTTP_ERROR', code: res.status };
+        
+        const data = await res.json();
+        if (data.status === 'unavailable' || !data.measurement) {
+            return { status: 'UNAVAILABLE' };
+        }
+
+        const m = data.measurement;
+        const now = new Date();
+        const obsTime = new Date(m.observedAt);
+        const staleSec = Number(m.staleAfterSeconds);
+
+        if (isNaN(obsTime.getTime()) || isNaN(staleSec)) {
+            return { status: 'INVALID_SCHEMA' };
+        }
+
+        const isStale = m.freshness !== 'online' || (now - obsTime) / 1000 > staleSec;
+        
+        return {
+            status: 'SUCCESS',
+            rpm: Number(m.rpmMilli) / 1000,
+            distMm: Number(m.distanceMm),
+            coreStatus: m.coreStatus,
+            isStale
+        };
+    } catch (e) {
+        return { status: 'FETCH_ERROR', error: e.message };
+    }
+}
+
+// --- P0: KEJUJURAN RPC (Jangan bohong 0.00 jika error) ---
+async function getSQKBalance(wallet) {
     try {
         const data = '0x70a08231' + wallet.slice(2).toLowerCase().padStart(64, '0');
-        const res = await fetch(CFG.RPC, {
+        const res = await fetchTimeout(CFG.RPC, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: CFG.SQK, data }, 'latest'] })
         });
+
+        if (!res.ok) return { status: 'RPC_HTTP_ERROR' };
+        
         const json = await res.json();
-        if (!json.result || json.result === '0x') return "0.00";
+        if (json.error) return { status: 'RPC_JSON_ERROR', msg: json.error.message };
+        if (!json.result || json.result === '0x') return { status: 'RPC_EMPTY_RESULT' };
+        
+        // BigInt formatting agar presisi tidak hilang
         const val = BigInt(json.result);
         const dec = 10n ** 18n;
-        return (Number(val) / Number(dec)).toFixed(2);
+        const whole = val / dec;
+        const frac = (val % dec) / (dec / 100n);
+        return { status: 'SUCCESS', balance: `${whole}.${frac.toString().padStart(2, '0')}` };
     } catch (e) {
-        return "ERROR";
+        return { status: 'RPC_TIMEOUT_OR_ERROR' };
     }
 }
 
-// ====== WALLET CONNECT ======
-async function connectWallet() {
-    if (typeof window.ethereum !== 'undefined') {
-        try {
-            setMsg('Meminta akses wallet...', 'var(--neon-b)');
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            $('wallet-input').value = accounts[0];
-            setMsg('Wallet terhubung!', 'var(--neon-g)');
-            generateCard();
-        } catch (e) {
-            setMsg('Koneksi ditolak.', 'var(--neon-r)');
-        }
-    } else {
-        setMsg('Wallet tidak terdeteksi! Buka link ini di browser dompet (MetaMask/Trust).', 'var(--neon-r)');
-    }
-}
-
-// ====== GENERATE KARTU ======
+// --- GENERATE KARTU ---
 async function generateCard() {
     const wallet = $('wallet-input').value.trim();
-    if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
-        setMsg('Alamat wallet tidak valid!', 'var(--neon-r)');
+    if (wallet && !/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
+        $('msg').textContent = 'Alamat wallet tidak valid.';
+        $('msg').style.color = 'var(--neon-r)';
         return;
     }
 
-    currentWallet = wallet;
-    setMsg('Mengambil data dari Squeekchain...', 'var(--neon-b)');
-    
-    // Ambil data secara paralel
-    const [wData, sqkBal] = await Promise.all([fetchWheelData(), fetchSQK(wallet)]);
+    $('msg').textContent = 'Mengambil data...';
+    $('msg').style.color = 'var(--neon-y)';
 
-    // Render ke Canvas
+    const wData = await getWheelData();
+    let sqkText = "N/A";
+    let sqkColor = "#888";
+
+    if (wallet) {
+        const sqk = await getSQKBalance(wallet);
+        if (sqk.status === 'SUCCESS') {
+            sqkText = sqk.balance + " SQK";
+            sqkColor = "#00ffff";
+        } else {
+            sqkText = `ERROR (${sqk.status})`; // Jujur, tidak bohong 0.00
+            sqkColor = "#ff003c";
+        }
+    }
+
+    // Render Canvas
     const c = $('card-canvas');
     const ctx = c.getContext('2d');
-    
-    // Background
     ctx.fillStyle = '#1a1130';
     ctx.fillRect(0, 0, c.width, c.height);
-    
-    // Border
     ctx.strokeStyle = '#00ffff';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(2, 2, c.width - 4, c.height - 4);
+    ctx.lineWidth = 8;
+    ctx.strokeRect(4, 4, c.width - 8, c.height - 8);
 
-    // Header
     ctx.fillStyle = '#00ffff';
-    ctx.font = 'bold 18px "Space Mono"';
+    ctx.font = 'bold 36px "Space Mono"';
     ctx.textAlign = 'center';
-    ctx.fillText('SQUEEK CITIZEN', c.width/2, 40);
+    ctx.fillText('COMMUNITY SNAPSHOT', c.width/2, 80);
 
-    // Avatar Generator (Simple Hash)
-    const hash = wallet.toLowerCase().split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0);
-    const hue = Math.abs(hash) % 360;
-    ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
-    ctx.fillRect(110, 70, 100, 100);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(130, 100, 15, 15); // Mata kiri
-    ctx.fillRect(175, 100, 15, 15); // Mata kanan
-    ctx.fillStyle = '#ff5c9a';
-    ctx.fillRect(145, 130, 30, 10); // Hidung
+    ctx.fillStyle = '#888';
+    ctx.font = '20px "Space Mono"';
+    ctx.fillText('UNVERIFIED - BUKAN IDENTITAS RESMI', c.width/2, 110);
 
-    // Data Text
     ctx.textAlign = 'left';
-    ctx.font = '12px "Space Mono"';
-    
     const drawRow = (label, value, y, color = '#39ff14') => {
-        ctx.fillStyle = '#888';
-        ctx.fillText(label, 20, y);
-        ctx.fillStyle = color;
-        ctx.font = 'bold 14px "Space Mono"';
-        ctx.fillText(value, 20, y + 16);
-        ctx.font = '12px "Space Mono"';
+        ctx.fillStyle = '#888'; ctx.font = '20px "Space Mono"'; ctx.fillText(label, 40, y);
+        ctx.fillStyle = color; ctx.font = 'bold 28px "Space Mono"'; ctx.fillText(value, 40, y + 30);
     };
 
-    drawRow('WALLET', wallet.slice(0, 6) + '...' + wallet.slice(-4), 210);
-    drawRow('STATUS RODA', wData.status, 260, wData.status === 'ACTIVE' ? '#39ff14' : '#fcee0a');
-    drawRow('KECEPATAN', wData.rpm.toFixed(1) + ' RPM', 310);
-    drawRow('JARAK TEMPUH', (wData.dist / 1000).toFixed(2) + ' km', 360);
-    drawRow('SALDO SQK', sqkBal + ' SQK', 410, '#00ffff');
-
-    // Waktu
-    ctx.fillStyle = '#555';
-    ctx.font = '10px "Space Mono"';
-    ctx.textAlign = 'center';
-    ctx.fillText('SNAPSHOT ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC', c.width/2, 440);
-
-    // Tampilkan
-    $('card-area').style.display = 'block';
-    setMsg('Kartu berhasil dibuat!', 'var(--neon-g)');
-
-    // Cek apakah tombol Live Play bisa dipakai
-    if (wData.status === 'ACTIVE' && wData.rpm > 1) {
-        $('btn-play-live').disabled = false;
-        $('btn-play-live').textContent = `Main (Live: ${wData.rpm.toFixed(1)} RPM)`;
+    drawRow('WALLET', wallet ? wallet.slice(0,6)+'...'+wallet.slice(-4) : 'TIDAK ADA', 200);
+    
+    // Data Roda (Jujur)
+    if (wData.status === 'SUCCESS') {
+        const distKm = (wData.distMm / 1000000).toFixed(2);
+        drawRow('JARAK TEMPUH', distKm + ' km', 300);
+        drawRow('STATUS RODA', wData.coreStatus, 400, wData.coreStatus === 'ACTIVE' ? '#39ff14' : '#fcee0a');
+        drawRow('KECEPATAN', wData.rpm.toFixed(1) + ' RPM', 500);
+        if (wData.isStale) {
+            ctx.fillStyle = '#ff003c'; ctx.font = 'bold 24px "Space Mono"'; ctx.fillText('⚠️ DATA BASI (STALE)', 40, 570);
+        }
     } else {
-        $('btn-play-live').disabled = true;
-        $('btn-play-live').textContent = 'Main (Hamster Tidur)';
+        drawRow('DATA RODA', `GAGAL (${wData.status})`, 300, '#ff003c');
     }
+
+    drawRow('SALDO SQK', sqkText, 680, sqkColor);
+
+    ctx.fillStyle = '#555'; ctx.font = '18px "Space Mono"'; ctx.textAlign = 'center';
+    ctx.fillText('Dibuat pada ' + new Date().toISOString().slice(0,16).replace('T',' '), c.width/2, 860);
+
+    $('card-area').style.display = 'block';
+    $('msg').textContent = 'Selesai.';
 }
 
-// ====== GAME LOGIC (PIANO TILES) ======
+function downloadCard() {
+    const link = document.createElement('a');
+    link.download = 'squeek-snapshot.png';
+    link.href = $('card-canvas').toDataURL('image/png');
+    link.click();
+}
+
+// --- GAME ENGINE (STABIL) ---
 const gameCanvas = $('game-canvas');
 const gCtx = gameCanvas.getContext('2d');
-let game = { active: false, score: 0, combo: 0, notes: [], lastTime: 0, rpm: 0, spawnTimer: 0, targetY: 400 };
+let game = { active: false, rafId: null, audioCtx: null, notes: [], bpm: 120, lastTime: 0, spawnTimer: 0, targetY: 400, score: 0, hits: 0, misses: 0, perfect: 0, good: 0 };
 
-function startGame(mode) {
-    $('main-panel').style.display = 'none';
-    $('game-area').style.display = 'block';
-    
-    game.active = true;
-    game.score = 0;
-    game.combo = 0;
-    game.notes = [];
-    game.lastTime = performance.now();
-    game.spawnTimer = 0;
-    
-    if (mode === 'live') {
-        game.rpm = wheelData.rpm;
-    } else {
-        game.rpm = 60; // Mode latihan disimulasikan 60 RPM (1 putaran per detik)
+function initAudio() {
+    if (!game.audioCtx) {
+        try { game.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
     }
-
-    setMsg('');
-    requestAnimationFrame(gameLoop);
+    if (game.audioCtx && game.audioCtx.state === 'suspended') game.audioCtx.resume();
 }
 
-function spawnNote() {
-    const lanes = [80, 160, 240];
-    const x = lanes[Math.floor(Math.random() * lanes.length)];
-    game.notes.push({ x, y: -20, hit: false, missed: false });
+function playTick(acc) {
+    if (!game.audioCtx) return;
+    const osc = game.audioCtx.createOscillator();
+    const gain = game.audioCtx.createGain();
+    osc.connect(gain); gain.connect(game.audioCtx.destination);
+    osc.frequency.value = acc ? 600 : 400;
+    gain.gain.setValueAtTime(0.05, game.audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, game.audioCtx.currentTime + 0.05);
+    osc.start(); osc.stop(game.audioCtx.currentTime + 0.05);
+}
+
+async function startGame(mode) {
+    initAudio();
+    
+    if (mode === 'live') {
+        $('msg').textContent = 'Mengecek API...';
+        const wData = await getWheelData();
+        if (wData.status !== 'SUCCESS' || wData.isStale) {
+            alert(`API Error/Basi (${wData.status}). Beralih ke mode Latihan.`);
+            game.bpm = 120;
+        } else if (wData.coreStatus !== 'ACTIVE') {
+            alert(`Hamster sedang ${wData.coreStatus}. Beralih ke mode Latihan.`);
+            game.bpm = 120;
+        } else {
+            // Mapping sederhana yang belum teruji, dibatasi aman
+            game.bpm = Math.max(80, Math.min(160, wData.rpm * 4));
+        }
+    } else {
+        game.bpm = 120; // Latihan
+    }
+
+    $('main-panel').style.display = 'none';
+    $('game-area').style.display = 'flex';
+    
+    game.active = true;
+    game.notes = []; game.lastTime = performance.now(); game.spawnTimer = 0;
+    game.score = 0; game.hits = 0; game.misses = 0; game.perfect = 0; game.good = 0;
+
+    if (game.rafId) cancelAnimationFrame(game.rafId);
+    game.rafId = requestAnimationFrame(gameLoop);
+}
+
+function stopGame() {
+    game.active = false;
+    if (game.rafId) cancelAnimationFrame(game.rafId);
+    
+    // Hitung sisa not yang belum terlewati sebagai miss (P1)
+    game.misses += game.notes.filter(n => !n.hit && !n.missed).length;
+    
+    $('game-area').style.display = 'none';
+    $('main-panel').style.display = 'block'; // Kembalikan ke block, bukan flex (P1 Fix)
+    
+    const totalNotes = game.perfect + game.good + game.misses;
+    const hitRate = totalNotes > 0 ? Math.round(((game.perfect + game.good) / totalNotes) * 100) : 0;
+    
+    $('msg').textContent = `Selesai!\nSkor: ${game.score} | Hit Rate: ${hitRate}%\nPerfect: ${game.perfect}, Good: ${game.good}, Miss: ${game.misses}`;
+    $('msg').style.color = 'var(--neon-g)';
 }
 
 function gameLoop(now) {
     if (!game.active) return;
-    const dt = (now - game.lastTime) / 1000;
+    
+    let dt = (now - game.lastTime) / 1000;
+    if (dt > 0.1) dt = 0.1;
     game.lastTime = now;
 
-    // Konversi RPM ke BPM (Beats Per Minute)
-    // 1 RPM = 1 putaran per menit. Kita anggap 1 putaran = 2 beat.
-    let bpm = game.rpm * 2;
-    if (bpm < 60) bpm = 60; // Minimal 60 BPM agar bisa dimainkan
-    if (bpm > 200) bpm = 200; // Maksimal 200 BPM
-
-    const interval = 60 / bpm;
+    const interval = 60 / game.bpm;
     game.spawnTimer += dt;
 
     if (game.spawnTimer >= interval) {
-        spawnNote();
-        game.spawnTimer = 0;
+        const lanes = [80, 160, 240];
+        game.notes.push({ x: lanes[Math.floor(Math.random() * 3)], y: -20, height: 20, hit: false, missed: false });
+        playTick(game.notes.length % 4 === 0);
+        game.spawnTimer -= interval;
     }
 
-    // Update Notes
     for (let i = game.notes.length - 1; i >= 0; i--) {
         let n = game.notes[i];
         if (!n.hit && !n.missed) {
-            n.y += 400 * dt; // Kecepatan jatuh balok
-            if (n.y > game.targetY + 30) {
+            n.y += 400 * dt;
+            // P1 FIX: Hit detection pakai titik tengah
+            if (n.y + n.height/2 > game.targetY + 30) { 
                 n.missed = true;
-                game.combo = 0;
+                game.misses++;
             }
         }
-        if (n.y > gameCanvas.height || n.hit) {
-            game.notes.splice(i, 1);
-        }
+        if (n.y > gameCanvas.height || n.hit) game.notes.splice(i, 1);
     }
 
-    drawGame(bpm);
-    requestAnimationFrame(gameLoop);
+    drawGame();
+    game.rafId = requestAnimationFrame(gameLoop);
 }
 
-function drawGame(bpm) {
+function drawGame() {
     gCtx.fillStyle = '#0a0514';
     gCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
 
-    // Lanes
-    gCtx.strokeStyle = '#2a1a4a';
-    gCtx.lineWidth = 2;
+    gCtx.strokeStyle = '#2a1a4a'; gCtx.lineWidth = 2;
     [80, 160, 240].forEach(x => {
         gCtx.beginPath(); gCtx.moveTo(x, 0); gCtx.lineTo(x, gameCanvas.height); gCtx.stroke();
     });
 
-    // Target Line
-    gCtx.fillStyle = 'rgba(57, 255, 20, 0.2)';
-    gCtx.fillRect(0, game.targetY, gameCanvas.width, 5);
+    gCtx.fillStyle = 'rgba(57, 255, 20, 0.3)';
+    gCtx.fillRect(0, game.targetY, gameCanvas.width, 6);
     gCtx.fillStyle = '#39ff14';
-    gCtx.fillRect(0, game.targetY + 5, gameCanvas.width, 2);
+    gCtx.fillRect(0, game.targetY + 6, gameCanvas.width, 2);
 
-    // Notes
     game.notes.forEach(n => {
         if (n.hit) return;
         gCtx.fillStyle = n.missed ? '#ff003c' : '#00ffff';
-        gCtx.shadowBlur = 10;
-        gCtx.shadowColor = n.missed ? '#ff003c' : '#00ffff';
-        gCtx.fillRect(n.x - 25, n.y, 50, 20);
-        gCtx.shadowBlur = 0;
+        gCtx.fillRect(n.x - 25, n.y, 50, n.height);
     });
 
-    // Text
-    gCtx.fillStyle = '#fff';
-    gCtx.font = 'bold 24px "Space Mono"';
-    gCtx.textAlign = 'center';
+    gCtx.fillStyle = '#fff'; gCtx.font = 'bold 20px "Space Mono"'; gCtx.textAlign = 'center';
     gCtx.fillText(`SKOR: ${game.score}`, gameCanvas.width/2, 40);
-    
-    if (game.combo > 1) {
-        gCtx.fillStyle = '#fcee0a';
-        gCtx.font = 'bold 16px "Space Mono"';
-        gCtx.fillText(`COMBO x${game.combo}`, gameCanvas.width/2, 70);
-    }
-
-    gCtx.fillStyle = '#888';
-    gCtx.font = '12px "Space Mono"';
-    gCtx.fillText(`BPM: ${Math.round(bpm)} (${game.rpm.toFixed(1)} RPM)`, gameCanvas.width/2, 460);
 }
 
-// Handle Tap
+// P1 FIX: Skalakan koordinat dan pakai titik tengah balok
 gameCanvas.addEventListener('pointerdown', (e) => {
     if (!game.active) return;
     const rect = gameCanvas.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+    const scaleX = gameCanvas.width / rect.width;
+    const scaleY = gameCanvas.height / rect.height;
+    const clickX = (e.clientX - rect.left) * scaleX;
+    const clickY = (e.clientY - rect.top) * scaleY;
 
     if (Math.abs(clickY - game.targetY) > 60) return;
 
     let hitNote = null;
     game.notes.forEach(n => {
         if (n.hit || n.missed) return;
-        if (Math.abs(n.x - clickX) < 40 && Math.abs(n.y - game.targetY) < 50) {
+        const noteCenterY = n.y + n.height / 2;
+        if (Math.abs(n.x - clickX) < 45 && Math.abs(noteCenterY - game.targetY) < 50) {
             hitNote = n;
         }
     });
 
     if (hitNote) {
         hitNote.hit = true;
-        game.score += 100;
-        game.combo++;
-    } else {
-        game.combo = 0;
-        game.score = Math.max(0, game.score - 10);
+        const dist = Math.abs(hitNote.y + hitNote.height/2 - game.targetY);
+        if (dist < 20) { game.score += 300; game.perfect++; }
+        else { game.score += 100; game.good++; }
+        game.hits++;
     }
 });
-
-function endGame() {
-    game.active = false;
-    $('game-area').style.display = 'none';
-    $('main-panel').style.display = 'block';
-    setMsg(`Game selesai! Skor: ${game.score}`, 'var(--neon-g)');
-}
 </script>
 </body>
 </html>
