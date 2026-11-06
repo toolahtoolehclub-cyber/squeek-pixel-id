@@ -2,7 +2,7 @@
 
 A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only; optional wallet connect reads your address only, no signature, no transactions), play 3 lanes, earn XP, play the Daily Anthem, complete daily missions, and generate your ID Card.
 
-Built by pancigoreng — Made in Indonesia.
+Built by [pancigoreng](https://x.com/pancigoreng) — Made in Indonesia.
 
 ## Play
 
