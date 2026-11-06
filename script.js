@@ -195,7 +195,7 @@ function makeAnthem(wallet, randomize = false, seedOverride = null) {
 }
 
 // ==========================================
-// 3. AUDIO ENGINE (INTRO & GAMEPLAY)
+// 3. AUDIO ENGINE
 // ==========================================
 let ac = null, master = null, analyser = null, noiseBuf = null, audioDataArray = null;
 let introOsc = null, introGain = null, introInterval = null;
@@ -390,7 +390,13 @@ function finish() {
   const doneBefore = loadJSON(doneKey, []);
   const newlyDone = missions.filter(m => !doneBefore.includes(m.id) && m.check(res)).map(m => m.id);
   if (newlyDone.length) saveJSON(doneKey, doneBefore.concat(newlyDone));
-  const xpGain = Math.round(G.score / 30) + (a >= 95 ? 50 : a >= 88 ? 25 : 0) + (G.counts.miss === 0 ? 30 : 0) + newlyDone.length * 25;
+  
+  // FIX FATAL: Memisahkan komentar agar bonus XP berjalan
+  let xpGain = Math.round(G.score / 30); 
+  if (a >= 95) xpGain += 50; else if (a >= 88) xpGain += 25;
+  if (G.counts.miss === 0) xpGain += 30;
+  xpGain += newlyDone.length * 25;
+
   const xpBefore = totalXP(G.wallet), xpAfter = xpBefore + xpGain;
   saveJSON('sqk24:xp:' + walletKey(G.wallet), xpAfter);
   const lvBefore = levelFor(xpBefore), lvAfter = levelFor(xpAfter);
