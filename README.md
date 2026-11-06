@@ -1,8 +1,8 @@
 # Squeekchain v26 FIX
 
-A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only, no wallet connection, no transactions), play 3 lanes, earn XP, play the Daily Anthem, complete daily missions, and generate your ID Card.
+A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only; optional wallet connect reads your address only, no signature, no transactions), play 3 lanes, earn XP, play the Daily Anthem, complete daily missions, and generate your ID Card.
 
-Created by [@xixaxxuxa](https://x.com/xixaxxuxa) — Made in Indonesia.
+Built by pancigoreng — Made in Indonesia.
 
 ## Play
 
@@ -28,6 +28,6 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 ## Notes
 
 - UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet).
-- No transactions, no wallet connection, no seed/private key — never enter a seed.
+- No transactions, no seed/private key — never enter a seed. Optional read-only wallet connect (address only, no signature).
 - All scores, XP, streaks, and missions are stored 100% in the browser's `localStorage`.
 - Sound only starts after your first tap (browser autoplay rule).

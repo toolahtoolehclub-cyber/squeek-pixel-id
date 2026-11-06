@@ -67,3 +67,8 @@ Drone triangle 220 Hz diganti loop chiptune cyberpunk 140 BPM: lead square A min
 - Tombol baru `[ CONNECT WALLET ]` di bawah kolom WALLET ADDRESS. Hanya membaca alamat dari dompet browser (EIP-1193 `eth_requestAccounts`) — tanpa signature, tanpa approval, tanpa transaksi, tanpa ganti chain. Tidak pernah auto-request saat load; hanya saat tombol diketuk.
 - Jika tidak ada dompet di browser → pesan "NO WALLET FOUND — TYPE YOUR 0x ADDRESS MANUALLY." Jika user menolak → "CONNECTION REJECTED". Jika dompet ganti akun (`accountsChanged`) → kolom alamat ikut berubah + preview anthem diperbarui.
 - Input manual 0x tetap jalan seperti biasa. Footer diperbarui: "optional read-only wallet connect (address only — no signature, no approval, no transactions)".
+
+## v26.2 — Creator credit jadi pancigoreng, 2026-11-07 ~01:15 WIB
+- Alasan user: kredit creator harus sesuai akun yang mengajukan (Genesis: pancigoreng). Sebelumnya footer + ID Card + README menulis @xixaxxuxa (pencipta Squeekchain) — itu bisa dibaca tim review seolah proyek ini milik orang lain.
+- Diubah: footer jadi "BUILT BY pancigoreng" (tanpa link — tidak ada URL X untuk pancigoreng), ID Card jadi "CREATOR: pancigoreng", README jadi "Built by pancigoreng". @xixaxxuxa tetap tercatat sebagai pencipta Squeekchain di catatan proyek, bukan sebagai pembuat game ini.
+- Catatan: banner headline yang sudah dibuat masih memakai screenshot ID Card lama (CREATOR: @xixaxxuxa) — harus dibuat ulang setelah v26.2 live.

@@ -575,7 +575,7 @@ async function generateCard() {
 
   ctx.fillStyle = '#fff'; ctx.font = '10px "Space Mono"'; ctx.textAlign = 'center';
   ctx.fillStyle = '#00ffff'; ctx.font = 'bold 11px "Space Mono"'; ctx.textAlign = 'center';
-  ctx.fillText('CREATOR: @xixaxxuxa', CW / 2, CH - 32);
+  ctx.fillText('CREATOR: pancigoreng', CW / 2, CH - 32);
   ctx.fillStyle = '#fff'; ctx.font = '10px "Space Mono"'; ctx.textAlign = 'center';
   ctx.fillText(`UNOFFICIAL DATA // ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC`, CW / 2, CH - 15);
 
