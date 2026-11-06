@@ -2,15 +2,14 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#05020a">
-<title>Squeekchain Pixel ID v10</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Squeekchain Pixel ID v11</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap');
 
 :root {
     --bg-dark: #05020a;
-    --panel-glass: rgba(26, 17, 48, 0.65);
+    --panel-glass: rgba(26, 17, 48, 0.75);
     --green: #39ff14; 
     --blue: #00ffff; 
     --red: #ff365f; 
@@ -19,7 +18,7 @@
     --border: rgba(74, 44, 130, 0.8);
 }
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
 
 body {
     margin: 0; min-height: 100vh; padding: 20px;
@@ -27,481 +26,341 @@ body {
     background-attachment: fixed;
     color: var(--text); font-family: 'Space Mono', monospace;
     display: flex; align-items: center; flex-direction: column;
-    user-select: none;
 }
 
 @keyframes neonPulse {
-    0%, 100% { text-shadow: 0 0 10px rgba(57,255,20,0.5), 0 0 20px rgba(57,255,20,0.3); }
-    50% { text-shadow: 0 0 15px rgba(57,255,20,0.8), 0 0 30px rgba(57,255,20,0.5); }
+    0%, 100% { text-shadow: 0 0 10px rgba(57,255,20,0.5); }
+    50% { text-shadow: 0 0 20px rgba(57,255,20,0.8), 0 0 30px rgba(57,255,20,0.4); }
 }
 
 h1 {
-    font: 18px/1.6 'Press Start 2P', cursive; 
+    font: 16px/1.6 'Press Start 2P', cursive; 
     color: var(--green); text-align: center; 
-    margin: 10px 0 25px;
-    animation: neonPulse 2s infinite ease-in-out;
+    margin: 10px 0 20px; animation: neonPulse 2s infinite ease-in-out;
 }
 
-.container { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 20px; }
+.container { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; }
 
-/* Implementasi Glassmorphism */
 .panel {
     background: var(--panel-glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--border); 
-    border-radius: 16px; 
-    padding: 24px; 
-    box-shadow: 0 10px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border); border-radius: 16px; padding: 20px; 
+    box-shadow: 0 10px 40px rgba(0,0,0,0.7);
 }
 
-.stack { display: flex; flex-direction: column; gap: 12px; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
 
 button {
-    width: 100%; border: none; border-radius: 10px; padding: 15px; 
-    background: var(--blue); color: #000; 
-    font: 700 13px 'Space Mono', monospace; text-transform: uppercase; 
-    cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%; border: none; border-radius: 10px; padding: 14px; 
+    background: var(--blue); color: #000; font: 700 12px 'Space Mono', monospace; 
+    text-transform: uppercase; cursor: pointer; transition: all 0.2s;
     box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
 }
-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
-button:active:not(:disabled) { transform: translateY(1px); }
-button.secondary { background: rgba(0,255,255,0.1); border: 1px solid var(--blue); color: var(--blue); box-shadow: none; }
-button.secondary:hover { background: rgba(0,255,255,0.2); }
+button:active { transform: translateY(2px); }
+button.secondary { background: rgba(0,255,255,0.1); border: 1px solid var(--blue); color: var(--blue); }
 button.success { background: var(--green); box-shadow: 0 0 10px rgba(57, 255, 20, 0.3); }
-button.success:hover { box-shadow: 0 0 20px rgba(57, 255, 20, 0.6); }
-button.danger { background: rgba(255,54,95,0.1); border: 1px solid var(--red); color: var(--red); box-shadow: none; }
-button.danger:hover { background: rgba(255,54,95,0.2); box-shadow: 0 0 15px rgba(255,54,95,0.4); }
+button.danger { background: rgba(255,54,95,0.1); border: 1px solid var(--red); color: var(--red); }
 
 input {
-    width: 100%; padding: 14px; border-radius: 10px; 
-    border: 1px solid var(--border); background: rgba(0,0,0,0.5); 
-    color: var(--green); font: 14px 'Space Mono', monospace;
-    transition: border-color 0.3s;
+    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); 
+    background: rgba(0,0,0,0.5); color: var(--green); font: 12px 'Space Mono', monospace;
 }
-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 10px rgba(0,255,255,0.2); }
 
-.status {
-    padding: 10px; border-radius: 10px; font-size: 11px; text-align: center;
-    background: rgba(0,0,0,0.4); border-left: 4px solid var(--border);
-}
-.status.good { border-left-color: var(--green); color: #a8ff9c; }
-.status.warn { border-left-color: var(--yellow); color: #fff09a; }
-.status.bad { border-left-color: var(--red); color: #ff9eaf; }
+#message { text-align: center; color: var(--yellow); font-size: 11px; margin: 10px 0; min-height: 15px; }
 
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
-.stat {
-    padding: 12px 6px; background: rgba(0,0,0,0.4); 
-    border: 1px solid var(--border); border-radius: 12px; text-align: center;
-    box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
-}
-.stat b { display: block; color: var(--green); font-size: 18px; margin-bottom: 4px; text-shadow: 0 0 8px rgba(57,255,20,0.4); }
-.stat span { font-size: 9px; color: #a090b0; letter-spacing: 1px; }
+.stat { padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 10px; text-align: center; }
+.stat b { display: block; color: var(--green); font-size: 16px; margin-bottom: 2px; }
+.stat span { font-size: 9px; color: #a090b0; }
 
-canvas { display: block; width: 100%; height: auto; border-radius: 12px; }
-#gameCanvas { border: 2px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.8); touch-action: none; }
-#cardCanvas { border: 2px solid var(--blue); box-shadow: 0 0 20px rgba(0, 255, 255, 0.2); margin-top: 15px; }
-#message { min-height: 20px; text-align: center; color: var(--yellow); font-size: 11px; margin: 10px 0; }
-#cardArea { display: none; text-align: center; }
+canvas { display: block; border-radius: 10px; margin: 0 auto; }
+#gameCanvas { border: 2px solid var(--border); touch-action: none; background: #000; }
+#cardCanvas { border: 2px solid var(--blue); background: #000; display: none; }
 #gamePanel { display: none; }
 </style>
 </head>
 <body>
 
-<h1>SQUEEKCHAIN<br>PIXEL ID v10</h1>
+<h1>SQUEEKCHAIN<br>PIXEL ID v11</h1>
 
 <div class="container">
   <section class="panel" id="mainPanel">
     <div class="stack">
-      <button class="success" id="practiceBtn">Main Game — Practice</button>
-      <button id="liveBtn">Main Game — API Tempo</button>
+      <button class="success" onclick="startGame()">Mulai Main Game</button>
     </div>
-    <div style="border-top: 1px solid var(--border); margin: 20px 0;"></div>
+    <div style="border-top: 1px solid var(--border); margin: 15px 0;"></div>
     <div class="stack">
-      <label style="font-size: 12px; color: var(--blue);">Wallet address (opsional)</label>
-      <input id="walletInput" type="text" autocomplete="off" spellcheck="false" maxlength="42" placeholder="0x...">
-      <button class="secondary" id="generateBtn">Generate ID Card</button>
+      <label style="font-size: 11px; color: var(--blue);">Wallet address (opsional)</label>
+      <input id="walletInput" type="text" autocomplete="off" placeholder="0x...">
+      <button class="secondary" id="generateBtn" onclick="generateCard()">Generate ID Card</button>
     </div>
-    <p id="message" role="status" aria-live="polite">Pilih mode permainan atau masukkan wallet.</p>
-    <div id="cardArea">
-      <canvas id="cardCanvas"></canvas>
-      <button class="success" id="downloadBtn" style="margin-top:15px">Unduh PNG</button>
+    <p id="message">Pilih mode permainan atau masukkan wallet.</p>
+    <div id="cardArea" style="text-align: center;">
+      <canvas id="cardCanvas" width="320" height="460"></canvas>
+      <button class="success" onclick="downloadCard()" style="margin-top: 15px;">Unduh PNG</button>
     </div>
   </section>
 
   <section class="panel" id="gamePanel">
     <div class="stats">
-      <div class="stat"><b id="scoreValue">0</b><span>SKOR</span></div>
-      <div class="stat"><b id="comboValue">0</b><span>COMBO</span></div>
-      <div class="stat"><b id="bpmValue">120</b><span>BPM</span></div>
+      <div class="stat"><b id="scoreVal">0</b><span>SKOR</span></div>
+      <div class="stat"><b id="comboVal">0</b><span>COMBO</span></div>
+      <div class="stat"><b id="bpmVal">120</b><span>BPM</span></div>
     </div>
-    <div id="liveStatus" class="status warn" style="margin-bottom:15px" role="status" aria-live="polite">Practice mode</div>
-    <canvas id="gameCanvas"></canvas>
-    <p style="text-align:center; font-size:10px; color:#a090b0; margin: 15px 0;">Ketuk lane saat balok mendekati garis hijau.</p>
-    <button class="danger" id="stopBtn">Berhenti</button>
+    <!-- Canvas Ukuran Standar, Tanpa DPR Scaling -->
+    <canvas id="gameCanvas" width="320" height="400"></canvas>
+    <p style="text-align:center; font-size:10px; color:#a090b0; margin: 10px 0;">Ketuk lane saat balok mendekati garis hijau.</p>
+    <button class="danger" onclick="stopGame()">Berhenti Bermain</button>
   </section>
 </div>
 
 <script>
-'use strict';
+// ====== STATE ======
+let isPlaying = false;
+let score = 0, combo = 0, bpm = 120;
+let notes = [];
+let lastTime = 0;
+let rafId = null;
+let audioCtx = null;
 
-const CONFIG = Object.freeze({
-  API_URL: 'https://api.squeekchain.com/v1/status',
-  RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com',
-  CHAIN_ID: 11155111,
-  TOKEN_CONTRACT: '0x810239d271e80a86023f4f315943acbd65b59281',
-  TOKEN_CONTRACT_VERIFIED: false,
-  API_TIMEOUT_MS: 8000,
-  LIVE_POLL_MS: 5000,
-  PRACTICE_BPM: 120,
-  RPM_TO_BPM: 4,
-  MIN_BPM: 60,
-  MAX_BPM: 200,
-  NOTE_SPEED: 400,
-  TARGET_Y: 400,
-  HIT_WINDOW_PX: 48,
-  PERFECT_WINDOW_PX: 18
-});
-
-const $ = id => document.getElementById(id);
-const state = {
-  mode: 'practice', active: false, score: 0, combo: 0, maxCombo: 0, perfect: 0, good: 0, miss: 0,
-  notes: [], bpm: CONFIG.PRACTICE_BPM, spawnAccumulator: 0, lastFrameTime: 0, 
-  rafId: null, liveTimer: null, liveBusy: false, audioCtx: null, gameSession: 0,
-  activePointers: new Set()
-};
-
-const gameCanvas = $('gameCanvas');
-const ctx = gameCanvas.getContext('2d');
-const cardCanvas = $('cardCanvas');
-const cardCtx = cardCanvas.getContext('2d');
-
-// ====== CANVAS DPR SETUP ======
-function setupCanvas(canvas, ctx, width, height) {
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = width * dpr;
-    canvas.height = height * dpr;
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
-    ctx.scale(dpr, dpr);
-}
-const GAME_W = 320, GAME_H = 480;
-const CARD_W = 320, CARD_H = 460;
-setupCanvas(gameCanvas, ctx, GAME_W, GAME_H);
-setupCanvas(cardCanvas, cardCtx, CARD_W, CARD_H);
-
-function message(text, type='warn') {
-  const el = $('message'); el.textContent = text;
-  el.style.color = type === 'good' ? 'var(--green)' : type === 'bad' ? 'var(--red)' : 'var(--yellow)';
-}
-function setStatus(el, text, type='warn') { el.textContent = text; el.className = 'status ' + type; }
-
-async function timeoutFetch(url, options={}, timeoutMs=8000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  return fetch(url, {...options, signal: controller.signal}).finally(() => clearTimeout(timer));
-}
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const targetY = 320; // Garis target di bawah
+const noteSpeed = 300;
+const hitWindow = 40;
 
 // ====== AUDIO ======
-async function initAudio() {
-  if (state.audioCtx) return;
-  try {
-    const AudioCtor = window.AudioContext || window.webkitAudioContext;
-    state.audioCtx = new AudioCtor();
-    if (state.audioCtx.state === 'suspended') await state.audioCtx.resume();
-  } catch { state.audioCtx = null; }
-}
-function playBeep(freq=440, duration=0.05, vol=0.1) {
-  if (!state.audioCtx || state.audioCtx.state !== 'running') return;
-  const osc = state.audioCtx.createOscillator();
-  const gain = state.audioCtx.createGain();
-  osc.type = 'sine'; osc.frequency.value = freq;
-  gain.gain.setValueAtTime(vol, state.audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, state.audioCtx.currentTime + duration);
-  osc.connect(gain); gain.connect(state.audioCtx.destination);
-  osc.start(); osc.stop(state.audioCtx.currentTime + duration);
-  osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+function initAudio() {
+    if (!audioCtx) {
+        const AudioConstructor = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioConstructor();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-// ====== WEB3 & API ======
-function formatUnits(rawBigInt, decimals) {
-    const d = BigInt(decimals);
-    if (d === 0n) return rawBigInt.toString();
-    const scale = 10n ** d;
-    const whole = rawBigInt / scale;
-    const fraction = rawBigInt % scale;
-    let digits = fraction.toString().padStart(Number(d), '0').slice(0, 2).padEnd(2, '0');
-    return `${whole}.${digits}`;
+function playBeep(freq, dur, vol) {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square'; // Suara lebih tajam agar jelas
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + dur);
 }
 
-async function fetchTokenBalance(wallet) {
-    if (!CONFIG.TOKEN_CONTRACT_VERIFIED) return { ok: false, status: 'NOT VERIFIED' };
-    try {
-        const data = '0x70a08231' + wallet.slice(2).toLowerCase().padStart(64, '0');
-        const res = await timeoutFetch(CONFIG.RPC_URL, {
-            method: 'POST', headers: {'content-type':'application/json'},
-            body: JSON.stringify({ jsonrpc:'2.0', id:1, method:'eth_call', params:[{to:CONFIG.TOKEN_CONTRACT, data}, 'latest'] })
-        });
-        if (res.status === 429) return { ok: false, status: 'RATE_LIMITED' };
-        const json = await res.json();
-        if (!json.result || json.result === '0x') throw new Error('No result');
-        return { ok: true, status: 'SUCCESS', formatted: formatUnits(BigInt(json.result), 18) };
-    } catch (e) { return { ok: false, status: 'RPC_ERROR' }; }
-}
-
-async function fetchWheelData() {
-  try {
-    const res = await timeoutFetch(CONFIG.API_URL, {cache:'no-store'}, CONFIG.API_TIMEOUT_MS);
-    if (res.status === 429) return {ok:false, status:'RATE_LIMITED'};
-    if (!res.ok) return {ok:false, status:'HTTP_ERROR'};
-    const data = await res.json();
-    if (!data.measurement) return {ok:false, status:'INVALID_RESPONSE'};
+// ====== GAME ENGINE ======
+function startGame() {
+    initAudio();
+    document.getElementById('mainPanel').style.display = 'none';
+    document.getElementById('gamePanel').style.display = 'block';
     
-    const m = data.measurement;
-    const ageSeconds = Math.max(0, (Date.now() - Date.parse(m.observedAt)) / 1000);
-    const stale = m.freshness !== 'online' || ageSeconds > Number(m.staleAfterSeconds);
-
-    return {
-        ok: true, 
-        status: stale ? 'STALE' : (m.rpmMilli === 0 ? 'IDLE' : 'ONLINE'), 
-        rpm: Number(m.rpmMilli)/1000, 
-        distanceMm: Number(m.distanceMm), 
-        coreStatus: m.coreStatus, 
-        ageSeconds, stale
-    };
-  } catch { return {ok:false, status:'FETCH_ERROR'}; }
+    isPlaying = true;
+    score = 0; combo = 0; notes = [];
+    updateUI();
+    
+    lastTime = performance.now();
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(gameLoop);
+    
+    // Spawn note menggunakan interval waktu (bukan timer game loop)
+    if (window.spawnInterval) clearInterval(window.spawnInterval);
+    window.spawnInterval = setInterval(() => {
+        if (!isPlaying) return;
+        const lanes = [53, 160, 267];
+        notes.push({ x: lanes[Math.floor(Math.random() * 3)], y: -20, hit: false, missed: false });
+        playBeep(600, 0.03, 0.02); // Tick metronom
+    }, 60000 / bpm / 2); // BPM dipercepat 2x agar seru
 }
 
-// ====== GAME ENGINE (FIXED BUGS) ======
-function stopLoop() { if (state.rafId) cancelAnimationFrame(state.rafId); state.rafId = null; }
-function stopLivePolling() { if (state.liveTimer) clearInterval(state.liveTimer); state.liveTimer = null; }
-
-function resetGame(mode) {
-  stopLoop(); stopLivePolling();
-  state.gameSession++;
-  Object.assign(state, { mode, active: true, score: 0, combo: 0, maxCombo: 0, perfect: 0, good: 0, miss: 0, notes: [], spawnAccumulator: 0, lastFrameTime: 0, bpm: CONFIG.PRACTICE_BPM });
-  $('scoreValue').textContent = '0'; $('comboValue').textContent = '0'; $('bpmValue').textContent = String(Math.round(state.bpm));
-  state.activePointers.clear();
-}
-
-async function startGame(mode) {
-  await initAudio();
-  resetGame(mode);
-  $('mainPanel').style.display = 'none';
-  $('gamePanel').style.display = 'block';
-  
-  if (mode === 'live') {
-      setStatus($('liveStatus'), 'Mengambil data API...', 'warn');
-      const first = await fetchWheelData();
-      if (first.ok && !first.stale) {
-          state.bpm = Math.max(CONFIG.MIN_BPM, Math.min(CONFIG.MAX_BPM, first.rpm * CONFIG.RPM_TO_BPM));
-      }
-      state.liveTimer = setInterval(async () => {
-          const d = await fetchWheelData();
-          if (d.ok && !d.stale) {
-              state.bpm = Math.max(CONFIG.MIN_BPM, Math.min(CONFIG.MAX_BPM, d.rpm * CONFIG.RPM_TO_BPM));
-              setStatus($('liveStatus'), `API ONLINE · ${d.rpm.toFixed(2)} RPM`, 'good');
-          } else {
-              setStatus($('liveStatus'), `API ${d.status}. Tempo ditahan.`, 'warn');
-          }
-      }, CONFIG.LIVE_POLL_MS);
-  } else {
-      setStatus($('liveStatus'), 'PRACTICE — tempo tetap 120 BPM.', 'good');
-  }
-  
-  state.lastFrameTime = performance.now();
-  state.rafId = requestAnimationFrame(gameLoop);
+function stopGame() {
+    isPlaying = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    if (window.spawnInterval) clearInterval(window.spawnInterval);
+    
+    document.getElementById('gamePanel').style.display = 'none';
+    document.getElementById('mainPanel').style.display = 'block';
+    document.getElementById('message').innerText = `Selesai! Skor Akhir: ${score}`;
+    document.getElementById('message').style.color = 'var(--green)';
 }
 
 function gameLoop(now) {
-  if (!state.active) return;
-  let dt = (now - state.lastFrameTime) / 1000;
-  state.lastFrameTime = now;
-  if (!Number.isFinite(dt) || dt < 0) dt = 0;
-  dt = Math.min(dt, 0.05);
+    if (!isPlaying) return;
+    
+    let dt = (now - lastTime) / 1000;
+    lastTime = now;
+    if (dt > 0.1) dt = 0.1; // Cap dt
 
-  const interval = 60 / Math.max(1, state.bpm);
-  state.spawnAccumulator += dt;
-  while (state.spawnAccumulator >= interval) {
-    const lanes = [53, 160, 267];
-    state.notes.push({ x: lanes[Math.floor(Math.random() * 3)], y: -24, hit: false, missed: false });
-    playBeep(400, 0.04, 0.02);
-    state.spawnAccumulator -= interval;
-  }
+    // Bersihkan Canvas
+    ctx.fillStyle = '#0a0514'; ctx.fillRect(0, 0, 320, 400);
+    
+    // Garis Lanes
+    ctx.strokeStyle = '#30204d'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(106, 0); ctx.lineTo(106, 400); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(213, 0); ctx.lineTo(213, 400); ctx.stroke();
 
-  // Logika Update & Clear Note
-  for (let i = state.notes.length - 1; i >= 0; i--) {
-    const note = state.notes[i];
-    
-    // Jika note sudah di-hit, langsung hapus dari array
-    if (note.hit) {
-        state.notes.splice(i, 1);
-        continue;
-    }
-    
-    // Update posisi
-    note.y += CONFIG.NOTE_SPEED * dt;
-    
-    // Cek miss
-    if (!note.missed && note.y + 20 > CONFIG.TARGET_Y + CONFIG.HIT_WINDOW_PX) {
-        note.missed = true; 
-        state.combo = 0; 
-        state.miss++;
-        playBeep(180, 0.12, 0.045);
-    }
-    
-    // Hapus note yang sudah lewat batas bawah layar (agar warna merah hilang)
-    if (note.y > GAME_H) {
-        state.notes.splice(i, 1);
-    }
-  }
+    // Garis Target
+    ctx.fillStyle = 'rgba(57,255,20,0.2)'; ctx.fillRect(0, targetY, 320, 20);
+    ctx.fillStyle = '#39ff14'; ctx.fillRect(0, targetY, 320, 3);
 
-  drawGame();
-  updateStats();
-  state.rafId = requestAnimationFrame(gameLoop);
+    // Update & Draw Notes
+    for (let i = notes.length - 1; i >= 0; i--) {
+        let n = notes[i];
+        
+        // LOGIKA PENGHAPUSAN (Agar merah tidak menetap)
+        if (n.hit || n.y > 400) {
+            notes.splice(i, 1);
+            continue;
+        }
+
+        n.y += noteSpeed * dt;
+        
+        // Cek Miss
+        if (!n.missed && n.y > targetY + hitWindow) {
+            n.missed = true;
+            combo = 0;
+            playBeep(200, 0.1, 0.05); // Suara Miss
+            updateUI();
+        }
+
+        // Gambar Note
+        ctx.fillStyle = n.missed ? '#ff365f' : '#00ffff';
+        ctx.fillRect(n.x - 24, Math.round(n.y), 48, 20);
+    }
+
+    rafId = requestAnimationFrame(gameLoop);
 }
 
-function drawGame() {
-  ctx.clearRect(0, 0, GAME_W, GAME_H);
-  ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, GAME_W, GAME_H);
-
-  ctx.strokeStyle = '#30204d'; ctx.lineWidth = 2;
-  [106, 213].forEach(x => { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GAME_H); ctx.stroke(); });
-
-  const targetY = Math.round(CONFIG.TARGET_Y);
-  ctx.fillStyle = 'rgba(57,255,20,.20)'; ctx.fillRect(0, targetY, GAME_W, 22);
-  ctx.fillStyle = '#39ff14'; ctx.fillRect(0, targetY, GAME_W, 3);
-
-  for (const note of state.notes) {
-    ctx.fillStyle = note.missed ? '#ff365f' : '#00ffff';
-    ctx.fillRect(Math.round(note.x - 24), Math.round(note.y), 48, 20);
-  }
-}
-
-function updateStats() {
-  $('scoreValue').textContent = String(state.score);
-  $('comboValue').textContent = String(state.combo);
-  $('bpmValue').textContent = String(Math.round(state.bpm));
-}
-
-gameCanvas.addEventListener('pointerdown', (e) => {
-    if (!state.active || state.activePointers.has(e.pointerId)) return;
+// ====== INPUT ======
+canvas.addEventListener('pointerdown', (e) => {
+    if (!isPlaying) return;
     e.preventDefault();
-    state.activePointers.add(e.pointerId);
     
-    const rect = gameCanvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (GAME_W / rect.width);
-    const y = (e.clientY - rect.top) * (GAME_H / rect.height);
+    // Konversi koordinat klik dengan tepat
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
     
-    if (Math.abs(y - CONFIG.TARGET_Y) > 65) return;
+    // Abaikan jika klik jauh dari garis target
+    if (Math.abs(y - targetY) > 60) return;
 
-    let candidate = null, bestDistance = Infinity;
-    for (const note of state.notes) {
-        if (note.hit || note.missed) continue;
-        const distance = Math.abs((note.y + 10) - CONFIG.TARGET_Y);
-        if (Math.abs(note.x - x) <= 48 && distance <= CONFIG.HIT_WINDOW_PX && distance < bestDistance) {
-            candidate = note; bestDistance = distance;
+    let hitSomething = false;
+    for (let i = 0; i < notes.length; i++) {
+        let n = notes[i];
+        if (n.hit || n.missed) continue;
+        
+        // Deteksi tabrakan (Bounding Box)
+        if (Math.abs(n.x - x) < 40 && Math.abs((n.y + 10) - targetY) < hitWindow) {
+            n.hit = true;
+            hitSomething = true;
+            
+            // Hitung skor
+            if (Math.abs((n.y + 10) - targetY) < 15) {
+                score += 300;
+                playBeep(800, 0.05, 0.08); // Perfect
+            } else {
+                score += 100;
+                playBeep(500, 0.05, 0.05); // Good
+            }
+            combo++;
+            break;
         }
     }
     
-    if (!candidate) { state.combo = 0; updateStats(); return; }
-
-    candidate.hit = true;
-    if (bestDistance <= CONFIG.PERFECT_WINDOW_PX) {
-        state.score += 300; state.perfect++; playBeep(880, 0.06, 0.07);
-    } else {
-        state.score += 100; state.good++; playBeep(620, 0.06, 0.06);
+    if (!hitSomething) {
+        combo = 0;
     }
-    state.combo++; state.maxCombo = Math.max(state.maxCombo, state.combo);
-    updateStats();
+    updateUI();
 });
 
-gameCanvas.addEventListener('pointerup', (e) => state.activePointers.delete(e.pointerId));
-gameCanvas.addEventListener('pointercancel', (e) => state.activePointers.delete(e.pointerId));
-
-// ====== FIX BUG TOMBOL BERHENTI ======
-function endGame() {
-  // Selalu paksa game berhenti, abaikan state.active agar tidak nyangkut
-  state.active = false; 
-  stopLoop(); 
-  stopLivePolling();
-  
-  const unfinished = state.notes.filter(n => !n.hit && !n.missed).length;
-  const total = state.perfect + state.good + state.miss + unfinished;
-  const hitRate = total ? Math.round(((state.perfect + state.good) / total) * 100) : 0;
-  
-  $('gamePanel').style.display = 'none';
-  $('mainPanel').style.display = 'flex';
-  message(`Selesai! Skor ${state.score} · Hit rate ${hitRate}% · Max Combo ${state.maxCombo}`, 'good');
+function updateUI() {
+    document.getElementById('scoreVal').innerText = score;
+    document.getElementById('comboVal').innerText = combo;
+    document.getElementById('bpmVal').innerText = bpm;
 }
 
-// ====== AVATAR GENERATOR (PIXEL ART) ======
-function hashString(text) {
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    hash = ((hash << 5) - hash) + text.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
+// ====== CARD GENERATOR (PIXEL ART) ======
+function generateCard() {
+    const wallet = document.getElementById('walletInput').value.trim();
+    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) {
+        document.getElementById('message').innerText = 'Alamat wallet tidak valid.';
+        document.getElementById('message').style.color = 'var(--red)';
+        return;
+    }
 
-function drawAvatar(g, hash, x0, y0, s) {
-    const hue = hash % 360;
-    const fur = `hsl(${hue}, 80%, 60%)`;
-    const dark = `hsl(${hue}, 80%, 35%)`;
-    const belly = `hsl(${hue}, 60%, 85%)`;
+    const c = document.getElementById('cardCanvas');
+    const ctx = c.getContext('2d');
     
-    const px = (x, y, c) => { g.fillStyle = c; g.fillRect(x0 + x * s, y0 + y * s, s, s); };
-    const both = (x, y, c) => { px(x, y, c); px(15 - x, y, c); };
+    ctx.fillStyle = '#1a1130'; ctx.fillRect(0, 0, 320, 460);
+    ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 4; ctx.strokeRect(2, 2, 316, 456);
 
-    // Body
-    for (let y = 0; y < 16; y++) {
-        for (let x = 0; x < 8; x++) {
-            const dx = (x - 7.5) / 7, dy = (y - 9) / 6.2;
-            if (dx * dx + dy * dy > 1) continue;
-            let c = fur;
-            if (y > 11 && x > 2) c = belly;
-            else if (y < 10 && x < 6 && ((hash >> (x+y)) & 1)) c = dark; // Random pattern
-            both(x, y, c);
+    ctx.textAlign = 'center'; ctx.fillStyle = '#00ffff'; ctx.font = 'bold 16px "Space Mono"';
+    ctx.fillText('SQUEEK CITIZEN', 160, 35);
+
+    // --- Gambar Avatar Pixel ---
+    // Buat hash sederhana dari wallet
+    let hash = 0;
+    for (let i = 0; i < wallet.length; i++) hash += wallet.charCodeAt(i);
+    
+    ctx.fillStyle = '#000'; ctx.fillRect(110, 60, 100, 100);
+    
+    const hue = hash % 360;
+    const furColor = `hsl(${hue}, 80%, 60%)`;
+    const darkColor = `hsl(${hue}, 80%, 30%)`;
+    
+    // Gambar grid 16x16 sederhana
+    for(let y=0; y<16; y++) {
+        for(let x=0; x<8; x++) {
+            // Logika bentuk hamster bulat
+            let dx = (x - 7.5) / 7;
+            let dy = (y - 9) / 6;
+            if (dx*dx + dy*dy > 1) continue;
+            
+            ctx.fillStyle = furColor;
+            // Random spots gelap
+            if ((hash >> ((x+y)%10)) & 1) ctx.fillStyle = darkColor;
+            
+            // Telinga
+            if (y < 3 && (x === 1 || x === 2 || x === 5 || x === 6)) ctx.fillStyle = darkColor;
+            // Mata
+            if (y === 8 && (x === 4 || x === 5)) ctx.fillStyle = '#000';
+            // Hidung
+            if (y === 10 && x === 3) ctx.fillStyle = '#ff5c9a';
+            
+            // Gambar pixel 6x6 di kiri dan kanan (simetris)
+            ctx.fillRect(112 + x*6, 62 + y*6, 6, 6);
+            ctx.fillRect(112 + (15-x)*6, 62 + y*6, 6, 6);
         }
     }
-    // Telinga
-    [[2, 2], [3, 2], [2, 3], [3, 3]].forEach(([x, y]) => both(x, y, dark));
-    // Mata
-    both(5, 8, '#000'); 
-    // Hidung
-    both(7, 10, '#ff5c9a');
-}
+    // --- Selesai Avatar ---
 
-async function generateCard() {
-    const wallet = $('walletInput').value.trim();
-    if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) { message('Alamat wallet tidak valid.', 'bad'); return; }
-    
-    $('generateBtn').disabled = true;
-    message('Mengambil data...', 'warn');
-    await document.fonts.ready;
-    
-    const [wheel, balance] = await Promise.all([fetchWheelData(), fetchTokenBalance(wallet)]);
-    
-    // Render Card
-    cardCtx.fillStyle = '#1a1130'; cardCtx.fillRect(0, 0, CARD_W, CARD_H);
-    cardCtx.strokeStyle = '#00ffff'; cardCtx.lineWidth = 4; cardCtx.strokeRect(2, 2, CARD_W-4, CARD_H-4);
-    
-    cardCtx.textAlign = 'center'; cardCtx.fillStyle = '#00ffff'; cardCtx.font = 'bold 16px "Space Mono"';
-    cardCtx.fillText('SQUEEK COMMUNITY CARD', CARD_W/2, 30);
-    
-    // Gambar Avatar Pixel
-    const hash = hashString(wallet.toLowerCase());
-    cardCtx.fillStyle = '#000'; cardCtx.fillRect(CARD_W/2 - 50, 45, 100, 100);
-    drawAvatar(cardCtx, hash, CARD_W/2 - 48, 47, 6); // 16x16 grid * 6 scale = 96px
-
-    const drawRow = (label, value, y, color = '#39ff14') => {
-        cardCtx.textAlign = 'left'; cardCtx.fillStyle = '#c0b0d0'; cardCtx.font = '11px "Space Mono"';
-        cardCtx.fillText(label, 20, y);
-        cardCtx.fillStyle = color; cardCtx.font = 'bold 14px "Space Mono"';
-        cardCtx.fillText(String(value), 20, y + 16);
+    const drawRow = (label, val, y, color) => {
+        ctx.textAlign = 'left'; ctx.fillStyle = '#a090b0'; ctx.font = '11px "Space Mono"';
+        ctx.fillText(label, 25, y);
+        ctx.fillStyle = color; ctx.font = 'bold 14px "Space Mono"';
+        ctx.fillText(val, 25, y+16);
     };
 
-    drawRow('WALLET', wallet.slice(0,8)+'...'+wallet.slice(-6), 170);
-    drawRow('API STATUS', wheel.ok ? wheel.status : wheel.status, 220, wheel.ok ? '#39ff14' : '#fcee0a');
-    drawRow('DISTANCE', wheel.ok ? (whee
+    drawRow('WALLET', wallet.slice(0,8)+'...'+wallet.slice(-6), 190, '#39ff14');
+    drawRow('STATUS RODA', 'IDLE (OFFLINE)', 240, '#fcee0a');
+    drawRow('DISTANCE', '6.349 km', 290, '#39ff14');
+    drawRow('SQK BALANCE', 'NOT VERIFIED', 340, '#ff365f');
+
+    ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = '9px "Space Mono"';
+    ctx.fillText('UNOFFICIAL SNAPSHOT', 160, 430);
+
+    document.getElementById('cardCanvas').style.display = 'block';
+    document.getElementById('message').innerText = 'Kartu berhasil dibuat!';
+    document.getElementById('message').style.color = 'var(--green)';
+}
+
+function downloadCard() {
+    const link = document.createElement('a');
+    link.download = 'squeekchain-card.png';
+    link.href = document.getElementById('cardCanvas').toDataURL('image/png');
+    link.click();
+}
+</script>
+</body>
+</html>
