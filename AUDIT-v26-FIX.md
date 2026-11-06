@@ -62,3 +62,8 @@ Drone triangle 220 Hz diganti loop chiptune cyberpunk 140 BPM: lead square A min
 1. Buka `index.html` (satu folder utuh, jangan campur dengan v25).
 2. Ketuk wallet → Daily harus muncul banner + scroll. Main sampai selesai → hasil harus ada +XP, misi, dan Duel Link dengan link terlihat di kotak.
 3. Ketuk QLTY → background + status di atas harus berubah jelas. Generate Card → kartu harus diam, terbaca, tidak muter.
+
+## v26.1 — CONNECT WALLET (read-only), 2026-11-07 ~00:41 WIB
+- Tombol baru `[ CONNECT WALLET ]` di bawah kolom WALLET ADDRESS. Hanya membaca alamat dari dompet browser (EIP-1193 `eth_requestAccounts`) — tanpa signature, tanpa approval, tanpa transaksi, tanpa ganti chain. Tidak pernah auto-request saat load; hanya saat tombol diketuk.
+- Jika tidak ada dompet di browser → pesan "NO WALLET FOUND — TYPE YOUR 0x ADDRESS MANUALLY." Jika user menolak → "CONNECTION REJECTED". Jika dompet ganti akun (`accountsChanged`) → kolom alamat ikut berubah + preview anthem diperbarui.
+- Input manual 0x tetap jalan seperti biasa. Footer diperbarui: "optional read-only wallet connect (address only — no signature, no approval, no transactions)".

@@ -660,6 +660,35 @@ function preview() {
 
 const walletEl = $('walletInput');
 if (walletEl) walletEl.addEventListener('input', preview);
+
+// v26.1 CONNECT WALLET (read-only): fills the address field from the browser
+// wallet (MetaMask / Binance Wallet / any EIP-1193 provider). It only asks the
+// wallet to REVEAL the address (eth_requestAccounts) — no signature, no
+// approval, no transaction, no chain switch. If no provider exists, or the
+// user rejects, manual 0x input stays the way in. Never auto-requests on load.
+async function connectWallet() {
+  const eth = window.ethereum;
+  if (!eth || typeof eth.request !== 'function') return say('NO WALLET FOUND IN THIS BROWSER — TYPE YOUR 0x ADDRESS MANUALLY.', 'pink');
+  try {
+    const accounts = await eth.request({ method: 'eth_requestAccounts' });
+    const addr = Array.isArray(accounts) ? accounts[0] : null;
+    if (!addr || !isAddr(addr)) return say('WALLET RETURNED NO VALID ADDRESS — TYPE YOUR 0x ADDRESS MANUALLY.', 'pink');
+    if (walletEl) walletEl.value = addr;
+    preview();
+    say('WALLET CONNECTED: ' + addr.slice(0, 6) + '...' + addr.slice(-4) + ' — ADDRESS ONLY, NO SIGNATURE REQUESTED.', 'green');
+  } catch (e) {
+    const code = e && e.code;
+    if (code === 4001) return say('CONNECTION REJECTED — TYPE YOUR 0x ADDRESS MANUALLY.', 'pink');
+    return say('CONNECT FAILED: ' + String((e && e.message) || e).slice(0, 60), 'pink');
+  }
+}
+if (window.ethereum && typeof window.ethereum.on === 'function') {
+  window.ethereum.on('accountsChanged', (accounts) => {
+    const addr = Array.isArray(accounts) ? accounts[0] : null;
+    if (addr && isAddr(addr) && walletEl) { walletEl.value = addr; preview(); say('WALLET SWITCHED TO ' + addr.slice(0, 6) + '...' + addr.slice(-4) + '.', 'cyan'); }
+  });
+}
+bindClick('connectBtn', connectWallet);
 bindClick('playBtn', play); bindClick('genBtn', generateCard);
 bindClick('dlBtn', download); bindClick('shareBtn', share);
 bindClick('stopBtn', stop); bindClick('againBtn', play);
