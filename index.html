@@ -3,67 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#05020a">
-<title>Squeekchain Pixel ID v16</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<meta name="color-scheme" content="dark">
+<title>SQUEEKCHAIN PIXEL ID // NEO-BRUTALIST</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>SQUEEKCHAIN<br>PIXEL ID v16</h1>
-<p class="sub">WALLET ANTHEM · PRO EDITION</p>
-<div class="container">
+<header>
+    <h1>SQUEEKCHAIN</h1>
+    <h2>PIXEL ID // v17</h2>
+</header>
+
+<main class="container">
  <section class="panel" id="mainPanel">
   <div class="stack">
-   <label for="walletInput">Wallet address (opsional)</label>
-   <input id="walletInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0x...">
-   <button class="secondary" id="connectBtn">Ambil dari Wallet</button>
-   <p class="anthem" id="anthemInfo"></p>
+   <label>WALLET ADDRESS (OPTIONAL)</label>
+   <input id="walletInput" type="text" autocomplete="off" placeholder="0x...">
+   <button class="btn-secondary" id="connectBtn">[ CONNECT WALLET ]</button>
+   <p class="anthem" id="anthemInfo">AWAITING INPUT...</p>
    
-   <label>Pilih Genre Musik</label>
+   <label>// GENRE SELECT</label>
    <div class="diff-row" id="genreRow">
-     <button class="diff-btn active" data-genre="cyber">CYBER</button>
-     <button class="diff-btn" data-genre="synth">SYNTH</button>
-     <button class="diff-btn" data-genre="chip">CHIP</button>
+     <button class="btn-diff active" data-genre="cyber">CYBER</button>
+     <button class="btn-diff" data-genre="synth">SYNTH</button>
+     <button class="btn-diff" data-genre="chip">CHIP</button>
    </div>
 
-   <label>Pilih Kesulitan</label>
+   <label>// DIFFICULTY</label>
    <div class="diff-row" id="diffRow">
-     <button class="diff-btn active" data-diff="easy">EASY</button>
-     <button class="diff-btn" data-diff="normal">NORMAL</button>
-     <button class="diff-btn" data-diff="hard">HARD</button>
+     <button class="btn-diff active" data-diff="easy">EASY</button>
+     <button class="btn-diff" data-diff="normal">NORMAL</button>
+     <button class="btn-diff" data-diff="hard">HARD</button>
    </div>
 
-   <button class="success" id="playBtn">Mainkan Anthem</button>
-   <button class="secondary" id="genBtn">Generate ID Card</button>
+   <button class="btn-primary" id="playBtn">INITIALIZE RHYTHM</button>
+   <button class="btn-secondary" id="genBtn">GENERATE ID CARD</button>
   </div>
-  <p class="msg" id="message">Masukkan wallet, atau main sebagai GUEST.</p>
+  <p class="msg" id="message">SYSTEM READY.</p>
+  
   <div id="cardArea" class="hidden stack">
    <canvas id="card"></canvas>
-   <div class="row"><button class="success" id="dlBtn">Unduh PNG</button><button class="secondary" id="shareBtn">Bagikan</button></div>
+   <div class="row">
+       <button class="btn-primary" id="dlBtn">[ DOWNLOAD PNG ]</button>
+       <button class="btn-secondary" id="shareBtn">[ SHARE ]</button>
+   </div>
   </div>
  </section>
 
  <section class="panel hidden" id="gamePanel">
   <div class="stats">
-   <div class="stat"><b id="scoreVal">0</b><span>SKOR</span></div>
+   <div class="stat"><b id="scoreVal">0</b><span>SCORE</span></div>
    <div class="stat"><b id="comboVal">0</b><span>COMBO</span></div>
-   <div class="stat"><b id="accVal">100%</b><span>AKURASI</span></div>
+   <div class="stat"><b id="accVal">100%</b><span>ACCURACY</span></div>
    <div class="stat"><b id="bpmVal">120</b><span>BPM</span></div>
   </div>
   <canvas id="game"></canvas>
-  <p class="hint">Ketuk lane saat balok menyentuh garis hijau.</p>
-  <button class="danger" id="stopBtn">Berhenti</button>
+  <p class="hint">TAP LANE WHEN BLOCK HITS THE LINE.</p>
+  <button class="btn-danger" id="stopBtn">[ TERMINATE ]</button>
  </section>
 
- <section class="panel hidden result" id="resultPanel">
+ <section class="panel hidden" id="resultPanel">
   <div class="grade" id="gradeVal">S</div>
   <div class="kv" id="resultKv"></div>
   <p class="msg" id="bestMsg"></p>
-  <div class="stack"><button class="success" id="againBtn">Main Lagi</button><button class="secondary" id="toCardBtn">Cetak ke ID Card</button><button class="danger" id="homeBtn">Kembali</button></div>
+  <div class="stack">
+      <button class="btn-primary" id="againBtn">RETRY</button>
+      <button class="btn-secondary" id="toCardBtn">GENERATE CARD</button>
+      <button class="btn-danger" id="homeBtn">EXIT TO MENU</button>
+  </div>
  </section>
-</div>
+</main>
 <script src="script.js"></script>
 </body>
 </html>
