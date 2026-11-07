@@ -1,4 +1,4 @@
-// v37.1 tests — run: node TEST-v34-neo.js  (cwd = the v37.1 folder)
+// v37.2 tests — run: node TEST-v34-neo.js  (cwd = the v37.2 folder)
 const fs = require('fs');
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
@@ -36,8 +36,8 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v37.1', (html.match(/v37.1/g) || []).length >= 2);
-t('browser tab title is v37.1', html.includes('<title>SQUEEKCHAIN // v37.1</title>'));
+t('html says v37.2', (html.match(/v37\.2/g) || []).length >= 2);
+t('browser tab title is v37.2', html.includes('<title>SQUEEKCHAIN // v37.2</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -285,6 +285,16 @@ t('v37.1 mode buttons size to content so CHALLENGE wraps', /\.lb-mode\s*\{[^}]*f
 t('v37.1 empty rank line is hidden', /#lbRank:empty\s*\{\s*display:\s*none/.test(css));
 t('v37.1 name input still flexes to fill the row', /\.lb-row\s+input\[type=text\]\s*\{[^}]*flex:\s*1/.test(css));
 t('v37.1 mode row still wraps', /#lbModes\s*\{[^}]*flex-wrap:\s*wrap/.test(css));
+
+// --- 11c. v37.2 compact avatar + centered LEAGUE modes (user phone screenshots 23:07/23:10 WIB 7 Nov) ---
+t('v37.2 avatar box is a horizontal row', /#avatarPreviewWrap\s*\{[^}]*flex-direction:\s*row/.test(css));
+t('v37.2 avatar canvas is compact (84px)', /#avatar-preview\s*\{[^}]*width:\s*84px/.test(css));
+t('v37.2 avatar labels sit beside the canvas', html.includes('class="avatar-meta"') && html.includes('id="avatarLabel"') && html.includes('id="levelLabel"') && html.includes('id="anthemHash"'));
+['avatarPreviewWrap', 'avatar-preview', 'avatarLabel', 'levelLabel', 'anthemHash'].forEach(id => {
+  const n = (html.match(new RegExp('id="' + id + '"', 'g')) || []).length;
+  t('v37.2 avatar id present once: ' + id, n === 1);
+});
+t('v37.2 LEAGUE mode buttons are centered', /#lbModes\s*\{[^}]*justify-content:\s*center/.test(css));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
