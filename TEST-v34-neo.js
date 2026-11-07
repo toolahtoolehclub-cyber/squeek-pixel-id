@@ -1,4 +1,4 @@
-// v34.2 tests — run: node TEST-v34-neo.js  (cwd = the v34.2 folder)
+// v35 tests — run: node TEST-v34-neo.js  (cwd = the v35 folder)
 const fs = require('fs');
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
@@ -36,10 +36,53 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v34.2', (html.match(/v34\.2/g) || []).length >= 2);
-t('browser tab title is v34.2', html.includes('<title>SQUEEKCHAIN // v34.2</title>'));
-t('no BNB/Binance anywhere (v34.2)', !/BNB|Binance/i.test(html + css + js + readme));
-t('SQK token is the current deployment (v34.2)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
+t('html says v35', (html.match(/v35/g) || []).length >= 2);
+t('browser tab title is v35', html.includes('<title>SQUEEKCHAIN // v35</title>'));
+t('no BNB/Binance anywhere (v35)', !/BNB|Binance/i.test(html + css + js + readme));
+t('SQK token is the current deployment (v35)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
+// --- v35 CHAIN panel + frontier-aware Round History ---
+['chainBox', 'chainLines'].forEach(id => t('v35 chain id present once: ' + id, (html.match(new RegExp('id="' + id + '"', 'g')) || []).length === 1));
+t('chain box uses i18n title', html.includes('data-i18n="chainTitle"') && html.includes('data-i18n="chainLoading"'));
+['CORE_URL', 'ECONOMY_URL', 'GENESIS_TS', 'fetchChain', 'refreshChain', 'renderChainBox', 'roundIdForKey', 'roundSettled', 'estWork', 'estBlocks'].forEach(s => t('v35 js has ' + s, js.includes(s)));
+t('chain urls are the public API', js.includes("CORE_URL: 'https://api.squeekchain.com/v1/core'") && js.includes("ECONOMY_URL: 'https://api.squeekchain.com/v1/economy/state'"));
+t('genesis ts matches docs', js.includes('GENESIS_TS = 1793735400'));
+t('chain unknown never zero', js.includes("chainUnknown") && js.includes("'UNAVAILABLE'"));
+t('round hist template has work/blocks/state', js.includes('{work}') && js.includes('{blocks}') && js.includes('{state}'));
+t('estWork is avg x 10', js.includes('function estWork(avg) { return Math.round(avg * 10); }'));
+t('estBlocks is work x 1000 / difficulty', js.includes('work * 1000 / diff'));
+t('frontier compare is <= settled', js.includes('id <= chainSnapshot.settled'));
+// roundIdForKey: run it — round 533 starts at unix 1794055200 (2026-11-07 12:40 UTC)
+const rifSrc = js.slice(js.indexOf('function roundIdForKey'), js.indexOf('function roundSettled'));
+const rif = new Function('GENESIS_TS', rifSrc + '; return roundIdForKey;')(1793735400);
+const d533 = new Date(1794055200 * 1000);
+const p2 = n => String(n).padStart(2, '0');
+const key533 = `${d533.getFullYear()}-${p2(d533.getMonth() + 1)}-${p2(d533.getDate())}-${p2(d533.getHours())}:${p2(Math.floor(d533.getMinutes() / 10) * 10)}`;
+t('roundIdForKey maps round 533', rif(key533) === 533);
+t('roundIdForKey rejects bad keys', rif('nope') === null && rif('') === null);
+const ewLine = js.slice(js.indexOf('function estWork'), js.indexOf('\n', js.indexOf('function estWork')));
+const ebLine = js.slice(js.indexOf('function estBlocks'), js.indexOf('\n', js.indexOf('function estBlocks')));
+const eb = new Function(ewLine + '\n' + ebLine + '\nreturn { estWork, estBlocks };')();
+t('estWork(35) = 350', eb.estWork(35) === 350);
+t('estBlocks(35, 8238) = 4.2', eb.estBlocks(35, 8238) === 4.2);
+t('estBlocks needs a difficulty', eb.estBlocks(35, 0) === null);
+// --- v35 MY SQUEEK on the ID Card ---
+t('fetchAccount defined', js.includes('async function fetchAccount(w)'));
+t('account url is the public API', js.includes("https://api.squeekchain.com/v1/accounts/' + w.toLowerCase()"));
+t('card fetches account with wheel + balance', js.includes('[wheel, bal, acct] = await Promise.all([fetchWheel(), fetchBalance(w), fetchAccount(w)])'));
+t('card is taller for MY SQUEEK', js.includes('CW = 400, CH = 648;'));
+['MY SQUEEK', 'NEXT MERGE', 'STAKED SQK', 'CLAIMABLE'].forEach(s => t('card has row: ' + s, js.includes("row('" + s + "'")));
+t('card shows NONE YET honestly', js.includes("'NONE YET — NO SQUEEK FOUND'"));
+t('card shows READY NOW for merge-ready', js.includes("'READY NOW'"));
+t('account picks staking custody first', js.includes("b.custody === 'staking'"));
+t('account power uses fmtSqk', js.includes('fmtSqk(power.nftPower') && js.includes('fmtSqk(rewards.claimableBaseUnits'));
+// fmtSqk on the real reserve-Safe account numbers (browser check 2026-11-07)
+const fmtSrc = js.slice(js.indexOf('function fmt('), js.indexOf('function decodeStr'));
+const fsqLine = js.slice(js.indexOf('function fmtSqk'), js.indexOf('\n', js.indexOf('function fmtSqk')));
+const fsq = new Function(fmtSrc + '\n' + fsqLine + '\nreturn fmtSqk;')();
+t('fmtSqk scales power 1e21 -> 1,000', fsq('1000000000000000000000') === '1,000');
+t('fmtSqk claimable -> 25,260.72', fsq('25260722452361385112852') === '25,260.72');
+t('fmtSqk zero -> 0', fsq('0') === '0');
+t('fmtSqk bad input -> ?', fsq('nope') === '?');
 t('Genesis meta present', html.includes('<meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">'));
 t('README proof last line', readme.trimEnd().split('\n').pop().trim() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 // --- 4. CSS: NEO layer present ---
@@ -115,7 +158,7 @@ t('play scrolls to the game', js.includes("$('gamePanel').scrollIntoView"));
 t('finish scrolls to the result', js.includes("$('resultPanel').scrollIntoView"));
 t('shared cardFrame helper', js.includes('function cardFrame('));
 t('no CREATOR line on the cards', !js.includes('CREATOR: pancigoreng'));
-t('both cards 400x560', (js.match(/CW = 400, CH = 560/g) || []).length === 2);
+t('id card 400x648, result card 400x560 (v35)', js.includes('CW = 400, CH = 648;') && (js.match(/CW = 400, CH = 560/g) || []).length === 1);
 t('overlay open/close/minimize wired', js.includes("bindClick('cardCloseBtn'") && js.includes("bindClick('cardMinBtn'") && js.includes("bindClick('cardBarOpen'"));
 t('ID card opens the overlay', js.includes("openCard(msg('cardTitleId'))"));
 t('result card opens the overlay', js.includes("openCard(msg('cardTitleResult'))"));

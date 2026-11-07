@@ -153,7 +153,14 @@ const MSG = {
     glStatusTpl: 'WEBGL: {webgl} • QLTY: {q}{tail}', glTailEco: ' • BACKGROUND: STATIC GRADIENT', glTailUltra: ' • BACKGROUND: 3D / MOVING GRID',
     leagueWin: 'WIN ✓', leagueLose: 'LOSE',
     leagueRowTpl: 'YOU {mine} vs {rival} {theirs} — {result} • {date}',
-    roundHistRowTpl: '{key} — {label} (AVG {avg} RPM, {n} SAMPLES)',
+    roundHistRowTpl: '{key} — {label} (AVG {avg} RPM, {n} SAMPLES, ~{work} WORK, {blocks} BLOCKS) — {state}',
+    chainUnknown: 'CHAIN STATE UNKNOWN [{status}] — SHOWING NOTHING AS ZERO.',
+    chainBlockTpl: 'SQUEEK BLOCK #{height} — {pct}% TO THE NEXT BLOCK',
+    chainDiffTpl: 'DIFFICULTY {diff} WORK / 1000 BLOCKS • SETTLED THROUGH ROUND {settled}',
+    chainEcoTpl: 'SQK ISSUED {issued} • STAKED {staked} • SQUEEKS BURNED {burned} / 9,999',
+    roundStateSettled: 'SETTLED ✓',
+    roundStateSettling: 'SETTLING… (UNKNOWN, NOT ZERO)',
+    roundStateUnknown: 'FRONTIER UNKNOWN',
     unlockTitleTpl: 'UNLOCKS — LV {lv}',
     unlockVoid: 'NEW GENRE: VOID', unlockLanes: '4 LANES MODE', unlockMirror: 'MIRROR MODE', unlockGold: 'GOLD AVATAR',
     missionAcc: 'Accuracy >= 95%', missionCombo: 'Combo >= 50', missionMiss0: '0 Miss in one song',
@@ -269,7 +276,14 @@ const MSG = {
     glStatusTpl: 'WEBGL: {webgl} • KUALITAS: {q}{tail}', glTailEco: ' • LATAR: GRADIEN STATIS', glTailUltra: ' • LATAR: 3D / GRID BERGERAK',
     leagueWin: 'MENANG ✓', leagueLose: 'KALAH',
     leagueRowTpl: 'KAMU {mine} vs {rival} {theirs} — {result} • {date}',
-    roundHistRowTpl: '{key} — {label} (RATA-RATA {avg} RPM, {n} SAMPEL)',
+    roundHistRowTpl: '{key} — {label} (RATA-RATA {avg} RPM, {n} SAMPEL, ~{work} KERJA, {blocks} BLOK) — {state}',
+    chainUnknown: 'STATUS CHAIN TIDAK DIKETAHUI [{status}] — TIDAK ADA YANG DITAMPILKAN SEBAGAI NOL.',
+    chainBlockTpl: 'BLOK SQUEEK #{height} — {pct}% KE BLOK BERIKUTNYA',
+    chainDiffTpl: 'DIFFICULTY {diff} KERJA / 1000 BLOK • SUDAH SETTLED SAMPAI RONDE {settled}',
+    chainEcoTpl: 'SQK DITERBITKAN {issued} • DI-STAKE {staked} • SQUEEK DIBAKAR {burned} / 9.999',
+    roundStateSettled: 'SETTLED ✓',
+    roundStateSettling: 'MASIH SETTLING… (BELUM DIKETAHUI, BUKAN NOL)',
+    roundStateUnknown: 'FRONTIER BELUM DIKETAHUI',
     unlockTitleTpl: 'TERBUKA — LV {lv}',
     unlockVoid: 'GENRE BARU: VOID', unlockLanes: 'MODE 4 JALUR', unlockMirror: 'MODE CERMIN', unlockGold: 'AVATAR EMAS',
     missionAcc: 'Akurasi >= 95%', missionCombo: 'Kombo >= 50', missionMiss0: '0 Miss dalam satu lagu',
@@ -299,7 +313,7 @@ function rl(k) { const d = RLBL[lang] || RLBL.en; return d[k] !== undefined ? d[
 
 // --- EN/ID toggle (v32: menu labels AND dynamic messages are both translated) ---
 const I18N = {
-  en: { wallet: 'WALLET ADDRESS', connect: '[ CONNECT WALLET ]', genre: '// GENRE', diff: '// DIFFICULTY', options: '// OPTIONS', mode: '// MODE', play: 'INITIALIZE RHYTHM', card: 'GENERATE ID CARD', retry: 'RETRY', resultCard: '[ SHARE RESULT CARD ]', obs: '[ OBS OVERLAY LINK ]', wheelcall: 'WHEEL CALL — PREDICT THE NEXT ROUND', boss: 'WEEKLY BOSS', bossFight: '[ FIGHT WEEKLY BOSS ]', league: 'DUEL LEAGUE — LOCAL RIVALS', ach: 'ACHIEVEMENTS', away: 'WHILE YOU WERE AWAY', addNote: '[ ADD NOTE ]', howto: 'HOW TO PLAY', gotIt: '[ GOT IT — LET\'S PLAY ]', howBtn: '[ HOW TO PLAY ]', roundhist: 'ROUND HISTORY — LAST 12 SETTLED ROUNDS', champs: 'DAILY CHAMPIONS — YOUR BEST SCORE EACH DAY',
+  en: { wallet: 'WALLET ADDRESS', connect: '[ CONNECT WALLET ]', genre: '// GENRE', diff: '// DIFFICULTY', options: '// OPTIONS', mode: '// MODE', play: 'INITIALIZE RHYTHM', card: 'GENERATE ID CARD', retry: 'RETRY', resultCard: '[ SHARE RESULT CARD ]', obs: '[ OBS OVERLAY LINK ]', wheelcall: 'WHEEL CALL — PREDICT THE NEXT ROUND', boss: 'WEEKLY BOSS', bossFight: '[ FIGHT WEEKLY BOSS ]', league: 'DUEL LEAGUE — LOCAL RIVALS', ach: 'ACHIEVEMENTS', away: 'WHILE YOU WERE AWAY', addNote: '[ ADD NOTE ]', howto: 'HOW TO PLAY', gotIt: '[ GOT IT — LET\'S PLAY ]', howBtn: '[ HOW TO PLAY ]', roundhist: 'ROUND HISTORY — LAST 12 ROUNDS', chainTitle: 'CHAIN — LIVE FROM SQUEEKCORE', chainLoading: 'FETCHING CHAIN STATE…', champs: 'DAILY CHAMPIONS — YOUR BEST SCORE EACH DAY',
     warn: '⚠️ 0x address ONLY. NEVER enter a seed phrase / private key here, anywhere.',
     splashSub: 'CHOOSE YOUR OPENING MUSIC', splashNote: 'Browsers block sound before your first tap — the music starts on your first tap, not before.',
     liveInfo: 'The song\'s tempo follows the real hamster wheel, live from api.squeekchain.com/v1/status. Resting hamster = CALM 100 BPM. Running hamster = 100 + RPM (max 180). At 70+ RPM ZOOMIES starts and all scores double. Day follows the wheel running, night follows it resting. If the wheel is offline, the song uses a 128 BPM fallback and says so.',
@@ -318,7 +332,7 @@ const I18N = {
     champsEmpty: 'No champions yet — your best score of each day lands here.',
     roundHistEmpty: 'No finished rounds recorded yet — keep this page open and rounds settle here.',
     cardBarLbl: 'ID CARD — TAP TO OPEN' },
-  id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR YANG SELESAI', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI',
+  id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR', chainTitle: 'CHAIN — LIVE DARI SQUEEKCORE', chainLoading: 'MENGAMBIL STATUS CHAIN…', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI',
     warn: '⚠️ Hanya alamat 0x. JANGAN PERNAH memasukkan seed phrase / private key di sini, di mana pun.',
     splashSub: 'PILIH MUSIK PEMBUKA', splashNote: 'Browser memblokir suara sebelum ketukan pertamamu — musik mulai saat kamu pertama kali mengetuk, bukan sebelumnya.',
     liveInfo: 'Tempo lagu mengikuti roda hamster asli, live dari api.squeekchain.com/v1/status. Hamster istirahat = CALM 100 BPM. Hamster berlari = 100 + RPM (maks 180). Di 70+ RPM ZOOMIES mulai dan semua skor berlipat dua. Siang mengikuti roda yang berlari, malam mengikuti roda yang istirahat. Kalau rodanya offline, lagu memakai 128 BPM cadangan dan mengatakannya.',
@@ -558,7 +572,7 @@ class CircuitBreaker {
   async execute(fn) { if (this.state === 'OPEN') { if (Date.now() > this.next) this.state = 'HALF_OPEN'; else throw new Error('CIRCUIT_OPEN'); } try { const res = await fn(); this.fails = 0; this.state = 'CLOSED'; return res; } catch (e) { this.fails++; if (this.fails >= this.threshold) { this.state = 'OPEN'; this.next = Date.now() + this.timeout; } throw e; } }
 }
 const rpcBreaker = new CircuitBreaker(3, 10000);
-const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } }; // BARS 32 (Lagu lebih panjang)
+const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', CORE_URL: 'https://api.squeekchain.com/v1/core', ECONOMY_URL: 'https://api.squeekchain.com/v1/economy/state', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } }; // BARS 32 (Lagu lebih panjang)
 const DIFFICULTIES = { easy: { speed: 350, density: 0.4, chord: 0.0 }, normal: { speed: 480, density: 0.7, chord: 0.1 }, hard: { speed: 600, density: 0.9, chord: 0.25 } };
 const GENRES = { cyber: { scales: ['Phrygian', 'Harmonic Minor', 'Minor Pentatonic', 'Aeolian', 'Blues'], bpm: 120 }, synth: { scales: ['Dorian', 'Major Pentatonic', 'Lydian', 'Major'], bpm: 100 }, chip: { scales: ['Major Pentatonic', 'Dorian', 'Mixolydian', 'Blues'], bpm: 140 }, void: { scales: ['Phrygian', 'Harmonic Minor', 'Aeolian', 'Blues'], bpm: 150 } }; // v33: 10 scales, 4-5 per genre (was 5 total) — songs stop feeling the same
 let currentDiff = 'easy', currentGenre = 'cyber';
@@ -1056,6 +1070,100 @@ async function fetchBalance(w) {
 async function fetchWheel() { try { const r = await tfetch(CONFIG.API_URL); if (!r.ok) return { ok: false, status: 'HTTP_' + r.status }; const m = (await r.json()).measurement; if (!m) return { ok: false, status: 'NO_DATA' }; return { ok: true, dist: Number(m.distanceMm) / 1e6, status: String(m.coreStatus).slice(0, 18), rpm: Number(m.rpmMilli || 0) / 1000, fresh: String(m.freshness || '') } } catch { return { ok: false, status: 'OFFLINE' } } }
 
 // ==========================================
+// v35 CHAIN — live SqueekCore + economy state (read-only public API, no key).
+// /v1/core gives settled work, block height, difficulty and the settled
+// frontier; /v1/economy/state gives SQK issued, staked and Squeeks burned.
+// Honesty rule from the whitepaper: a response that says "unavailable" means
+// UNKNOWN, never zero — so a failed fetch shows UNKNOWN, not 0.
+// ==========================================
+const GENESIS_TS = 1793735400; // SqueekCore genesis time (docs: developers.md)
+let chainSnapshot = null, chainLastFetch = 0;
+function fmtSqk(baseUnits) { try { return fmt(BigInt(baseUnits), 18); } catch { return '?'; } }
+async function fetchChain() {
+  try {
+    const [cr, er] = await Promise.all([tfetch(CONFIG.CORE_URL), tfetch(CONFIG.ECONOMY_URL)]);
+    if (!cr.ok || !er.ok) return { ok: false, status: 'HTTP_' + (cr.ok ? er.status : cr.status) };
+    const cj = await cr.json(), ej = await er.json();
+    if (cj.status !== 'available' || ej.status !== 'available') return { ok: false, status: 'UNAVAILABLE' };
+    const c = cj.core || {}, sup = ej.supply || {}, st = ej.staking || {}, nft = ej.nft || {};
+    return { ok: true,
+      height: Number(c.blockHeight || 0),
+      progress: Number(c.blockProgress || 0) / 1e9,
+      difficulty: Number(c.workPerThousandBlocks || 0),
+      settled: Number(c.settledThroughRound || 0),
+      issued: fmtSqk(sup.miningMintedBaseUnits || (ej.schedule && ej.schedule.issuedBaseUnits) || 0),
+      staked: fmtSqk(st.totalStakedBaseUnits || 0),
+      burned: Number(nft.burned || 0) };
+  } catch { return { ok: false, status: 'OFFLINE' }; }
+}
+// --- v35: MY SQUEEK — the player's account on Squeekchain (read-only public API) ---
+// /v1/accounts/{address} returns power (scaled by 1e18, like the staking
+// parameters), stake, claimable rewards and the Squeeks themselves — each token
+// entry already carries level, basePower, nextMergeHeight and mergeState, so
+// no second fetch is needed. Tokens come 25 per page; we take the best of the
+// first page (deposited in Staking first, then highest power).
+async function fetchAccount(w) {
+  try {
+    const r = await tfetch('https://api.squeekchain.com/v1/accounts/' + w.toLowerCase());
+    if (!r.ok) return { ok: false, status: 'HTTP_' + r.status };
+    const j = await r.json();
+    if (j.status !== 'available') return { ok: false, status: 'UNAVAILABLE' };
+    const power = j.power || {}, stake = j.stake || {}, rewards = j.rewards || {};
+    const counts = j.tokenCounts || {};
+    const tokens = Array.isArray(j.tokens) ? j.tokens : [];
+    const sorted = tokens.slice().sort((a, b) => ((b.custody === 'staking') - (a.custody === 'staking')) || (Number(b.basePower || 0) - Number(a.basePower || 0)));
+    return { ok: true,
+      nftPower: fmtSqk(power.nftPower || 0),
+      sqkPower: fmtSqk(power.sqkPower || 0),
+      staked: fmtSqk(stake.principalBaseUnits || 0),
+      claimable: fmtSqk(rewards.claimableBaseUnits || 0),
+      count: Number(counts.staking || 0) + Number(counts.wallet || 0),
+      first: sorted[0] || null };
+  } catch { return { ok: false, status: 'OFFLINE' }; }
+}
+async function refreshChain(force) {
+  const now = Date.now();
+  if (!force && chainSnapshot && now - chainLastFetch < 60000) { renderChainBox(); return chainSnapshot; }
+  chainLastFetch = now;
+  chainSnapshot = await fetchChain();
+  renderChainBox();
+  renderRoundHist(); // the frontier may have moved
+  return chainSnapshot;
+}
+function renderChainBox() {
+  const el = $('chainLines'); if (!el) return;
+  const s = chainSnapshot;
+  if (!s) { el.innerHTML = `<p class="msg">${escHtml(I18N[lang].chainLoading)}</p>`; return; }
+  if (!s.ok) { el.innerHTML = `<p class="msg">${escHtml(msgf('chainUnknown', { status: s.status }))}</p>`; return; }
+  const pct = Math.floor(s.progress * 100);
+  el.innerHTML = [
+    msgf('chainBlockTpl', { height: s.height.toLocaleString('en-US'), pct }),
+    msgf('chainDiffTpl', { diff: s.difficulty.toLocaleString('en-US'), settled: s.settled }),
+    msgf('chainEcoTpl', { issued: s.issued, staked: s.staked, burned: s.burned }),
+  ].map(t => `<p class="msg">${escHtml(t)}</p>`).join('');
+}
+
+// --- v35: chain round numbers — rounds are 600s buckets from genesis ---
+// Local round keys ('YYYY-MM-DD-HH:MM') share the same 10-minute boundaries
+// as chain rounds (genesis is exactly on a boundary), so a key converts
+// cleanly to a chain round id.
+function roundIdForKey(key) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})-(\d{2}):(\d{2})$/.exec(key || '');
+  if (!m) return null;
+  const sec = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], 0).getTime() / 1000;
+  if (!Number.isFinite(sec)) return null;
+  return Math.floor((sec - GENESIS_TS) / 600);
+}
+function roundSettled(key) {
+  if (!chainSnapshot || !chainSnapshot.ok) return null; // frontier unknown
+  const id = roundIdForKey(key);
+  if (id === null) return null;
+  return id <= chainSnapshot.settled;
+}
+function estWork(avg) { return Math.round(avg * 10); } // ~1 rev = 1 work unit, 10-min round
+function estBlocks(work, diff) { if (!diff || diff <= 0 || !Number.isFinite(work)) return null; return +(work * 1000 / diff).toFixed(1); }
+
+// ==========================================
 // 5b. LIVE MODE — RACE THE HAMSTER
 // The song's tempo follows the real hamster wheel (api.squeekchain.com/v1/status).
 // Resting hamster (RPM 0) = CALM 100 BPM. Running hamster = 100 + RPM, capped at 180.
@@ -1081,6 +1189,7 @@ let lastSeenRound = null; // v30: the round the page is currently watching, so a
 async function refreshLive() {
   const s = await fetchWheel();
   liveSnapshot = s;
+  refreshChain(); // v35: chain state rides along, throttled to 60s
   if (s.ok) recordRpmSample(s.rpm); // v29: feed the prediction settler
   const cur = currentRoundKey();
   if (lastSeenRound && cur !== lastSeenRound) finalizeRound(lastSeenRound); // v30: round history, live
@@ -1167,12 +1276,12 @@ async function generateCard() {
   const btn = $('genBtn'); if (btn) btn.disabled = true; say(msg('cardFetching'), 'cyan');
   try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2000))]); } catch (_) {}
 
-  let wheel, bal;
-  try { [wheel, bal] = await Promise.all([fetchWheel(), fetchBalance(w)]); }
-  catch (e) { bal = { ok: false, status: e.message === 'CIRCUIT_OPEN' ? 'RPC_BLOCKED' : 'FETCH_ERROR' }; wheel = { ok: false, status: 'OFFLINE' }; }
+  let wheel, bal, acct;
+  try { [wheel, bal, acct] = await Promise.all([fetchWheel(), fetchBalance(w), fetchAccount(w)]); }
+  catch (e) { bal = { ok: false, status: e.message === 'CIRCUIT_OPEN' ? 'RPC_BLOCKED' : 'FETCH_ERROR' }; wheel = { ok: false, status: 'OFFLINE' }; acct = { ok: false, status: 'FETCH_ERROR' }; }
 
   const an = (lastAnthem && G && G.wallet && G.wallet.toLowerCase() === w.toLowerCase()) ? lastAnthem : makeAnthem(w);
-  const b = loadBest(w), c = $('card-canvas'), ctx = c.getContext('2d'), CW = 400, CH = 560;
+  const b = loadBest(w), c = $('card-canvas'), ctx = c.getContext('2d'), CW = 400, CH = 648;
   fitCanvas(c, ctx, CW, CH, 3);
   const lv = levelFor(totalXP(w)), xp = totalXP(w);
   cardFrame(ctx, CW, CH, 'SQUEEK CITIZEN // ID CARD', 'LV ' + lv);
@@ -1198,6 +1307,25 @@ async function generateCard() {
   row('DISTANCE', wheel.ok ? wheel.dist.toFixed(3) + ' KM' : '-', 224, 428, '#00ff88');
   const achCard = loadJSON('sqk29:ach:' + walletKey(w), []);
   row('ACHIEVEMENTS', achCard.length ? achCard.length + '/10 — ' + achCard.slice(0, 2).join(', ') : '0/10 — PLAY TO UNLOCK', 24, 472, '#ffe14d');
+  hair(496);
+  // v35: MY SQUEEK — the player's Squeek, stake and claimable, live from /v1/accounts.
+  // An empty account is shown honestly as NONE YET; a failed fetch as [ STATUS ], never 0.
+  if (acct && acct.ok && acct.first) {
+    row('MY SQUEEK', '#' + acct.first.tokenId + ' • LV ' + acct.first.level + ' • POWER ' + Number(acct.first.basePower || 0).toLocaleString('en-US'), 24, 516, '#00e5ff');
+    row('NEXT MERGE', acct.first.mergeState === 'ready' ? 'READY NOW' : 'BLOCK ' + acct.first.nextMergeHeight, 224, 516, '#00e5ff');
+    row('STAKED SQK', acct.staked + ' SQK', 24, 560, '#00ff88');
+    row('CLAIMABLE', acct.claimable + ' SQK', 224, 560, '#00ff88');
+  } else if (acct && acct.ok) {
+    row('MY SQUEEK', 'NONE YET — NO SQUEEK FOUND', 24, 516, '#ff5ce1');
+    row('NEXT MERGE', '—', 224, 516, '#ff5ce1');
+    row('STAKED SQK', '0 SQK', 24, 560, '#00ff88');
+    row('CLAIMABLE', '0 SQK', 224, 560, '#00ff88');
+  } else {
+    row('MY SQUEEK', '[ ' + (acct ? acct.status : 'UNKNOWN') + ' ]', 24, 516, '#ff5ce1');
+    row('NEXT MERGE', '—', 224, 516, '#ff5ce1');
+    row('STAKED SQK', '[ ? ]', 24, 560, '#ff5ce1');
+    row('CLAIMABLE', '[ ? ]', 224, 560, '#ff5ce1');
+  }
 
   ctx.textAlign = 'center'; ctx.fillStyle = '#5c6669'; ctx.font = '9px "Space Mono"';
   ctx.fillText('squeekpixel.web.id  •  UNOFFICIAL DATA // ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC', CW / 2, CH - 16);
@@ -1547,7 +1675,14 @@ function renderRoundHist() {
   const el = $('roundHistList'); if (!el) return;
   const list = loadRounds().slice().reverse();
   if (!list.length) { el.innerHTML = `<p class="msg">${I18N[lang].roundHistEmpty}</p>`; return; }
-  el.innerHTML = list.map(r => `<div class="league-row">${msgf('roundHistRowTpl', { key: r.key, label: roundLabel(r.cls), avg: r.avg, n: r.n })}</div>`).join('');
+  const diff = chainSnapshot && chainSnapshot.ok ? chainSnapshot.difficulty : 0;
+  el.innerHTML = list.map(r => {
+    const st = roundSettled(r.key);
+    const work = estWork(r.avg);
+    const blk = st === true ? estBlocks(work, diff) : null;
+    const state = st === null ? msg('roundStateUnknown') : st ? msg('roundStateSettled') : msg('roundStateSettling');
+    return `<div class="league-row">${msgf('roundHistRowTpl', { key: r.key, label: roundLabel(r.cls), avg: r.avg, n: r.n, work, blocks: blk === null ? '?' : '~' + blk, state })}</div>`;
+  }).join('');
 }
 
 // --- v30 TOTAL: Daily Champions (best score of each day, this wallet) ---
