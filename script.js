@@ -568,6 +568,11 @@ async function refreshLive() {
   const s = await fetchWheel();
   liveSnapshot = s;
   renderLiveBox();
+  // v27.1: the menu anthem line is built by preview() from liveSnapshot — refresh
+  // it once the snapshot lands, or it stays stuck on the pre-fetch fallback text
+  // while the LIVE box already shows real data. Never during a running game:
+  // preview() re-rolls the accent hue, which must not change mid-song.
+  if (!G) preview();
   if (G && !G.ended && G.mode === 'live') updateLiveHud();
   return s;
 }

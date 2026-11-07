@@ -66,3 +66,11 @@ challenge modes untouched; LIVE is purely additive.
 - End-to-end play test on the live site after deploy: open `?live=1`, confirm the
   LIVE box shows real RPM/distance, start a song, confirm the HUD line updates
   and the result row shows the LIVE WHEEL summary.
+  Result 2026-11-07 ~11:55 WIB: PASSED — hamster was RUNNING at 71 RPM, menu box
+  showed "RPM 71 • 2.522 KM • DAY • SONG 171 BPM • ZOOMIES ×2", song started at
+  169 BPM (fresh sample, RPM 69), live distance rose 2.530 → 2.540 KM during
+  play, no errors, menu works after TERMINATE. One real bug found: the menu
+  anthem line stayed on "WHEEL OFFLINE • 128 BPM FALLBACK" because `preview()`
+  ran before the first wheel fetch resolved and was never re-run — fixed in
+  v27.1 (`refreshLive()` now calls `preview()` when no game is running).
+  (The report's "CALM 60 BPM" was a misread; the button is CALM 100 BPM.)
