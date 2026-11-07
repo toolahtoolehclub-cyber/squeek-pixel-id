@@ -576,6 +576,19 @@ const seedOf = w => cyrb53((w || 'GUEST').toLowerCase());
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const SCALES = { 'Minor Pentatonic': [0, 3, 5, 7, 10], 'Dorian': [0, 2, 3, 5, 7, 9, 10], 'Phrygian': [0, 1, 3, 5, 7, 8, 10], 'Major Pentatonic': [0, 2, 4, 7, 9], 'Harmonic Minor': [0, 2, 3, 5, 7, 8, 11], 'Lydian': [0, 2, 4, 6, 7, 9, 11], 'Mixolydian': [0, 2, 4, 5, 7, 9, 10], 'Aeolian': [0, 2, 3, 5, 7, 8, 10], 'Blues': [0, 3, 5, 6, 7, 10], 'Major': [0, 2, 4, 5, 7, 9, 11] }; // v33: 10 scales (was 5)
 const SONG_MOODS = { 'Phrygian': 'Void', 'Harmonic Minor': 'Ember', 'Minor Pentatonic': 'Blues', 'Dorian': 'Neon', 'Major Pentatonic': 'Sunny', 'Lydian': 'Sky', 'Mixolydian': 'Groove', 'Aeolian': 'Dusk', 'Blues': 'Smoky', 'Major': 'Bright' }; // v33.1: every song gets a name from its scale + mood ("Neon Dorian")
+// v34 THEMES — one look per mode, so no two modes feel the same. Reference:
+// the official Squeekchain pixel art (blue pixel grid, yellow pixel hamster,
+// chunky pixel font) — the grid + the hamster note carry that language in-game.
+const THEMES = {
+  cyber:   { name: 'CYBER',   bg: ['#0a161a', '#050607'], grid: 'rgba(0,229,255,.07)',  lane: '#00ffff', hit: '#00ff00', pulse: '#00e5ff', notes: ['#ff00ff', '#00ffff', '#ffff00', '#ff8800'], accent: '#00e5ff', glow: 'rgba(0,229,255,.28)' },
+  sunrise: { name: 'SUNRISE', bg: ['#1a1206', '#0a0703'], grid: 'rgba(255,176,32,.08)',  lane: '#ffb020', hit: '#ffd700', pulse: '#ffb020', notes: ['#ffd700', '#ff8800', '#ff5ce1', '#00e5ff'], accent: '#ffb020', glow: 'rgba(255,176,32,.28)' },
+  wheel:   { name: 'WHEEL',   bg: ['#061a12', '#040805'], grid: 'rgba(0,255,136,.08)',  lane: '#00ff88', hit: '#00ff88', pulse: '#00ff88', notes: ['#00ff88', '#00e5ff', '#a8ff00', '#ff5ce1'], accent: '#00ff88', glow: 'rgba(0,255,136,.28)' },
+  versus:  { name: 'VERSUS',  bg: ['#1a0612', '#08030a'], grid: 'rgba(255,0,255,.08)',   lane: '#ff00ff', hit: '#ff2e63', pulse: '#ff00ff', notes: ['#ff2e63', '#ff00ff', '#ffd700', '#00e5ff'], accent: '#ff2e63', glow: 'rgba(255,46,99,.30)' },
+  calm:    { name: 'CALM',    bg: ['#0a1220', '#05070d'], grid: 'rgba(120,160,255,.07)', lane: '#7aa0ff', hit: '#7aa0ff', pulse: '#7aa0ff', notes: ['#7aa0ff', '#a8c8ff', '#5ce1e6', '#c8a8ff'], accent: '#7aa0ff', glow: 'rgba(122,160,255,.28)' },
+  void:    { name: 'VOID',    bg: ['#12061f', '#07030d'], grid: 'rgba(160,80,255,.09)',  lane: '#a050ff', hit: '#c050ff', pulse: '#a050ff', notes: ['#a050ff', '#ff5ce1', '#7a50ff', '#ff8800'], accent: '#a050ff', glow: 'rgba(160,80,255,.30)' },
+  gold:    { name: 'GOLD',    bg: ['#1a1506', '#0a0803'], grid: 'rgba(255,215,0,.08)',   lane: '#ffd700', hit: '#ffd700', pulse: '#ffd700', notes: ['#ffd700', '#ffb020', '#fff0a8', '#ff8800'], accent: '#ffd700', glow: 'rgba(255,215,0,.28)' }
+};
+function themeKeyFor(mode, boss) { if (boss) return 'void'; if (mode === 'daily') return 'sunrise'; if (mode === 'live') return 'wheel'; if (mode === 'race') return 'versus'; if (mode === 'challenge') return 'gold'; return 'cyber'; }
 
 function makeAnthem(wallet, randomize = false, seedOverride = null, lanes = 3, mirror = false) {
   let seed = seedOverride ? cyrb53(seedOverride) : seedOf(wallet);
@@ -764,7 +777,8 @@ async function play() {
   glShockwave = 1.0; // Shockwave saat mulai
 
   G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), glitchT: 0, ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, fever: false, practice: practiceMode, live: (playMode === 'live' || playMode === 'race') ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null, race: playMode === 'race' ? { startDistKm: liveStart && liveStart.ok ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), playerDist: 0, roundKey: roundKeyFor(new Date()), goldenNote: null } : null, boss: playMode === 'boss' };
-  try { const cg = cx.createLinearGradient(0, 0, 0, GH); cg.addColorStop(0, 'hsl(' + (anthem ? anthem.hue : 180) + ', 65%, 9%)'); cg.addColorStop(1, '#050505'); G.bgGrad = cg; } catch (_) {} // v33: hue-tinted canvas background (WebGL is paused while playing)
+  const themeKey = themeKeyFor(playMode, G.boss); G.theme = THEMES[themeKey]; document.body.dataset.theme = themeKey; // v34: one look per mode
+  try { const cg = cx.createLinearGradient(0, 0, 0, GH); cg.addColorStop(0, G.theme.bg[0]); cg.addColorStop(1, G.theme.bg[1]); G.bgGrad = cg; } catch (_) {} // v34: theme gradient background (was the anthem hue)
   if (playMode === 'challenge' && (challengeLanes === 4 || challengeMirror)) say(msgf('duelUnlock', { mods: (challengeLanes === 4 ? '4 LANES ' : '') + (challengeMirror ? 'MIRROR ' : '') }), 'yellow');
   floatTexts = [];
   show('gamePanel'); document.body.classList.add('playing'); pauseGL(); closeSettings(); // v32: freeze decorations + WebGL while playing (lag fix)
@@ -867,18 +881,39 @@ function loop(ts) {
   draw(st, dt);
 }
 
+// v34: the note is a pixel hamster, not a rectangle — Guitar Hero's gem, in
+// Squeekchain's pixel language (see the official pixel-grid post). 7x7 grid:
+// ear bumps, eyes, pink nose. The white dot in the middle is the aim point —
+// tap when it sits inside the receptor ring on the hit line. The old
+// rectangle's leading edge invited early taps (its top arrived ~30-60ms
+// before the judged time at slow speeds).
+function drawHamster(x, y, size, body) {
+  const P = ['.H...H.', 'HHHHHHH', 'HHHHHHH', 'HDHWHDH', 'HHHHHHH', '.HHNHH.', '..HHH..'];
+  const px = size / 7, ox = x - size / 2, oy = y - size / 2;
+  for (let r = 0; r < 7; r++) for (let c = 0; c < 7; c++) {
+    const ch = P[r][c];
+    if (ch === '.') continue;
+    cx.fillStyle = ch === 'D' ? '#111111' : ch === 'N' ? '#ff5ce1' : ch === 'W' ? '#ffffff' : body;
+    cx.fillRect(Math.round(ox + c * px), Math.round(oy + r * px), Math.ceil(px) + 1, Math.ceil(px) + 1);
+  }
+}
 function draw(st, dt) {
   dt = dt || 1 / 60;
-  cx.clearRect(0, 0, GW, GH); cx.fillStyle = G.bgGrad || '#050505'; cx.fillRect(0, 0, GW, GH); // v33: hue-tinted background
+  cx.clearRect(0, 0, GW, GH); cx.fillStyle = G.bgGrad || '#050505'; cx.fillRect(0, 0, GW, GH);
   cx.save(); cx.beginPath(); cx.rect(0, 0, GW, GH); cx.clip();
+  const th = G.theme || THEMES.cyber; // v34: every color in the game comes from the mode theme
+  cx.strokeStyle = th.grid; cx.lineWidth = 1; // v34: pixel grid, like the official Squeekchain poster
+  for (let gx = 30; gx < GW; gx += 30) { cx.beginPath(); cx.moveTo(gx, 0); cx.lineTo(gx, GH); cx.stroke(); }
+  for (let gy = 30; gy < GH; gy += 30) { cx.beginPath(); cx.moveTo(0, gy); cx.lineTo(GW, gy); cx.stroke(); }
   const spb = 60 / anthem.bpm, beat = ((st / spb) % 1 + 1) % 1, pulse = st > 0 ? Math.max(0, 1 - beat * 4) : 0;
   const lanes = G.lanes || LANES; // v28: 4-lane songs draw 4 lanes
-  if (pulse > 0) { cx.globalAlpha = pulse * .10; cx.fillStyle = '#00e5ff'; cx.fillRect(0, 0, GW, GH); cx.globalAlpha = 1; } // v33: beat pulse wash, in-canvas
-  for (let l = 0; l < lanes; l++) { const f = G.flash[l] || 0; cx.globalAlpha = .10 + f * .45; cx.fillStyle = '#00ffff'; cx.fillRect(l * LW + 2, 0, LW - 4, GH); cx.globalAlpha = 1; G.flash[l] = Math.max(0, f - dt * 5) } // v33: lane flash stronger (was .05 + f*.2)
+  if (pulse > 0) { cx.globalAlpha = pulse * .10; cx.fillStyle = th.pulse; cx.fillRect(0, 0, GW, GH); cx.globalAlpha = 1; } // v34: beat pulse wash in the theme accent
+  for (let l = 0; l < lanes; l++) { const f = G.flash[l] || 0; cx.globalAlpha = .10 + f * .45; cx.fillStyle = th.lane; cx.fillRect(l * LW + 2, 0, LW - 4, GH); cx.globalAlpha = 1; G.flash[l] = Math.max(0, f - dt * 5) } // v33: lane flash stronger (was .05 + f*.2)
   cx.strokeStyle = '#333'; cx.lineWidth = 2; for (let l = 1; l < lanes; l++) { cx.beginPath(); cx.moveTo(l * LW, 0); cx.lineTo(l * LW, GH); cx.stroke() }
   cx.strokeStyle = 'rgba(255,255,255,0.1)'; cx.lineWidth = 1; for (let b = Math.ceil(st / spb); b < st / spb + GH / CONFIG.SPEED / spb + 1; b++) { const y = CONFIG.HIT_Y - (b * spb - st) * CONFIG.SPEED; cx.beginPath(); cx.moveTo(0, y); cx.lineTo(GW, y); cx.stroke() }
-  cx.globalAlpha = .2 + pulse * .3; cx.fillStyle = G.fever ? '#ffd700' : '#00ff00'; cx.fillRect(0, CONFIG.HIT_Y - 15, GW, 30); cx.globalAlpha = 1; cx.fillRect(0, CONFIG.HIT_Y - 2, GW, 4); // v33: hit line turns gold in FEVER
-  for (const n of anthem.chart) { const y = CONFIG.HIT_Y - (n.t - st) * CONFIG.SPEED; if (y < -30) break; if (y > GH + 30 || (n.judged && n.judged !== 'miss')) continue; const x = n.lane * LW + LW / 2; const golden = G.race && G.race.goldenNote === n; cx.fillStyle = golden ? '#ffd700' : n.judged === 'miss' ? '#ff00ff' : ['#ff00ff', '#00ffff', '#ffff00', '#ff8800'][n.lane]; cx.fillRect(Math.round(x - 35), Math.round(y - 12), 70, 24); if (golden) { cx.strokeStyle = '#ffffff'; cx.lineWidth = 2; cx.strokeRect(Math.round(x - 35), Math.round(y - 12), 70, 24); } }
+  cx.globalAlpha = .2 + pulse * .3; cx.fillStyle = G.fever ? '#ffd700' : th.hit; cx.fillRect(0, CONFIG.HIT_Y - 15, GW, 30); cx.globalAlpha = 1; cx.fillRect(0, CONFIG.HIT_Y - 2, GW, 4); // v34: hit line in the theme color (gold in FEVER)
+  for (let l = 0; l < lanes; l++) { const rx = l * LW + LW / 2, f = G.flash[l] || 0; cx.strokeStyle = th.notes[l]; cx.lineWidth = 3; cx.beginPath(); cx.arc(rx, CONFIG.HIT_Y, 26 + f * 8, 0, Math.PI * 2); cx.stroke(); cx.globalAlpha = .35; cx.fillStyle = th.notes[l]; cx.beginPath(); cx.arc(rx, CONFIG.HIT_Y, 4, 0, Math.PI * 2); cx.fill(); cx.globalAlpha = 1; } // v34: Guitar Hero receptors — the hamster lands inside the ring; the ring pops on a hit
+  for (const n of anthem.chart) { const y = CONFIG.HIT_Y - (n.t - st) * CONFIG.SPEED; if (y < -30) break; if (y > GH + 30 || (n.judged && n.judged !== 'miss')) continue; const x = n.lane * LW + LW / 2; const golden = G.race && G.race.goldenNote === n; const col = golden ? '#ffd700' : n.judged === 'miss' ? '#ff00ff' : th.notes[n.lane]; drawHamster(x, y, 48, col); if (golden) { cx.strokeStyle = '#ffffff'; cx.lineWidth = 2; cx.strokeRect(Math.round(x - 26), Math.round(y - 26), 52, 52); } }
   cx.restore();
   if (G.glitchT > 0) { G.glitchT -= dt; cx.globalAlpha = Math.min(.45, G.glitchT * 1.5); cx.fillStyle = '#ff00ff'; cx.fillRect(0, Math.random() * GH * .4, GW, 4); cx.fillStyle = '#00ffff'; cx.fillRect(0, GH - Math.random() * GH * .4, GW, 4); cx.globalAlpha = 1; } // v33: miss glitch, in-canvas
   for (let i = G.fx.length - 1; i >= 0; i--) { const p = G.fx[i]; p.life -= dt; if (p.life <= 0) { G.fx.splice(i, 1); continue } if (p.type === 'ring') { p.r += 320 * dt; cx.globalAlpha = Math.max(0, p.life * 2.5); cx.strokeStyle = p.c; cx.lineWidth = 3; cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, Math.PI * 2); cx.stroke(); continue } p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 400 * dt; cx.globalAlpha = Math.max(0, p.life * 1.5); cx.fillStyle = p.c; const s = p.s || 4; cx.fillRect((p.x - s / 2) | 0, (p.y - s / 2) | 0, s, s) } // v33: shockwave rings + bigger particles
@@ -981,7 +1016,7 @@ function playResultJingle(g) {
   seq.forEach((m, i) => { tone(mtof(m), t0 + i * 0.11, 'square', 0.16, 0.16); tone(mtof(m + 7), t0 + i * 0.11, 'sawtooth', 0.07, 0.16); });
   if (g === 'SS' || g === 'S') kick(t0);
 }
-function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night'); const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.add('hidden'); document.body.classList.remove('playing'); resumeGL(); show('mainPanel'); playIntroMusic(); startMenuPoll(); }
+function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night'); delete document.body.dataset.theme; /* v34: the mode theme leaves with the game */ const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.add('hidden'); document.body.classList.remove('playing'); resumeGL(); show('mainPanel'); playIntroMusic(); startMenuPoll(); }
 async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', msg('resumeBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { run: msg('audioPaused'), bpm: anthem.bpm, state: 'paused', practice: G.practice ? msg('practiceTag2') : '' })); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); } // v33.2: v33.1 only changed the AC state — the template's leading word still said RUNNING
 async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', msg('pauseBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { run: msg('audioRunning'), bpm: anthem.bpm, state: 'running', practice: G.practice ? msg('practiceTag2') : '' })); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
 async function togglePause() { if (!G) return; if (G.paused) await resumeGame(); else await pauseGame(); }
@@ -1066,7 +1101,9 @@ function stopLivePoll() { if (livePoll) { clearInterval(livePoll); livePoll = nu
 function updateLiveHud() {
   const lh = $('liveHud'); if (!lh || !G || G.mode !== 'live') return;
   const s = liveSnapshot;
+  const wasZoomies = liveZoomies;
   liveZoomies = !!(s && s.ok && s.rpm >= ZOOMIES_RPM);
+  if (!wasZoomies && liveZoomies && G && !G.ended && !G.paused) addFloatText('ZOOMIES ×2!', '#ff00ff'); // v34: the wheel going wild gets a banner
   if (G.live && s && s.ok) { G.live.dist = s.dist; G.live.peakRpm = Math.max(G.live.peakRpm, s.rpm); if (liveZoomies) G.live.zoomiesEver = true; }
   const day = liveIsDay(s);
   document.body.classList.toggle('live-day', day);

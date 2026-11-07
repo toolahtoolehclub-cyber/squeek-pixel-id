@@ -566,3 +566,24 @@ body.cardbar { padding-bottom: 72px; }
 /* v33.1 made the header sticky; play()/finish() scroll the panels to the
    very top, so the header covered the grade (result) and the stats (game). */
 #gamePanel, #resultPanel { scroll-margin-top: 76px; }
+
+/* ==========================================
+   v34 THEMES — one look per mode
+   ========================================== */
+/* Each mode button wears its theme accent, so the mode's look is visible
+   before the song even starts. */
+#modeRow [data-mode="free"] { --mode-accent: #00e5ff; }
+#modeRow [data-mode="daily"] { --mode-accent: #ffb020; }
+#modeRow [data-mode="live"] { --mode-accent: #00ff88; }
+#modeRow [data-mode="race"] { --mode-accent: #ff2e63; }
+#modeRow .btn-diff { border-color: var(--mode-accent, rgba(255, 255, 255, .2)); color: var(--mode-accent, #fff); }
+#modeRow .btn-diff.active { background: var(--mode-accent, #00e5ff); border-color: var(--mode-accent, #00e5ff); color: #000; }
+/* The game panel glows in the active theme's accent while playing. */
+body[data-theme="cyber"] { --theme-accent: #00e5ff; --theme-glow: rgba(0, 229, 255, .28); }
+body[data-theme="sunrise"] { --theme-accent: #ffb020; --theme-glow: rgba(255, 176, 32, .28); }
+body[data-theme="wheel"] { --theme-accent: #00ff88; --theme-glow: rgba(0, 255, 136, .28); }
+body[data-theme="versus"] { --theme-accent: #ff2e63; --theme-glow: rgba(255, 46, 99, .30); }
+body[data-theme="calm"] { --theme-accent: #7aa0ff; --theme-glow: rgba(122, 160, 255, .28); }
+body[data-theme="void"] { --theme-accent: #a050ff; --theme-glow: rgba(160, 80, 255, .30); }
+body[data-theme="gold"] { --theme-accent: #ffd700; --theme-glow: rgba(255, 215, 0, .28); }
+body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 10px 32px rgba(0, 0, 0, .45), 0 0 26px var(--theme-glow); }
