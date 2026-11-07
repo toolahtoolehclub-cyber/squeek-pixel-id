@@ -305,4 +305,12 @@ body.overlay { animation: none; background-image: none; }
 /* Desktop: the cabinet gets room to breathe; tabs stay one row. */
 @media (min-width: 900px) { #ui-layer { max-width: 520px; } .marquee h1 { font-size: 30px; } }
 @media (max-width: 360px) { .marquee h1 { font-size: 20px; } .btn-arcade { font-size: 8px; padding: 12px 1px; } #tabBar { gap: 5px; } }
+/* v31.1 FIX: on phones the marquee header row overflowed and the mute button was cut off ~40px (found by the artifact builder's audit). Below 480px the title takes a full row and the EN / QLTY / mute buttons wrap below it, centered. */
+@media (max-width: 480px) {
+    .marquee h1 { font-size: 20px; }
+    .marquee .header-row { flex-wrap: wrap; justify-content: center; }
+    .marquee .header-row > div { flex: 1 1 100%; }
+    .marquee .btn-icon { height: 44px; }
+    #qualityBtn { min-width: 84px; }
+}
 @media (prefers-reduced-motion: reduce) { .bulbs i, .btn-start, .splash-coin, .cab-ham { animation: none !important; } }
