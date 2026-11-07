@@ -637,7 +637,7 @@ function finish() {
   $('gradeVal').textContent = g; $('gradeVal').style.color = g.startsWith('S') ? 'var(--green)' : g === 'A' ? 'var(--cyan)' : 'var(--pink)';
   const c = G.counts;
   $('resultKv').innerHTML = `<span>${rl('score')}</span><b>${G.score}</b><span>${rl('acc')}</span><b>${a.toFixed(2)}%</b><span>${rl('combo')}</span><b>${G.maxCombo}</b><span>${rl('pg')}</span><b>${c.perfect}/${c.great}</b><span>${rl('gm')}</span><b>${c.good}/${c.miss}</b><span>${rl('anthem')}</span><b>${anthem.key} ${anthem.scaleName}</b><span>${rl('setup')}</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? rl('tryCalib') : ''}${G.practice ? rl('practiceTag') : ''}</b>` + (G.live ? `<span>${rl('live')}</span><b>${G.live.offline ? rl('offline') : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '') + (G.race ? `<span>${rl('race')}</span><b>YOU ${G.race.playerDist.toFixed(0)} m vs SQUEEKTOSHI ${oppDist.toFixed(0)} m — ${raceWin ? rl('raceWin') : rl('raceLose')}${G.race.offline ? ' (' + rl('offline') + ')' : ''}</b>` : '') + (G.boss ? `<span>${rl('boss')}</span><b>${rl('bossDefeated')}</b>` : '');
-  $('bestMsg').textContent = isNew ? msg('newHigh') : msgf('bestIs', { score: prev.score, grade: prev.grade });
+  $('bestMsg').textContent = (isNew && G.score > 0) ? msg('newHigh') : (prev ? msgf('bestIs', { score: prev.score, grade: prev.grade }) : ''); // v30.1: a 0-score first game is not a "NEW HIGH SCORE"
   const rbm = $('rivalBackMsg'); // v30: after answering a duel, tell the player how the challenger sees their score
   if (rbm) { if (wasDuelResponse) { rbm.classList.remove('hidden'); rbm.textContent = msg('rivalBack'); } else rbm.classList.add('hidden'); }
   show('resultPanel');
@@ -1333,13 +1333,13 @@ function weeklySpec() { return weeklySpecFor(weeklyKey()); }
 function renderBossBox() {
   const el = $('bossLine'); if (!el) return;
   const bs = weeklySpec();
-  el.textContent = `${bs.name} • ${bs.week} • ${bs.genre.toUpperCase()} / HARD • FINISH THE SONG TO DEFEAT IT (+100 XP).`;
+  el.textContent = msgf('bossLine', { name: bs.name, week: bs.week, genre: bs.genre.toUpperCase() }); // v30.1: the boss line is now translatable (it stayed English in ID mode)
   const bh = $('bossHist'); // v30: the last 3 bosses, from the same deterministic spec
   if (bh) {
     const past = [];
     const d = new Date();
     for (let i = 1; i <= 3; i++) { const t = new Date(d); t.setDate(t.getDate() - 7 * i); const s = weeklySpecFor(isoWeekKey(t)); past.push(s.week + ' ' + s.name); }
-    bh.textContent = 'PAST BOSSES: ' + past.join(' • ') + '.';
+    bh.textContent = msg('pastBosses') + past.join(' • ') + '.';
   }
 }
 function fightBoss() {
@@ -1440,6 +1440,8 @@ const MSG = {
     newHigh: 'NEW HIGH SCORE!',
     bestIs: 'BEST: {score} ({grade})',
     rivalBack: 'YOU ANSWERED A DUEL — SEND YOUR OWN DUEL LINK BACK (BUTTON ABOVE) SO THE CHALLENGER SEES YOUR SCORE IN THEIR LEAGUE.',
+    bossLine: '{name} • {week} • {genre} / HARD • FINISH THE SONG TO DEFEAT IT (+100 XP).',
+    pastBosses: 'PAST BOSSES: ',
     duelNoSong: 'PLAY ONE SONG FIRST, THEN DUEL CAN BE SHARED.',
     duelCopied: 'DUEL LINK COPIED — SEND IT TO A FRIEND, THEY PLAY THE EXACT SAME SONG.',
     duelBlocked: 'CLIPBOARD BLOCKED — THE LINK IS IN THE BOX BELOW, COPY IT MANUALLY.',
@@ -1482,6 +1484,8 @@ const MSG = {
     newHigh: 'SKOR TERTINGGI BARU!',
     bestIs: 'TERBAIK: {score} ({grade})',
     rivalBack: 'KAMU MENJAWAB DUEL — KIRIM DUEL LINK-MU KEMBALI (TOMBOL DI ATAS) SUPAYA PENANTANG MELIHAT SKORMU DI LIGANYA.',
+    bossLine: '{name} • {week} • {genre} / SULIT • SELESAIKAN LAGUNYA UNTUK MENGALAHKAN BOSS (+100 XP).',
+    pastBosses: 'BOSS SEBELUMNYA: ',
     duelNoSong: 'MAIN SATU LAGU DULU, BARU BISA BAGIKAN DUEL.',
     duelCopied: 'DUEL LINK DISALIN — KIRIM KE TEMAN, MEREKA MEMAINKAN LAGU YANG SAMA PERSIS.',
     duelBlocked: 'CLIPBOARD DIBLOKIR — TAUTAN ADA DI KOTAK DI BAWAH, SALIN MANUAL.',
