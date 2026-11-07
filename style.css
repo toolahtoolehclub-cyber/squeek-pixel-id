@@ -193,3 +193,52 @@ body.hemat #bg-anim { display: none; } /* HEMAT = diam, sesuai janji tombol QLTY
 
 .creator-link { color: var(--cyan); text-decoration: none; border-bottom: 2px solid var(--pink); font-weight: bold; letter-spacing: 1px; }
 .creator-link:hover, .creator-link:focus-visible { color: var(--yellow); border-color: var(--yellow); }
+
+/* v29 MEGA: race, prediction, league, achievements, boss, away/diary, overlay, fever. */
+#raceBox { border: 2px dashed var(--pink); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+#raceBox.hidden { display: none; }
+#raceTitle { margin: 0; font-size: 12px; color: var(--pink); font-weight: bold; letter-spacing: 2px; }
+#petLine { margin: 0; font-size: 12px; color: var(--yellow); font-weight: bold; }
+#raceInfo { margin: 0; font-size: 11px; color: #aaa; line-height: 1.5; }
+#raceLast { margin: 0; font-size: 12px; color: var(--cyan); font-weight: bold; }
+#predictBox { border: 2px dashed var(--green); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.predict-title { margin: 0; font-size: 11px; color: var(--green); font-weight: bold; letter-spacing: 1px; }
+#roundLine { margin: 0; font-size: 12px; color: var(--cyan); font-weight: bold; }
+#predStatus, #predResult { margin: 0; }
+#predNapBtn.picked, #predJogBtn.picked, #predZoomiesBtn.picked { background: var(--yellow); color: #000; border-color: #fff; }
+#bossBox { border: 2px dashed var(--yellow); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.boss-title { margin: 0; font-size: 11px; color: var(--yellow); font-weight: bold; letter-spacing: 1px; }
+#bossLine { margin: 0; font-size: 12px; color: var(--pink); font-weight: bold; line-height: 1.5; }
+#leagueBox { border: 2px solid #333; padding: 10px; }
+.league-title { margin: 0 0 8px 0; font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; }
+.league-row { font-size: 11px; color: #ccc; border: 1px solid #333; padding: 6px 8px; margin-top: 4px; line-height: 1.5; }
+.league-row.win { color: var(--green); border-color: var(--green); }
+.league-row.lose { color: var(--pink); }
+#achBox { border: 2px solid #333; padding: 10px; }
+.ach-title { margin: 0 0 8px 0; font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; }
+.ach-chip { display: inline-block; font-size: 10px; border: 1px solid #333; color: #888; padding: 5px 7px; margin: 2px; }
+.ach-chip.done { color: #000; background: var(--yellow); border-color: #fff; }
+#awayBox { border: 2px dashed var(--cyan); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.away-title { margin: 0; font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; }
+#awayLine { margin: 0; }
+.diary-line { font-size: 11px; color: #ccc; border: 1px solid #333; padding: 6px 8px; line-height: 1.5; }
+.diary-line b { color: var(--green); }
+#diaryNote { flex: 2; }
+#freezeLine { margin: 0; font-size: 11px; color: var(--cyan); font-weight: bold; }
+#feverTag { border-color: var(--yellow); color: var(--yellow); }
+#raceHud { border: 2px solid var(--pink); padding: 10px; margin: 12px 0 8px 0; display: flex; flex-direction: column; gap: 8px; }
+#raceHud.hidden { display: none; }
+.race-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.race-name { width: 110px; flex-shrink: 0; font-weight: bold; color: #fff; }
+.race-track { flex: 1; height: 14px; border: 1px solid #666; background: #111; }
+.race-track i { display: block; height: 100%; background: var(--green); width: 0%; }
+#raceOppBar { background: var(--pink); }
+.race-row b { width: 52px; text-align: right; color: var(--cyan); }
+#langBtn { width: auto; min-width: 48px; height: 48px; padding: 0 8px; font-size: 12px; }
+#overlayBox { position: fixed; inset: 0; z-index: 20; padding: 24px; font-family: 'Press Start 2P', monospace; color: #fff; text-shadow: 2px 2px 0 #000; pointer-events: none; }
+#overlayBox.hidden { display: none !important; }
+#overlayBox p { margin: 0 0 14px 0; font-size: 16px; line-height: 1.6; }
+#overlayTitle { color: var(--green); font-size: 20px !important; }
+body.overlay { background: transparent; }
+body.overlay #ui-layer, body.overlay #bg-gl, body.overlay #bg-anim, body.overlay #crt, body.overlay #musicSplash { display: none !important; }
+body.overlay { animation: none; background-image: none; }

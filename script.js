@@ -1,8 +1,17 @@
 'use strict';
-/* SQUEEKCHAIN v28 FIX — basis v27 LIVE + P0 fixes from the 72-screenshot competitor analysis:
- * 1) PRECISION offset calibration (manual +/-5ms + auto-calibrate by tapping the beat);
- * 2) Daily fully consistent (genre+diff derived from the date — one song for everyone);
- * 3) LV5–LV8 unlocks that are real (VOID genre, 4 lanes, Mirror mode, Gold avatar).
+/* SQUEEKCHAIN v29 MEGA — basis v28 FIX + all remaining upgrades from the
+ * 72-screenshot competitor analysis, built in one pass:
+ * P1) LIVE RACE vs Squeektoshi (real wheel distance vs hit distance, Golden
+ * Note on 10-minute round change, menu pet mirroring the live wheel);
+ * P2) Wheel Call predictions (Nap/Jog/Zoomies per 10-min round, settled from
+ * recorded RPM samples, +40 XP) + named Achievements gallery (10);
+ * P3) Duel League (local rivals from duel links carrying from+score) +
+ * shareable result card PNG;
+ * P4) OBS overlay mode (?overlay=1), EN/ID toggle (menu labels), While-You-
+ * Were-Away summary + mini diary;
+ * EXTRA) Weekly Boss, Fever combo (x1.5 at combo 30+), Streak Freeze (earned
+ * by clearing all 3 daily missions), Practice mode (60% tempo, no XP).
+ * v28 FIX — PRECISION offset calibration; Daily fully consistent; LV5–LV8 unlocks.
  * v27 LIVE — song tempo follows the real hamster wheel.
  * v26 FIX — basis v25 ULTIMATE + v24 RETENTION.
  * Perbaikan dari tes HP 2026-11-06 (AudioContext running, WebGL OK, clipboard OK):
@@ -27,6 +36,8 @@ function yesterdayStr() { const t = new Date(); t.setDate(t.getDate() - 1); retu
 function seedKeyFor(mode) {
   if (mode === 'daily') return 'DAILY-' + todayStr();
   if (mode === 'live') return 'LIVE-' + todayStr() + '-' + (liveSnapshot && liveSnapshot.ok ? liveBpm(liveSnapshot.rpm) : 128);
+  if (mode === 'race') return 'RACE-' + todayStr() + '-' + (liveSnapshot && liveSnapshot.ok ? liveBpm(liveSnapshot.rpm) : 128); // v29: race replays like a live song
+  if (mode === 'boss') return 'BOSS-' + weeklyKey(); // v29: weekly boss seed
   if (mode === 'challenge' && challengeCode) return challengeCode;
   return 'FREE-' + Math.floor(Math.random() * 1e9);
 }
@@ -417,26 +428,32 @@ async function play() {
   // v27 LIVE: sample the real wheel right before the song is built — the tempo
   // IS the hamster's tempo at this moment. If the wheel is offline, the song
   // still starts on a 128 BPM fallback and says so (never fake live data).
+  // v29: RACE uses the same live tempo (the race is against the live wheel).
   let liveStart = null;
-  if (playMode === 'live') {
+  if (playMode === 'live' || playMode === 'race') {
     say('FETCHING LIVE WHEEL...', 'cyan');
     liveStart = await refreshLive();
     if (!liveStart.ok) say('WHEEL OFFLINE — LIVE MODE USES 128 BPM FALLBACK (NOT LIVE DATA).', 'pink');
   }
   const seedKey = seedKeyFor(playMode);
   if (playMode === 'daily') applyDailySpec(); // v28: daily genre+diff come from the date, not the selection
+  if (playMode === 'boss') { const bs = weeklySpec(); currentGenre = bs.genre; currentDiff = 'hard'; syncGenreDiffButtons(); } // v29: weekly boss is always HARD
   const lanes = lanesForSong(), mirror = mirrorForSong();
   anthem = makeAnthem(w, false, seedKey, lanes, mirror); lastAnthem = anthem; hitOffsets = []; CONFIG.SPEED = DIFFICULTIES[currentDiff].speed; applyHue(anthem.hue);
+  // v29 PRACTICE: 60% tempo, no XP/streak/history — scale every time value.
+  if (practiceMode) { const k = 1 / 0.6; anthem.bpm = Math.round(anthem.bpm * 0.6); anthem.step *= k; anthem.duration *= k; anthem.chart.forEach(n => { n.t *= k; }); anthem.drums.forEach(d => { d.t *= k; }); CONFIG.SPEED = Math.round(CONFIG.SPEED * 0.6); }
   LW = GW / lanes; // v28: 4-lane mode widens the highway per lane
   const kh = document.querySelector('.kbd-hint'); if (kh) kh.textContent = lanes === 4 ? 'KEYBOARD: ← ↓ ↑ → / A S D F  •  P = PAUSE  •  M = MUTE' : 'KEYBOARD: ← ↓ → / A S D  •  P = PAUSE  •  M = MUTE';
   glSeed = w ? Math.abs(cyrb53(w) % 1000) / 100 : Math.random() * 10;
   glShockwave = 1.0; // Shockwave saat mulai
 
-  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, live: playMode === 'live' ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null };
+  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, fever: false, practice: practiceMode, live: (playMode === 'live' || playMode === 'race') ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null, race: playMode === 'race' ? { startDistKm: liveStart && liveStart.ok ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), playerDist: 0, roundKey: roundKeyFor(new Date()), goldenNote: null } : null, boss: playMode === 'boss' };
   if (playMode === 'challenge' && (challengeLanes === 4 || challengeMirror)) say('DUEL UNLOCK: ' + (challengeLanes === 4 ? '4 LANES ' : '') + (challengeMirror ? 'MIRROR ' : '') + '— TRY IT IN THIS SONG.', 'yellow');
   floatTexts = [];
-  show('gamePanel'); setText('bpmVal', anthem.bpm); setText('gameAudioStatus', 'AUDIO: RUNNING • ' + anthem.bpm + ' BPM • AC: ' + (ac ? ac.state : '-')); hud();
+  show('gamePanel'); setText('bpmVal', anthem.bpm); setText('gameAudioStatus', 'AUDIO: RUNNING • ' + anthem.bpm + ' BPM • AC: ' + (ac ? ac.state : '-') + (practiceMode ? ' • PRACTICE (NO XP)' : '')); hud();
+  stopMenuPoll(); // v29: the menu poll pauses while a game runs
   if (playMode === 'live') { const lh = $('liveHud'); if (lh) lh.classList.remove('hidden'); updateLiveHud(); startLivePoll(5000); }
+  else if (playMode === 'race') { const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.remove('hidden'); updateRaceHud(); startLivePoll(5000); startRaceTick(); }
   else { const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); }
   setText('pauseBtn', '[ PAUSE ]');
   clearInterval(sched); sched = setInterval(schedule, 25);
@@ -482,8 +499,13 @@ function judge(lane) {
   updatePrecision((st - target.t) * 1000, 'hit'); // v28: positive = player tapped LATE (matches the LATE/EARLY label)
   const k = bd <= CONFIG.W.perfect ? 'perfect' : bd <= CONFIG.W.great ? 'great' : 'good';
   target.judged = k; G.counts[k]++; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
-  const mult = Math.min(2, 1 + Math.floor(G.combo / 10) * .1) * (liveZoomies ? 2 : 1); // v27 LIVE: ZOOMIES (70+ RPM) doubles all scores while it lasts
+  G.fever = G.combo >= 30; // v29 FEVER: combo 30+ = x1.5 score until the combo breaks
+  const mult = Math.min(2, 1 + Math.floor(G.combo / 10) * .1) * (liveZoomies ? 2 : 1) * (G.fever ? 1.5 : 1); // v27 LIVE: ZOOMIES (70+ RPM) doubles all scores while it lasts
   G.score += Math.round({ perfect: 300, great: 200, good: 100 }[k] * mult);
+  // v29 RACE: every hit moves you forward; a GOLDEN NOTE pays +1000 pts and +5 m.
+  if (G.race) G.race.playerDist += { perfect: 1.0, great: 0.7, good: 0.4 }[k];
+  if (G.race && G.race.goldenNote === target) { G.score += 1000; G.race.playerDist += 5; G.race.goldenNote = null; addFloatText('GOLDEN NOTE! +1000', '#ffd700'); tone(mtof(target.midi + 12), ac.currentTime, 'square', .25, .3); }
+  if (G.combo === 30) addFloatText('FEVER! x1.5', '#ffd700');
   tone(mtof(target.midi), ac.currentTime, 'sawtooth', k === 'perfect' ? .22 : .15, .22); // v26-musik: hit note sawtooth, lebih galak
   if (k === 'perfect') { addFloatText('PERFECT!', '#00ff00'); juiceHit('perfect'); } else if (G.combo > 0 && G.combo % 10 === 0) addFloatText(`COMBO x${G.combo}!`, '#00ffff');
   if (G.combo === 25 || G.combo === 50 || G.combo === 100) addFloatText(`COMBO x${G.combo}!!`, '#ffff00');
@@ -501,10 +523,19 @@ function loop(ts) {
   glAudio = getAudioLevel(); updateViz();
   glCombo = G.combo;
   const st = songTime();
+  // v29 GOLDEN NOTE: when a 10-minute round boundary passes mid-song, the next
+  // unjudged note turns golden. The boundary is wall-clock, deterministic.
+  if (G.race && !G.race.goldenNote) {
+    const rk = roundKeyFor(new Date());
+    if (rk !== G.race.roundKey) {
+      G.race.roundKey = rk;
+      for (const n of anthem.chart) { if (!n.judged && n.t > st) { G.race.goldenNote = n; addFloatText('GOLDEN NOTE INCOMING!', '#ffd700'); break; } }
+    }
+  }
   while (G.chartIdx < anthem.chart.length) {
     const n = anthem.chart[G.chartIdx];
     if (n.judged) { G.chartIdx++; continue; }
-    if (st - n.t > CONFIG.W.good) { n.judged = 'miss'; G.counts.miss++; G.combo = 0; addFloatText('MISS', '#ff00ff'); hud(); glGlitch = 0.5; juiceHit('miss'); updatePrecision(0, 'miss'); G.chartIdx++; continue; }
+    if (st - n.t > CONFIG.W.good) { n.judged = 'miss'; G.counts.miss++; G.combo = 0; G.fever = false; if (G.race && G.race.goldenNote === n) G.race.goldenNote = null; addFloatText('MISS', '#ff00ff'); hud(); glGlitch = 0.5; juiceHit('miss'); updatePrecision(0, 'miss'); G.chartIdx++; continue; }
     break;
   }
   if (st > anthem.duration + .8) return finish();
@@ -521,7 +552,7 @@ function draw(st, dt) {
   cx.strokeStyle = '#333'; cx.lineWidth = 2; for (let l = 1; l < lanes; l++) { cx.beginPath(); cx.moveTo(l * LW, 0); cx.lineTo(l * LW, GH); cx.stroke() }
   cx.strokeStyle = 'rgba(255,255,255,0.1)'; cx.lineWidth = 1; for (let b = Math.ceil(st / spb); b < st / spb + GH / CONFIG.SPEED / spb + 1; b++) { const y = CONFIG.HIT_Y - (b * spb - st) * CONFIG.SPEED; cx.beginPath(); cx.moveTo(0, y); cx.lineTo(GW, y); cx.stroke() }
   cx.globalAlpha = .2 + pulse * .3; cx.fillStyle = '#00ff00'; cx.fillRect(0, CONFIG.HIT_Y - 15, GW, 30); cx.globalAlpha = 1; cx.fillRect(0, CONFIG.HIT_Y - 2, GW, 4);
-  for (const n of anthem.chart) { const y = CONFIG.HIT_Y - (n.t - st) * CONFIG.SPEED; if (y < -30) break; if (y > GH + 30 || (n.judged && n.judged !== 'miss')) continue; const x = n.lane * LW + LW / 2; cx.fillStyle = n.judged === 'miss' ? '#ff00ff' : ['#ff00ff', '#00ffff', '#ffff00', '#ff8800'][n.lane]; cx.fillRect(Math.round(x - 35), Math.round(y - 12), 70, 24) }
+  for (const n of anthem.chart) { const y = CONFIG.HIT_Y - (n.t - st) * CONFIG.SPEED; if (y < -30) break; if (y > GH + 30 || (n.judged && n.judged !== 'miss')) continue; const x = n.lane * LW + LW / 2; const golden = G.race && G.race.goldenNote === n; cx.fillStyle = golden ? '#ffd700' : n.judged === 'miss' ? '#ff00ff' : ['#ff00ff', '#00ffff', '#ffff00', '#ff8800'][n.lane]; cx.fillRect(Math.round(x - 35), Math.round(y - 12), 70, 24); if (golden) { cx.strokeStyle = '#ffffff'; cx.lineWidth = 2; cx.strokeRect(Math.round(x - 35), Math.round(y - 12), 70, 24); } }
   cx.restore();
   for (let i = G.fx.length - 1; i >= 0; i--) { const p = G.fx[i]; p.life -= dt; if (p.life <= 0) { G.fx.splice(i, 1); continue } p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 400 * dt; cx.globalAlpha = Math.max(0, p.life * 1.5); cx.fillStyle = p.c; cx.fillRect(p.x | 0, p.y | 0, 4, 4) }
   cx.globalAlpha = 1; cx.textAlign = 'center';
@@ -534,51 +565,75 @@ function draw(st, dt) {
 
 function accuracy() { const c = G.counts, tot = c.perfect + c.great + c.good + c.miss; return tot ? (c.perfect * 300 + c.great * 200 + c.good * 100) / (tot * 300) * 100 : 100 }
 const grade = (a, miss) => a >= 95 && miss === 0 ? 'SS' : a >= 95 ? 'S' : a >= 88 ? 'A' : a >= 75 ? 'B' : a >= 60 ? 'C' : 'D';
-function hud() { $('scoreVal').textContent = G.score; $('comboVal').textContent = G.combo; $('accVal').textContent = accuracy().toFixed(1) + '%' }
+function hud() { $('scoreVal').textContent = G.score; $('comboVal').textContent = G.combo; $('accVal').textContent = accuracy().toFixed(1) + '%'; const ft = $('feverTag'); if (ft) ft.classList.toggle('hidden', !(G && G.fever)); }
 
 function finish() {
-  G.ended = true; clearInterval(sched); cancelAnimationFrame(raf); stopLivePoll(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night');
+  G.ended = true; clearInterval(sched); cancelAnimationFrame(raf); stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night');
+  const rh = $('raceHud'); if (rh) rh.classList.add('hidden');
   const a = accuracy(), g = grade(a, G.counts.miss), key = (G.wallet || 'GUEST').toLowerCase(), prev = loadBest(G.wallet);
   const rec = { score: G.score, acc: +a.toFixed(2), grade: g, maxCombo: G.maxCombo, at: Date.now() };
   const isNew = !prev || rec.score > prev.score;
-  if (isNew) saveBest(G.wallet, rec);
+  if (!G.practice && isNew) saveBest(G.wallet, rec);
   const avgOff = hitOffsets.length ? Math.round(hitOffsets.reduce((x, v) => x + v, 0) / hitOffsets.length) : null;
   const res = { score: G.score, acc: +a.toFixed(2), maxCombo: G.maxCombo, miss: G.counts.miss, perfect: G.counts.perfect, diff: G.diff, mode: G.mode, avgOff };
   const missions = dailyMissions(todayStr());
   const doneKey = missionsDoneKey(G.wallet);
   const doneBefore = loadJSON(doneKey, []);
-  const newlyDone = missions.filter(m => !doneBefore.includes(m.id) && m.check(res)).map(m => m.id);
+  const newlyDone = G.practice ? [] : missions.filter(m => !doneBefore.includes(m.id) && m.check(res)).map(m => m.id);
   if (newlyDone.length) saveJSON(doneKey, doneBefore.concat(newlyDone));
-  const xpGain = Math.round(G.score / 30) // v26: BARS 32 (v25) bikin skor lebih besar — divisor 20->30 supaya leveling tidak makin cepat + (a >= 95 ? 50 : a >= 88 ? 25 : 0) + (G.counts.miss === 0 ? 30 : 0) + newlyDone.length * 25;
+  // v29 STREAK FREEZE: clearing all 3 daily missions in one day earns 1 freeze (max 2).
+  if (!G.practice && newlyDone.length && doneBefore.concat(newlyDone).length >= 3) { const fk = 'sqk29:freeze:' + walletKey(G.wallet); saveJSON(fk, Math.min(2, loadJSON(fk, 0) + 1)); }
+  // v29: race win +50 XP, weekly boss +100 XP.
+  // BUG FIX (found in the v29 pass): since v26 the accuracy / no-miss / mission
+  // bonuses sat behind a `//` comment and never applied — xpGain was score/30
+  // only. Restored here, with the v26 divisor (30) kept.
+  let raceWin = false, oppDist = 0;
+  if (G.race) { oppDist = raceOppDist(); raceWin = G.race.playerDist > oppDist; }
+  const xpGain = G.practice ? 0 : Math.round(G.score / 30) + (a >= 95 ? 50 : a >= 88 ? 25 : 0) + (G.counts.miss === 0 ? 30 : 0) + newlyDone.length * 25 + (raceWin ? 50 : 0) + (G.boss ? 100 : 0);
   const xpBefore = totalXP(G.wallet), xpAfter = xpBefore + xpGain;
   saveJSON('sqk24:xp:' + walletKey(G.wallet), xpAfter);
   const lvBefore = levelFor(xpBefore), lvAfter = levelFor(xpAfter);
   const histKey = 'sqk24:hist:' + walletKey(G.wallet);
   const hist = loadJSON(histKey, []);
-  hist.push({ at: Date.now(), score: G.score, acc: +a.toFixed(2), avgOff, grade: g, genre: G.genre, diff: G.diff, mode: G.mode });
-  saveJSON(histKey, hist.slice(-10));
+  if (!G.practice) { hist.push({ at: Date.now(), score: G.score, acc: +a.toFixed(2), avgOff, grade: g, genre: G.genre, diff: G.diff, mode: G.mode }); saveJSON(histKey, hist.slice(-10)); }
   let streakTxt = '';
-  if (G.mode === 'daily') {
+  if (G.mode === 'daily' && !G.practice) {
     const sk = 'sqk24:streak:' + walletKey(G.wallet);
     const st = loadJSON(sk, { last: null, count: 0 });
-    if (st.last !== todayStr()) { st.count = st.last === yesterdayStr() ? st.count + 1 : 1; st.last = todayStr(); saveJSON(sk, st); }
-    streakTxt = ` • STREAK ${st.count} DAYS`;
+    if (st.last !== todayStr()) {
+      const fk = 'sqk29:freeze:' + walletKey(G.wallet);
+      const freezes = loadJSON(fk, 0);
+      let freezeUsed = false;
+      if (st.last === yesterdayStr()) st.count = st.count + 1;
+      else if (st.last === twoDaysAgoStr() && freezes > 0) { saveJSON(fk, freezes - 1); st.count = st.count + 1; freezeUsed = true; } // v29: a freeze saves a streak after exactly one missed day
+      else st.count = 1;
+      st.last = todayStr(); saveJSON(sk, st);
+      streakTxt = ` • STREAK ${st.count} DAYS` + (freezeUsed ? ' (STREAK FREEZE USED)' : '');
+    }
   }
   const xpEl = $('xpMsg');
   const newUnlocks = [];
   for (let l = lvBefore + 1; l <= lvAfter; l++) if (UNLOCKS[l]) newUnlocks.push(UNLOCKS[l].text);
   const levelUpTxt = lvAfter > lvBefore ? ' — LEVEL UP! ' + (newUnlocks.length ? 'UNLOCKED: ' + newUnlocks.join(' • ') : 'AVATAR EVOLVED') : '';
-  if (xpEl) xpEl.textContent = `+${xpGain} XP • LV ${lvBefore} -> LV ${lvAfter}${levelUpTxt} • TOTAL ${xpAfter} XP${streakTxt}`;
+  if (xpEl) xpEl.textContent = G.practice ? 'PRACTICE RUN — NO XP • NO STREAK • NOT RECORDED.' : `+${xpGain} XP • LV ${lvBefore} -> LV ${lvAfter}${levelUpTxt} • TOTAL ${xpAfter} XP${streakTxt}`;
   const mr = $('missionResult');
   if (mr) mr.innerHTML = missions.map(m => `<div class="mission${doneBefore.concat(newlyDone).includes(m.id) ? ' done' : ''}">${m.text}</div>`).join('');
   renderDailyBox(); renderMastery(); renderAvatarPreview(G.wallet); renderUnlocks();
+  if (!G.practice) {
+    recordDiary({ at: Date.now(), song: `${G.genre.toUpperCase()} / ${G.diff.toUpperCase()} • ${anthem.key} ${anthem.scaleName}`, score: G.score, grade: g, mode: G.mode });
+    if (G.race) saveJSON('sqk29:lastRace:' + walletKey(G.wallet), { at: Date.now(), you: +G.race.playerDist.toFixed(1), opp: +oppDist.toFixed(1), win: raceWin });
+    if (G.mode === 'challenge' && pendingRival) { recordLeagueResult(pendingRival, G.score); pendingRival = null; }
+    checkAchievements({ res, raceWin, mode: G.mode, genre: G.genre, mirror: G.mirror, zoomiesEver: G.live ? G.live.zoomiesEver : false, level: lvAfter, streak: loadJSON('sqk24:streak:' + walletKey(G.wallet), { count: 0 }).count });
+  }
+  renderRaceBox(); renderLeague(); renderAchievements(); renderPredict(); renderBossBox(); renderDiaryList();
   $('gradeVal').textContent = g; $('gradeVal').style.color = g.startsWith('S') ? 'var(--green)' : g === 'A' ? 'var(--cyan)' : 'var(--pink)';
   const c = G.counts;
-  $('resultKv').innerHTML = `<span>SCORE</span><b>${G.score}</b><span>ACCURACY</span><b>${a.toFixed(2)}%</b><span>MAX COMBO</span><b>${G.maxCombo}</b><span>PERFECT/GREAT</span><b>${c.perfect}/${c.great}</b><span>GOOD/MISS</span><b>${c.good}/${c.miss}</b><span>ANTHEM</span><b>${anthem.key} ${anthem.scaleName}</b><span>SETUP</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? ' • TRY CALIBRATION' : ''}</b>` + (G.live ? `<span>LIVE WHEEL</span><b>${G.live.offline ? 'OFFLINE (128 BPM FALLBACK)' : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '');
+  $('resultKv').innerHTML = `<span>SCORE</span><b>${G.score}</b><span>ACCURACY</span><b>${a.toFixed(2)}%</b><span>MAX COMBO</span><b>${G.maxCombo}</b><span>PERFECT/GREAT</span><b>${c.perfect}/${c.great}</b><span>GOOD/MISS</span><b>${c.good}/${c.miss}</b><span>ANTHEM</span><b>${anthem.key} ${anthem.scaleName}</b><span>SETUP</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? ' • TRY CALIBRATION' : ''}${G.practice ? ' • PRACTICE' : ''}</b>` + (G.live ? `<span>LIVE WHEEL</span><b>${G.live.offline ? 'OFFLINE (128 BPM FALLBACK)' : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '') + (G.race ? `<span>RACE</span><b>YOU ${G.race.playerDist.toFixed(0)} m vs SQUEEKTOSHI ${oppDist.toFixed(0)} m — ${raceWin ? 'YOU WIN! +50 XP' : 'SQUEEKTOSHI WINS'}${G.race.offline ? ' (WHEEL OFFLINE)' : ''}</b>` : '') + (G.boss ? `<span>WEEKLY BOSS</span><b>DEFEATED ✓ +100 XP</b>` : '');
   $('bestMsg').textContent = isNew ? 'NEW HIGH SCORE!' : `BEST: ${prev.score} (${prev.grade})`;
   show('resultPanel');
   playResultJingle(g);
   playIntroMusic(); // Kembalikan intro setelah selesai
+  startMenuPoll();
 }
 function playResultJingle(g) {
   // v26-musik: fanfare hasil — SS/S naik penuh, A/B sedang, C/D pendek turun
@@ -588,7 +643,7 @@ function playResultJingle(g) {
   seq.forEach((m, i) => { tone(mtof(m), t0 + i * 0.11, 'square', 0.16, 0.16); tone(mtof(m + 7), t0 + i * 0.11, 'sawtooth', 0.07, 0.16); });
   if (g === 'SS' || g === 'S') kick(t0);
 }
-function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night'); const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); show('mainPanel'); playIntroMusic(); }
+function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night'); const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.add('hidden'); show('mainPanel'); playIntroMusic(); startMenuPoll(); }
 async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', '[ RESUME ]'); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); }
 async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', '[ PAUSE ]'); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
 async function togglePause() { if (!G) return; if (G.paused) await resumeGame(); else await pauseGame(); }
@@ -652,7 +707,10 @@ function renderLiveBox() {
 async function refreshLive() {
   const s = await fetchWheel();
   liveSnapshot = s;
+  if (s.ok) recordRpmSample(s.rpm); // v29: feed the prediction settler
+  settlePredictions(); // v29: resolve predictions whose round has ended
   renderLiveBox();
+  renderPredict(); renderRaceBox(); updateOverlay(); // v29
   // v27.1: the menu anthem line is built by preview() from liveSnapshot — refresh
   // it once the snapshot lands, or it stays stuck on the pre-fetch fallback text
   // while the LIVE box already shows real data. Never during a running game:
@@ -728,6 +786,8 @@ async function generateCard() {
   row('TOKEN (SEPOLIA):', bal.ok ? `${bal.val} ${bal.sym}` : `[ ${bal.status} ]`, 25, 410, bal.ok ? '#00ff00' : '#ff00ff');
   row('WHEEL STATUS:', wheel.status, 25, 460, wheel.ok ? '#00ff00' : '#ff00ff');
   row('DISTANCE:', wheel.ok ? wheel.dist.toFixed(3) + ' KM' : '-', 220, 460, '#00ff00');
+  const achCard = loadJSON('sqk29:ach:' + walletKey(w), []);
+  row('ACHIEVEMENTS:', achCard.length ? achCard.length + '/10 — ' + achCard.slice(0, 4).join(', ') : '0/10 — PLAY TO UNLOCK', 25, 510, '#ffff00');
 
   ctx.fillStyle = '#fff'; ctx.font = '10px "Space Mono"'; ctx.textAlign = 'center';
   ctx.fillStyle = '#00ffff'; ctx.font = 'bold 11px "Space Mono"'; ctx.textAlign = 'center';
@@ -812,7 +872,7 @@ function preview() {
   if (playMode === 'daily') applyDailySpec(); // v28: daily genre+diff come from the date
   const lanes = lanesForSong(), mirror = mirrorForSong();
   const a = makeAnthem(w, false, playMode === 'free' ? null : seedKeyFor(playMode), lanes, mirror), b = loadBest(w);
-  const modeTag = playMode === 'free' ? '' : playMode === 'daily' ? ' // DAILY ' + todayStr() + ' • ' + currentGenre.toUpperCase() + '/' + currentDiff.toUpperCase() : playMode === 'live' ? ' // LIVE ' + (liveSnapshot && liveSnapshot.ok ? 'RPM ' + Math.round(liveSnapshot.rpm) + ' • ' + a.bpm + ' BPM' : 'WHEEL OFFLINE • 128 BPM FALLBACK') : ' // DUEL ' + String(challengeCode || '').slice(0, 12) + (lanes === 4 ? ' • 4 LANES' : '') + (mirror ? ' • MIRROR' : '');
+  const modeTag = playMode === 'free' ? '' : playMode === 'daily' ? ' // DAILY ' + todayStr() + ' • ' + currentGenre.toUpperCase() + '/' + currentDiff.toUpperCase() : playMode === 'live' ? ' // LIVE ' + (liveSnapshot && liveSnapshot.ok ? 'RPM ' + Math.round(liveSnapshot.rpm) + ' • ' + a.bpm + ' BPM' : 'WHEEL OFFLINE • 128 BPM FALLBACK') : playMode === 'race' ? ' // RACE VS SQUEEKTOSHI ' + (liveSnapshot && liveSnapshot.ok ? 'RPM ' + Math.round(liveSnapshot.rpm) + ' • ' + a.bpm + ' BPM' : 'WHEEL OFFLINE • 128 BPM FALLBACK') : playMode === 'boss' ? ' // WEEKLY BOSS ' + weeklyKey() : ' // DUEL ' + String(challengeCode || '').slice(0, 12) + (lanes === 4 ? ' • 4 LANES' : '') + (mirror ? ' • MIRROR' : '');
   $('anthemInfo').textContent = `>> ANTHEM: ${a.key} ${a.scaleName} [${a.bpm} BPM] // NOTES: ${a.chart.length}${b ? ' // BEST: ' + b.score : ''}${modeTag}`;
   renderAvatarPreview(w); renderUnlocks(); applyHue(a.hue);
 }
@@ -864,6 +924,7 @@ function renderDailyBox() {
   if (!isDaily) return;
   const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 });
   const sl = $('streakLine'); if (sl) sl.textContent = `STREAK: ${st.count} DAYS — play Daily every day to keep the flame alive.`;
+  const fl = $('freezeLine'); if (fl) { const fr = loadJSON('sqk29:freeze:' + walletKey(w), 0); fl.classList.toggle('hidden', fr <= 0); fl.textContent = fr > 0 ? `❄️ STREAK FREEZE ×${fr} — MISS ONE DAY AND YOUR STREAK SURVIVES (EARN MORE BY CLEARING ALL 3 MISSIONS).` : ''; }
   const dt = $('dailyTitle'); if (dt) dt.textContent = 'DAILY ANTHEM — ' + todayStr();
   const di = $('dailyInfo'); if (di) { const s = dailySpec(); di.textContent = `Today's song is the same for everyone: ${s.genre.toUpperCase()} / ${s.diff.toUpperCase()} — ${todayStr()}. Play today, come back tomorrow — the song changes.`; }
   const done = loadJSON(missionsDoneKey(w), []);
@@ -988,10 +1049,11 @@ function setMode(m) {
   if (m === 'daily') applyDailySpec();
   renderDailyBox(); renderLiveBox(); preview();
   if (m === 'live') { refreshLive(); startLivePoll(10000); say('LIVE ACTIVE — THE SONG TEMPO FOLLOWS THE REAL HAMSTER WHEEL. 70+ RPM = ZOOMIES ×2 SCORE.', 'yellow'); const lb = $('liveBox'); if (lb) lb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  else if (m === 'race') { renderRaceBox(); refreshLive(); startLivePoll(10000); say('RACE ACTIVE — BEAT THE LIVE HAMSTER. YOUR HITS MOVE YOU FORWARD, THE WHEEL MOVES SQUEEKTOSHI.', 'yellow'); const rb = $('raceBox'); if (rb) rb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   else stopLivePoll();
   if (m === 'daily') { const s = dailySpec(); say('DAILY ACTIVE — ' + todayStr() + ' • TODAY: ' + s.genre.toUpperCase() + ' / ' + s.diff.toUpperCase() + ' — SAME SONG FOR EVERYONE.', 'yellow'); const db = $('dailyBox'); if (db) db.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 }
-function duelLink() { if (!G || !G.seedKey) return null; const base = location.href.split('?')[0]; return `${base}?challenge=${encodeURIComponent(G.seedKey)}&genre=${G.genre}&diff=${G.diff}${G.lanes === 4 ? '&lanes=4' : ''}${G.mirror ? '&mirror=1' : ''}`; }
+function duelLink() { if (!G || !G.seedKey) return null; const base = location.href.split('?')[0]; const from = isAddr(G.wallet) ? G.wallet.slice(0, 6) + '...' + G.wallet.slice(-4) : 'GUEST'; return `${base}?challenge=${encodeURIComponent(G.seedKey)}&genre=${G.genre}&diff=${G.diff}${G.lanes === 4 ? '&lanes=4' : ''}${G.mirror ? '&mirror=1' : ''}&from=${encodeURIComponent(from)}&score=${G.score}`; }
 async function shareDuel() {
   // v26 FIX #6: feedback ditulis ke #duelMsg / #duelOut DI DALAM resultPanel — bukan ke #message di mainPanel yang tersembunyi
   const link = duelLink();
@@ -1019,15 +1081,339 @@ bindClick('mirrorBtn', () => {
   say(mirrorEnabled ? 'MIRROR: ON — THE CHART IS FLIPPED.' : 'MIRROR: OFF.', 'cyan');
 });
 
+// ==========================================
+// 7. v29 MEGA — RACE, PREDICTION, ACHIEVEMENTS, LEAGUE, BOSS, DIARY, I18N, OBS
+// All localStorage-only, no server, no transaction. Honesty rules from v27
+// carry over: the wheel is only ever what the API returns; a prediction with
+// no recorded samples settles as NO DATA (no XP lost); the league trusts the
+// score carried in the duel link itself (a friendly local table).
+// ==========================================
+function twoDaysAgoStr() { const t = new Date(); t.setDate(t.getDate() - 2); return todayStr(t); }
+
+// --- 10-minute rounds (shared vocabulary: Nap / Jog / Zoomies) ---
+function roundKeyFor(d) { const p = n => String(n).padStart(2, '0'); return `${todayStr(d)}-${p(d.getHours())}:${p(Math.floor(d.getMinutes() / 10) * 10)}`; }
+function roundClass(avg) { if (!Number.isFinite(avg)) return null; return avg < 5 ? 'nap' : avg < 70 ? 'jog' : 'zoomies'; }
+function roundLabel(c) { return c === 'nap' ? '😴 NAP' : c === 'jog' ? '🏃 JOG' : c === 'zoomies' ? '⚡ ZOOMIES' : '—'; }
+function nextRoundInMs(d) { const t = d || new Date(); return (10 - (t.getMinutes() % 10)) * 60000 - t.getSeconds() * 1000 - t.getMilliseconds(); }
+function fmtCountdown(ms) { const s = Math.max(0, Math.floor(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
+function currentRoundKey() { return roundKeyFor(new Date()); }
+function nextRoundKey() { return roundKeyFor(new Date(Date.now() + nextRoundInMs(new Date()))); }
+
+// --- RPM samples: every wheel fetch records one sample for the current round ---
+function recordRpmSample(rpm) {
+  if (!Number.isFinite(rpm)) return;
+  const k = 'sqk29:samples:' + roundKeyFor(new Date());
+  const arr = loadJSON(k, []);
+  arr.push(Math.round(rpm));
+  saveJSON(k, arr.slice(-120)); // cap: 120 samples per round
+}
+function roundAvg(key) { const arr = loadJSON('sqk29:samples:' + key, []); if (!arr.length) return null; return arr.reduce((s, v) => s + v, 0) / arr.length; }
+
+// --- Wheel Call predictions (next 10-min round; settled from recorded samples) ---
+function predKey(w) { return 'sqk29:pred:' + walletKey(w); }
+function loadPreds(w) { return loadJSON(predKey(w), {}); } // {roundKey: {pick, resolved, correct, avg, actual, noData}}
+function placePrediction(pick) {
+  const w = currentWallet();
+  const rk = nextRoundKey();
+  const preds = loadPreds(w);
+  preds[rk] = { pick, resolved: false };
+  saveJSON(predKey(w), preds);
+  renderPredict();
+  say('WHEEL CALL SET: ' + roundLabel(pick) + ' FOR ROUND ' + rk + ' — GOOD LUCK.', 'yellow');
+}
+function settlePredictions() {
+  const w = currentWallet();
+  const preds = loadPreds(w);
+  const now = currentRoundKey();
+  let changed = false;
+  for (const rk of Object.keys(preds)) {
+    const p = preds[rk];
+    if (p.resolved || rk >= now) continue; // zero-padded keys sort lexicographically
+    const avg = roundAvg(rk);
+    if (avg === null) { p.resolved = true; p.correct = false; p.noData = true; changed = true; continue; }
+    const actual = roundClass(avg);
+    p.resolved = true; p.correct = p.pick === actual; p.avg = +avg.toFixed(1); p.actual = actual; changed = true;
+    if (p.correct) { saveJSON('sqk24:xp:' + walletKey(w), totalXP(w) + 40); checkAchievements({}); }
+  }
+  if (changed) { saveJSON(predKey(w), preds); renderPredict(); renderAvatarPreview(w); }
+}
+function renderPredict() {
+  const rl = $('roundLine'); if (!rl) return;
+  const now = new Date();
+  const cur = currentRoundKey();
+  const avg = roundAvg(cur);
+  const curClass = avg !== null ? roundClass(avg) : (liveSnapshot && liveSnapshot.ok ? roundClass(liveSnapshot.rpm) : null);
+  rl.textContent = `ROUND ${cur} • NOW: ${curClass ? roundLabel(curClass) : '—'}${avg !== null ? ' (AVG ' + avg.toFixed(0) + ' RPM)' : ''} • NEXT ROUND IN ${fmtCountdown(nextRoundInMs(now))}`;
+  const w = currentWallet();
+  const preds = loadPreds(w);
+  const mine = preds[nextRoundKey()];
+  ['predNapBtn', 'predJogBtn', 'predZoomiesBtn'].forEach((id, i) => { const b = $(id); if (b) b.classList.toggle('picked', !!(mine && mine.pick === ['nap', 'jog', 'zoomies'][i])); });
+  const pr = $('predResult');
+  if (pr) {
+    const settled = Object.entries(preds).filter(([k, p]) => p.resolved).sort().slice(-1)[0];
+    if (settled) { const [k, p] = settled; pr.classList.remove('hidden'); pr.textContent = p.noData ? `ROUND ${k}: NO DATA — THE PAGE WAS CLOSED, NO XP LOST.` : `ROUND ${k}: ${roundLabel(p.actual)} (AVG ${p.avg} RPM) — YOUR CALL ${roundLabel(p.pick)} WAS ${p.correct ? 'CORRECT ✓ +40 XP' : 'WRONG'}.`; }
+    else pr.classList.add('hidden');
+  }
+}
+
+// --- Achievements (10, named) ---
+const ACHIEVEMENTS = [
+  { id: 'first', name: 'FIRST STEPS', desc: 'Finish 1 song', check: c => c.games >= 1 },
+  { id: 'perfect30', name: 'PERFECT 30', desc: '30+ PERFECT in one song', check: c => c.res && c.res.perfect >= 30 },
+  { id: 'combo100', name: 'COMBO 100', desc: 'Max combo 100+', check: c => c.res && c.res.maxCombo >= 100 },
+  { id: 'zoomies', name: 'ZOOMIES RIDER', desc: 'Finish a live/race song with ZOOMIES', check: c => !!c.zoomiesEver },
+  { id: 'racewin', name: 'RACE WINNER', desc: 'Win a race vs Squeektoshi', check: c => !!c.raceWin },
+  { id: 'oracle', name: 'ORACLE', desc: 'A correct Wheel Call', check: c => !!c.oracle },
+  { id: 'streak7', name: 'WEEK STREAK', desc: '7-day daily streak', check: c => (c.streak || 0) >= 7 },
+  { id: 'gold', name: 'GOLDEN', desc: 'Reach LV8', check: c => (c.level || 0) >= 8 },
+  { id: 'void', name: 'VOID WALKER', desc: 'Finish a VOID song', check: c => c.genre === 'void' },
+  { id: 'mirror', name: 'MIRROR MASTER', desc: 'Finish a Mirror song', check: c => c.mirror === true },
+];
+function achCtx(extra) {
+  const w = currentWallet();
+  const hist = loadJSON('sqk24:hist:' + walletKey(w), []);
+  const ctx = { games: hist.length, level: playerLevel(w), streak: loadJSON('sqk24:streak:' + walletKey(w), { count: 0 }).count, oracle: Object.values(loadPreds(w)).some(p => p.resolved && p.correct) };
+  return Object.assign(ctx, extra || {});
+}
+function checkAchievements(extra) {
+  const w = currentWallet();
+  const ctx = achCtx(extra);
+  const key = 'sqk29:ach:' + walletKey(w);
+  const have = loadJSON(key, []);
+  const added = [];
+  for (const a of ACHIEVEMENTS) { if (!have.includes(a.id) && a.check(ctx)) { have.push(a.id); added.push(a); } }
+  if (added.length) { saveJSON(key, have); say('🏆 ACHIEVEMENT UNLOCKED: ' + added.map(a => a.name).join(' • '), 'yellow'); }
+  renderAchievements();
+  return added;
+}
+function renderAchievements() {
+  const el = $('achList'); if (!el) return;
+  const have = loadJSON('sqk29:ach:' + walletKey(currentWallet()), []);
+  el.innerHTML = ACHIEVEMENTS.map(a => `<span class="ach-chip${have.includes(a.id) ? ' done' : ''}" title="${a.desc}">${have.includes(a.id) ? '🏆 ' : '🔒 '}${a.name}</span>`).join('');
+}
+
+// --- Duel League (local rivals; the score travels inside the duel link) ---
+let pendingRival = null; // set from ?from=&score= when a duel link is opened
+function recordLeagueResult(rival, myScore) {
+  const w = currentWallet();
+  const key = 'sqk29:league:' + walletKey(w);
+  const list = loadJSON(key, []);
+  list.push({ rival: rival.from, rivalScore: rival.score, myScore, win: myScore > rival.score, date: todayStr() });
+  saveJSON(key, list.slice(-20));
+  renderLeague();
+}
+function renderLeague() {
+  const el = $('leagueList'); if (!el) return;
+  const list = loadJSON('sqk29:league:' + walletKey(currentWallet()), []);
+  if (!list.length) { el.innerHTML = '<p class="msg">No duels yet — send a Duel Link after a song, and when a friend plays it, their result lands here.</p>'; return; }
+  const sorted = list.slice().sort((a, b) => b.myScore - a.myScore).slice(0, 8);
+  el.innerHTML = sorted.map(r => `<div class="league-row${r.win ? ' win' : ' lose'}">YOU ${r.myScore} vs ${r.rival} ${r.rivalScore} — ${r.win ? 'WIN ✓' : 'LOSE'} • ${r.date}</div>`).join('');
+}
+
+// --- LIVE RACE HUD ---
+let raceTick = null;
+function raceOppDist() {
+  if (!G || !G.race) return 0;
+  if (G.race.offline || !liveSnapshot || !liveSnapshot.ok) return 0;
+  return Math.max(0, (liveSnapshot.dist - G.race.startDistKm) * 1000);
+}
+function computeZoomies() { liveZoomies = !!(liveSnapshot && liveSnapshot.ok && liveSnapshot.rpm >= ZOOMIES_RPM); }
+function updateRaceHud() {
+  if (!G || !G.race) return;
+  const you = G.race.playerDist, opp = raceOppDist();
+  const max = Math.max(50, you, opp);
+  const yb = $('raceYouBar'), ob = $('raceOppBar'), yt = $('raceYouTxt'), ot = $('raceOppTxt');
+  if (yb) yb.style.width = Math.min(100, you / max * 100) + '%';
+  if (ob) ob.style.width = Math.min(100, opp / max * 100) + '%';
+  if (yt) yt.textContent = you.toFixed(0) + ' m';
+  if (ot) ot.textContent = opp.toFixed(0) + ' m';
+  // keep the LIVE WHEEL result row honest in race mode too
+  if (G.live && liveSnapshot && liveSnapshot.ok) { G.live.dist = liveSnapshot.dist; G.live.peakRpm = Math.max(G.live.peakRpm, liveSnapshot.rpm); if (liveSnapshot.rpm >= ZOOMIES_RPM) G.live.zoomiesEver = true; }
+}
+function startRaceTick() { stopRaceTick(); raceTick = setInterval(() => { if (G && G.mode === 'race' && !G.ended) { computeZoomies(); updateRaceHud(); } }, 500); }
+function stopRaceTick() { if (raceTick) { clearInterval(raceTick); raceTick = null; } }
+function renderRaceBox() {
+  const box = $('raceBox'); if (!box) return;
+  box.classList.toggle('hidden', playMode !== 'race');
+  if (playMode !== 'race') return;
+  const pl = $('petLine');
+  if (pl) {
+    if (!liveSnapshot) pl.textContent = '🐹 SQUEEKTOSHI IS WAITING…';
+    else if (!liveSnapshot.ok) pl.textContent = '❓ WHEEL OFFLINE — SQUEEKTOSHI IS HIDING.';
+    else if (liveSnapshot.rpm > 0) pl.textContent = `🐹 SQUEEKTOSHI IS RUNNING — ${Math.round(liveSnapshot.rpm)} RPM${liveSnapshot.rpm >= ZOOMIES_RPM ? ' • ZOOMIES!' : ''}`;
+    else pl.textContent = '😴 SQUEEKTOSHI IS NAPPING (0 RPM) — EASY WIN?';
+  }
+  const rl = $('raceLast');
+  if (rl) {
+    const last = loadJSON('sqk29:lastRace:' + walletKey(currentWallet()), null);
+    rl.textContent = last ? `LAST RACE: YOU ${last.you} m vs SQUEEKTOSHI ${last.opp} m — ${last.win ? 'YOU WON ✓' : 'SQUEEKTOSHI WON'}` : 'NO RACE YET — BEAT THE HAMSTER.';
+  }
+}
+
+// --- Weekly Boss (deterministic ISO-week song, always HARD, +100 XP) ---
+function isoWeekKey(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = (t.getUTCDay() + 6) % 7; // Monday = 0
+  t.setUTCDate(t.getUTCDate() - day + 3); // Thursday of this week
+  const firstThu = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  const fday = (firstThu.getUTCDay() + 6) % 7;
+  firstThu.setUTCDate(firstThu.getUTCDate() - fday + 3);
+  const week = 1 + Math.round((t - firstThu) / (7 * 86400000));
+  return t.getUTCFullYear() + '-W' + String(week).padStart(2, '0');
+}
+function weeklyKey() { return isoWeekKey(new Date()); }
+function weeklySpec() {
+  const wk = weeklyKey();
+  const genres = ['cyber', 'synth', 'chip'];
+  return { week: wk, genre: genres[cyrb53('BOSS-GENRE-' + wk) % genres.length], name: ['THE VOID HAMSTER', 'SQUEEKTOSHI PRIME', 'THE MIDNIGHT WHEEL', 'BARON VON SQUEEK'][cyrb53('BOSS-NAME-' + wk) % 4] };
+}
+function renderBossBox() {
+  const el = $('bossLine'); if (!el) return;
+  const bs = weeklySpec();
+  el.textContent = `${bs.name} • ${bs.week} • ${bs.genre.toUpperCase()} / HARD • FINISH THE SONG TO DEFEAT IT (+100 XP).`;
+}
+function fightBoss() {
+  playMode = 'boss';
+  document.querySelectorAll('#modeRow .btn-diff').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-pressed', 'false'); });
+  say('WEEKLY BOSS: ' + weeklySpec().name + ' — HARD MODE. GOOD LUCK.', 'yellow');
+  play();
+}
+
+// --- Diary + While You Were Away (summary renders once per page load only) ---
+function recordDiary(entry) {
+  const w = currentWallet();
+  const key = 'sqk29:diary:' + walletKey(w);
+  const list = loadJSON(key, []);
+  list.push(entry);
+  saveJSON(key, list.slice(-30));
+}
+function renderDiaryList() {
+  const dl = $('diaryList'); if (!dl) return;
+  const diary = loadJSON('sqk29:diary:' + walletKey(currentWallet()), []);
+  dl.innerHTML = diary.slice(-5).reverse().map(e => `<div class="diary-line"><b>${new Date(e.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${new Date(e.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</b> — ${e.song} • ${e.score} PTS • ${e.grade}${e.note ? ' • “' + String(e.note).replace(/</g, '&lt;') + '”' : ''}</div>`).join('');
+}
+function renderAway() {
+  const w = currentWallet();
+  const al = $('awayLine'); if (!al) return;
+  const hist = loadJSON('sqk24:hist:' + walletKey(w), []);
+  const lastVisit = loadJSON('sqk29:lastVisit:' + walletKey(w), 0);
+  const ach = loadJSON('sqk29:ach:' + walletKey(w), []);
+  const achSeen = loadJSON('sqk29:achSeen:' + walletKey(w), 0);
+  const newAch = ach.length - achSeen;
+  if (!hist.length) al.textContent = 'Welcome back — play a song and your diary starts here.';
+  else {
+    const lastDate = lastVisit ? new Date(lastVisit).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'a while ago';
+    const streak = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 }).count;
+    al.textContent = `LAST VISIT ${lastDate} • STREAK ${streak} DAYS • BEST ${Math.max.apply(null, hist.map(h => h.score))} • NEW ACHIEVEMENTS SINCE THEN: ${newAch > 0 ? newAch : 'NONE'}.`;
+  }
+  saveJSON('sqk29:achSeen:' + walletKey(w), ach.length);
+  saveJSON('sqk29:lastVisit:' + walletKey(w), Date.now());
+  renderDiaryList();
+}
+function addDiaryNote() {
+  const inp = $('diaryNote'); if (!inp) return;
+  const txt = inp.value.trim(); if (!txt) return;
+  const w = currentWallet();
+  const key = 'sqk29:diary:' + walletKey(w);
+  const list = loadJSON(key, []);
+  if (!list.length) { say('PLAY A SONG FIRST — THE DIARY IS EMPTY.', 'pink'); return; }
+  list[list.length - 1].note = txt.slice(0, 120);
+  saveJSON(key, list);
+  inp.value = '';
+  renderDiaryList();
+  say('NOTE SAVED TO YOUR LAST SONG.', 'green');
+}
+
+// --- EN/ID toggle (menu labels only; dynamic game messages stay English) ---
+const I18N = {
+  en: { wallet: 'WALLET ADDRESS', connect: '[ CONNECT WALLET ]', genre: '// GENRE', diff: '// DIFFICULTY', options: '// OPTIONS', mode: '// MODE', play: 'INITIALIZE RHYTHM', card: 'GENERATE ID CARD', retry: 'RETRY', resultCard: '[ SHARE RESULT CARD ]', obs: '[ OBS OVERLAY LINK ]', wheelcall: 'WHEEL CALL — PREDICT THE NEXT ROUND', boss: 'WEEKLY BOSS', bossFight: '[ FIGHT WEEKLY BOSS ]', league: 'DUEL LEAGUE — LOCAL RIVALS', ach: 'ACHIEVEMENTS', away: 'WHILE YOU WERE AWAY', addNote: '[ ADD NOTE ]' },
+  id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]' },
+};
+let lang = loadJSON('sqk29:lang', 'en');
+function applyLang(l) {
+  lang = (l === 'id') ? 'id' : 'en';
+  saveJSON('sqk29:lang', lang);
+  const dict = I18N[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => { const k = el.dataset.i18n; if (dict[k]) el.textContent = dict[k]; });
+  const lb = $('langBtn'); if (lb) lb.textContent = lang.toUpperCase();
+}
+
+// --- OBS overlay (?overlay=1): minimal live widget, transparent background ---
+const overlayMode = new URLSearchParams(location.search).get('overlay') === '1';
+function overlayUrl() { return location.href.split('?')[0] + '?overlay=1'; }
+async function copyObsLink() {
+  const url = overlayUrl();
+  try { await navigator.clipboard.writeText(url); say('OBS OVERLAY LINK COPIED — ADD IT AS A BROWSER SOURCE IN OBS (1920×1080, TRANSPARENT).', 'green'); }
+  catch (e) { say('CLIPBOARD BLOCKED — THE LINK IS: ' + url, 'pink'); }
+}
+function updateOverlay() {
+  const ob = $('overlayBox'); if (!ob || ob.classList.contains('hidden')) return;
+  const s = liveSnapshot;
+  setText('overlayRpm', s && s.ok ? `RPM ${Math.round(s.rpm)}${s.rpm >= ZOOMIES_RPM ? ' • ZOOMIES ×2' : ''}` : 'RPM — (WHEEL OFFLINE)');
+  setText('overlayDist', s && s.ok ? `DIST ${s.dist.toFixed(3)} KM` : 'DIST — KM');
+  const cur = currentRoundKey();
+  const avg = roundAvg(cur);
+  const cls = avg !== null ? roundClass(avg) : (s && s.ok ? roundClass(s.rpm) : null);
+  setText('overlayRound', `ROUND ${cur} • ${cls ? roundLabel(cls) : '—'} • NEXT IN ${fmtCountdown(nextRoundInMs(new Date()))}`);
+  setText('overlaySong', lastAnthem ? `SONG ${lastAnthem.key} ${lastAnthem.scaleName} • ${lastAnthem.bpm} BPM` : 'SONG —');
+}
+
+// --- Practice mode (60% tempo, no XP/streak/history) ---
+let practiceMode = loadJSON('sqk29:practice', false) === true;
+function renderPracticeBtn() { const b = $('practiceBtn'); if (b) b.textContent = 'PRACTICE: ' + (practiceMode ? 'ON (60% TEMPO, NO XP)' : 'OFF'); }
+
+// --- Menu poll: 30s wheel fetch while the menu is open (feeds predictions) ---
+let menuPoll = null;
+function startMenuPoll() { stopMenuPoll(); if (overlayMode) return; menuPoll = setInterval(() => { if (!G) refreshLive(); }, 30000); }
+function stopMenuPoll() { if (menuPoll) { clearInterval(menuPoll); menuPoll = null; } }
+
+// --- Shareable result card (drawn on the ID card canvas, then DOWNLOAD/SHARE) ---
+function drawResultCard() {
+  const c = $('card-canvas'); if (!c) return false;
+  const ctx = c.getContext('2d'); if (!ctx) return false;
+  const CW = 400, CH = 600;
+  fitCanvas(c, ctx, CW, CH, 3);
+  const g = $('gradeVal') ? $('gradeVal').textContent : '—';
+  const kv = $('resultKv') ? $('resultKv').innerText : '';
+  ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, CW, CH);
+  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6; ctx.strokeRect(3, 3, CW - 6, CH - 6);
+  ctx.fillStyle = '#00ff00'; ctx.fillRect(3, 3, CW - 6, 40);
+  ctx.textAlign = 'left'; ctx.fillStyle = '#000'; ctx.font = 'bold 16px "Space Mono"';
+  ctx.fillText('SQUEEK // RESULT CARD', 15, 26);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#ffff00'; ctx.font = '64px "Press Start 2P"';
+  ctx.fillText(g, CW / 2, 140);
+  ctx.fillStyle = '#fff'; ctx.font = '13px "Space Mono"'; ctx.textAlign = 'left';
+  const parts = kv.split('\n').filter(Boolean);
+  let y = 190;
+  for (let i = 0; i + 1 < parts.length && y <= 520; i += 2) { ctx.fillText((parts[i] + ' ' + parts[i + 1]).slice(0, 44), 25, y); y += 24; }
+  ctx.fillStyle = '#00ffff'; ctx.font = 'bold 11px "Space Mono"'; ctx.textAlign = 'center';
+  ctx.fillText('CREATOR: pancigoreng', CW / 2, CH - 32);
+  ctx.fillStyle = '#fff'; ctx.font = '10px "Space Mono"';
+  ctx.fillText('squeekpixel.web.id', CW / 2, CH - 15);
+  return true;
+}
+
+// --- v29 wiring ---
+bindClick('predNapBtn', () => placePrediction('nap'));
+bindClick('predJogBtn', () => placePrediction('jog'));
+bindClick('predZoomiesBtn', () => placePrediction('zoomies'));
+bindClick('bossBtn', fightBoss);
+bindClick('practiceBtn', () => { practiceMode = !practiceMode; saveJSON('sqk29:practice', practiceMode); renderPracticeBtn(); say(practiceMode ? 'PRACTICE ON — 60% TEMPO, NO XP, NO STREAK.' : 'PRACTICE OFF.', 'cyan'); });
+bindClick('obsBtn', copyObsLink);
+bindClick('langBtn', () => applyLang(lang === 'en' ? 'id' : 'en'));
+bindClick('diaryNoteBtn', addDiaryNote);
+bindClick('resultCardBtn', () => { if (!drawResultCard()) return say('RESULT CARD FAILED — PLAY A SONG FIRST.', 'pink'); const ca = $('cardArea'); if (ca) ca.classList.remove('hidden'); show('mainPanel'); say('RESULT CARD READY — DOWNLOAD OR SHARE IT BELOW.', 'green'); if (ca) ca.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+
 try {
   const params = new URLSearchParams(location.search);
   const qw = (params.get('wallet') || '').trim();
   if (qw && isAddr(qw) && walletEl) walletEl.value = qw;
   const qg = params.get('genre'); if (qg && GENRES[qg]) { currentGenre = qg; document.querySelectorAll('#genreRow .btn-diff').forEach(x => { const on = x.dataset.genre === qg; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); }); }
   const qd = params.get('diff'); if (qd && DIFFICULTIES[qd]) { currentDiff = qd; document.querySelectorAll('#diffRow .btn-diff').forEach(x => { const on = x.dataset.diff === qd; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); }); }
-  const qc = params.get('challenge'); if (qc) { challengeCode = qc; playMode = 'challenge'; }
+  const qc = params.get('challenge'); if (qc) { challengeCode = qc; playMode = 'challenge'; const qf = params.get('from'), qs = params.get('score'); if (qf && qs && !isNaN(+qs)) pendingRival = { from: qf, score: +qs }; } // v29: duel links carry the challenger's score for the league
   else if (params.get('daily') === '1') playMode = 'daily';
   else if (params.get('live') === '1') playMode = 'live';
+  else if (params.get('race') === '1') playMode = 'race';
   if (params.get('lanes') === '4') challengeLanes = 4; // v28: duel links carry the lane count
   if (params.get('mirror') === '1') challengeMirror = true;
   if (playMode !== 'free') document.querySelectorAll('#modeRow .btn-diff').forEach(x => { const on = x.dataset.mode === playMode || (playMode === 'challenge' && x.dataset.mode === 'free'); x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); });
@@ -1035,5 +1421,8 @@ try {
 } catch (_) {}
 if (playMode === 'daily') { applyDailySpec(); lockGenreDiffRows(true); }
 renderDailyBox(); renderLiveBox(); renderMastery(); renderOffsetLine(); renderUnlocks();
-if (playMode === 'live') { refreshLive(); startLivePoll(10000); }
+if (playMode === 'live' || playMode === 'race') { refreshLive(); startLivePoll(10000); }
+applyLang(lang); renderPredict(); renderRaceBox(); renderBossBox(); renderLeague(); renderAchievements(); renderPracticeBtn(); settlePredictions(); renderAway();
+if (overlayMode) { document.body.classList.add('overlay'); const ob = $('overlayBox'); if (ob) ob.classList.remove('hidden'); hideMusicSplash(); refreshLive(); startLivePoll(5000); }
+else startMenuPoll();
 preview();

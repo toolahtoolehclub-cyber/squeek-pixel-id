@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="SQUEEKCHAIN v28 FIX — Daily, XP, Missions, Duel, and LIVE mode: the song tempo follows the real hamster wheel. New in v28: PRECISION timing calibration, a Daily song that is truly the same for everyone, and real LV5–LV8 unlocks (VOID genre, 4 lanes, Mirror mode, Gold avatar). Audible intro, visible Duel Link, avatar inside the canvas.">
+<meta name="description" content="SQUEEKCHAIN v29 MEGA — Daily, XP, Missions, Duel, and LIVE mode: the song tempo follows the real hamster wheel. New in v29: LIVE RACE vs Squeektoshi, Golden Note on round change, Wheel Call predictions, named Achievements, Duel League, shareable result cards, OBS overlay mode, EN/ID toggle, While-You-Were-Away + diary, Weekly Boss, Fever combo, Streak Freeze, and Practice mode.">
 <meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect x='3' y='3' width='10' height='10' fill='%2300ff00'/%3E%3C/svg%3E">
-<title>SQUEEKCHAIN // v28 FIX</title>
+<title>SQUEEKCHAIN // v29 MEGA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -33,8 +33,9 @@
         <div class="header-row">
             <div>
                 <h1 id="mainTitle" class="flicker">SQUEEKCHAIN</h1>
-                <h2>PIXEL ID // v28 FIX</h2>
+                <h2>PIXEL ID // v29 MEGA</h2>
             </div>
+            <button class="btn-icon" id="langBtn" type="button" aria-label="Switch language English / Bahasa Indonesia" title="Language: EN / ID">EN</button>
             <button class="btn-icon" id="qualityBtn" type="button" aria-label="Change graphics quality" title="Quality: ULTRA / ECO">QLTY: ULTRA</button>
             <button class="btn-icon" id="muteBtn" type="button" aria-label="Mute / unmute sound" aria-pressed="false" title="Mute (M)">🔊</button>
         </div>
@@ -43,11 +44,11 @@
     <main class="container">
         <section class="panel" id="mainPanel" aria-label="Menu utama">
             <div class="stack">
-                <label for="walletInput">WALLET ADDRESS</label>
+                <label for="walletInput" data-i18n="wallet">WALLET ADDRESS</label>
                 <input id="walletInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
                        inputmode="text" maxlength="42" placeholder="0x..." aria-describedby="walletWarn anthemInfo">
                 <p class="warn" id="walletWarn">⚠️ 0x address ONLY. NEVER enter a seed phrase / private key here, anywhere.</p>
-                <button class="btn-secondary" type="button" id="connectBtn">[ CONNECT WALLET ]</button>
+                <button class="btn-secondary" type="button" id="connectBtn" data-i18n="connect">[ CONNECT WALLET ]</button>
                 <p class="anthem" id="anthemInfo" aria-live="polite">AWAITING INPUT...</p>
                 
                 <!-- WRAPPER FOR THE 3D AVATAR -->
@@ -58,7 +59,7 @@
                     <p id="anthemHash" class="hash"></p>
                 </div>
 
-                <label id="genreLabel">// GENRE</label>
+                <label id="genreLabel" data-i18n="genre">// GENRE</label>
                 <div class="diff-row" id="genreRow" role="group" aria-labelledby="genreLabel">
                     <button class="btn-diff active" type="button" data-genre="cyber" aria-pressed="true">CYBER</button>
                     <button class="btn-diff" type="button" data-genre="synth" aria-pressed="false">SYNTH</button>
@@ -66,24 +67,31 @@
                     <button class="btn-diff locked" type="button" data-genre="void" aria-pressed="false">VOID 🔒 LV5</button>
                 </div>
 
-                <label id="diffLabel">// DIFFICULTY</label>
+                <label id="diffLabel" data-i18n="diff">// DIFFICULTY</label>
                 <div class="diff-row" id="diffRow" role="group" aria-labelledby="diffLabel">
                     <button class="btn-diff active" type="button" data-diff="easy" aria-pressed="true">EASY</button>
                     <button class="btn-diff" type="button" data-diff="normal" aria-pressed="false">NORMAL</button>
                     <button class="btn-diff" type="button" data-diff="hard" aria-pressed="false">HARD</button>
                 </div>
 
-                <label id="optionsLabel">// OPTIONS</label>
+                <label id="optionsLabel" data-i18n="options">// OPTIONS</label>
                 <div class="diff-row" id="optionsRow" role="group" aria-labelledby="optionsLabel">
                     <button class="btn-diff locked" type="button" id="lanesBtn">LANES: 3 🔒 LV6</button>
                     <button class="btn-diff locked" type="button" id="mirrorBtn">MIRROR: OFF 🔒 LV7</button>
                 </div>
 
-                <label id="modeLabel">// MODE</label>
+                <label id="modeLabel" data-i18n="mode">// MODE</label>
                 <div class="diff-row" id="modeRow" role="group" aria-labelledby="modeLabel">
                     <button class="btn-diff active" type="button" data-mode="free" aria-pressed="true">FREE</button>
                     <button class="btn-diff" type="button" data-mode="daily" aria-pressed="false">DAILY</button>
                     <button class="btn-diff" type="button" data-mode="live" aria-pressed="false">LIVE</button>
+                    <button class="btn-diff" type="button" data-mode="race" aria-pressed="false">RACE</button>
+                </div>
+                <div id="raceBox" class="hidden">
+                    <p id="raceTitle">RACE — VS SQUEEKTOSHI</p>
+                    <p id="petLine">🐹 SQUEEKTOSHI IS WAITING…</p>
+                    <p id="raceInfo">A real race against the live hamster: your distance grows with every note you hit (PERFECT 1.0 m • GREAT 0.7 m • GOOD 0.4 m). Squeektoshi's distance is the real wheel's distance since the song started. Win the race for +50 XP. When a new 10-minute round starts mid-song, the next note turns GOLDEN (+1000 pts, +5 m).</p>
+                    <p id="raceLast">NO RACE YET — BEAT THE HAMSTER.</p>
                 </div>
                 <div id="liveBox" class="hidden">
                     <p id="liveTitle">LIVE — RACE THE HAMSTER</p>
@@ -94,7 +102,41 @@
                     <p id="dailyTitle">DAILY ANTHEM</p>
                     <p id="dailyInfo">Today's song is the same for everyone. Play today, come back tomorrow — the song changes.</p>
                     <p id="streakLine">STREAK: 0 DAYS</p>
+                    <p id="freezeLine" class="msg hidden"></p>
                     <div id="missionList"></div>
+                </div>
+                <div id="predictBox">
+                    <p class="predict-title" data-i18n="wheelcall">WHEEL CALL — PREDICT THE NEXT ROUND</p>
+                    <p id="roundLine">FETCHING WHEEL…</p>
+                    <div class="row">
+                        <button class="btn-secondary" type="button" id="predNapBtn">😴 NAP</button>
+                        <button class="btn-secondary" type="button" id="predJogBtn">🏃 JOG</button>
+                        <button class="btn-secondary" type="button" id="predZoomiesBtn">⚡ ZOOMIES</button>
+                    </div>
+                    <p id="predStatus" class="msg">Rounds are 10 minutes. NAP &lt; 5 RPM • JOG 5–69 RPM • ZOOMIES 70+ RPM. A correct call earns +40 XP.</p>
+                    <p id="predResult" class="msg hidden"></p>
+                </div>
+                <div id="bossBox">
+                    <p class="boss-title" data-i18n="boss">WEEKLY BOSS</p>
+                    <p id="bossLine">LOADING THIS WEEK'S BOSS…</p>
+                    <button class="btn-secondary" type="button" id="bossBtn" data-i18n="bossFight">[ FIGHT WEEKLY BOSS ]</button>
+                </div>
+                <div id="leagueBox">
+                    <p class="league-title" data-i18n="league">DUEL LEAGUE — LOCAL RIVALS</p>
+                    <div id="leagueList"><p class="msg">No duels yet — send a Duel Link after a song, and when a friend plays it, their result lands here.</p></div>
+                </div>
+                <div id="achBox">
+                    <p class="ach-title" data-i18n="ach">ACHIEVEMENTS</p>
+                    <div id="achList"></div>
+                </div>
+                <div id="awayBox">
+                    <p class="away-title" data-i18n="away">WHILE YOU WERE AWAY</p>
+                    <p id="awayLine" class="msg">Welcome back — play a song and your diary starts here.</p>
+                    <div id="diaryList"></div>
+                    <div class="row">
+                        <input id="diaryNote" type="text" maxlength="120" placeholder="Add a note to your last song…" aria-label="Diary note">
+                        <button class="btn-secondary" type="button" id="diaryNoteBtn" data-i18n="addNote">[ ADD NOTE ]</button>
+                    </div>
                 </div>
                 <div id="calibBox">
                     <p class="calib-title">PRECISION — TIMING CALIBRATION</p>
@@ -115,8 +157,12 @@
                     <p id="masteryStats">No games recorded in this browser yet.</p>
                 </div>
                 <button class="btn-secondary" type="button" id="musicModeBtn">MUSIC: HYPE 128 BPM — TAP FOR CALM</button>
-                <button class="btn-primary" type="button" id="playBtn">INITIALIZE RHYTHM</button>
-                <button class="btn-secondary" type="button" id="genBtn">GENERATE ID CARD</button>
+                <div class="row">
+                    <button class="btn-secondary" type="button" id="practiceBtn">PRACTICE: OFF</button>
+                    <button class="btn-secondary" type="button" id="obsBtn" data-i18n="obs">[ OBS OVERLAY LINK ]</button>
+                </div>
+                <button class="btn-primary" type="button" id="playBtn" data-i18n="play">INITIALIZE RHYTHM</button>
+                <button class="btn-secondary" type="button" id="genBtn" data-i18n="card">GENERATE ID CARD</button>
             </div>
             <p class="msg" id="message" role="status" aria-live="polite">SYSTEM READY.</p>
             <p class="msg" id="glStatus" role="status">WEBGL: CHECKING... • QLTY: ULTRA • AUDIO: NOT TESTED YET</p>
@@ -140,6 +186,11 @@
             </div>
             <div class="canvas-wrapper"><canvas id="game-canvas" tabindex="0" aria-label="Game area. Use the left, down, right arrow keys or A S D to hit the lanes."></canvas></div>
             <div id="precisionBox" aria-live="polite"><span>LAST HIT <b id="lastHit">-- ms</b></span><span>AVG <b id="avgHit">-- ms</b></span><span id="hitDir">—</span></div>
+            <p class="msg hidden" id="feverTag">🔥 FEVER ×1.5 — COMBO 30+</p>
+            <div id="raceHud" class="hidden">
+                <div class="race-row"><span class="race-name">YOU</span><div class="race-track"><i id="raceYouBar"></i></div><b id="raceYouTxt">0 m</b></div>
+                <div class="race-row"><span class="race-name">🐹 SQUEEKTOSHI</span><div class="race-track"><i id="raceOppBar"></i></div><b id="raceOppTxt">0 m</b></div>
+            </div>
             <p class="msg" id="gameAudioStatus">AUDIO: —</p>
             <p class="msg hidden" id="liveHud">LIVE: —</p>
             <div id="vizBars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
@@ -157,8 +208,9 @@
             <p class="msg" id="xpMsg"></p>
             <div id="missionResult"></div>
             <div class="stack">
-                <button class="btn-primary" type="button" id="againBtn">RETRY</button>
-                <button class="btn-secondary" type="button" id="toCardBtn">GENERATE CARD</button>
+                <button class="btn-primary" type="button" id="againBtn" data-i18n="retry">RETRY</button>
+                <button class="btn-secondary" type="button" id="toCardBtn" data-i18n="card">GENERATE CARD</button>
+                <button class="btn-secondary" type="button" id="resultCardBtn" data-i18n="resultCard">[ SHARE RESULT CARD ]</button>
                 <button class="btn-secondary" type="button" id="duelBtn">[ DUEL LINK ]</button>
                 <p class="msg" id="duelMsg">THE DUEL LINK WILL APPEAR HERE AFTER THE GAME ENDS.</p>
                 <textarea id="duelOut" readonly rows="2" placeholder="The duel link will appear here — copy it manually if the clipboard is blocked."></textarea>
@@ -166,7 +218,15 @@
             </div>
         </section>
     </main>
-    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v28 FIX — UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia. Daily: ?daily=1 • Live: ?live=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard</footer>
+    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v29 MEGA — UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia. Daily: ?daily=1 • Live: ?live=1 • Race: ?race=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard • OBS: ?overlay=1</footer>
+</div>
+
+<div id="overlayBox" class="hidden" aria-label="OBS overlay — live hamster status">
+    <p id="overlayTitle">🐹 SQUEEKCHAIN — LIVE</p>
+    <p id="overlayRpm">RPM —</p>
+    <p id="overlayDist">DIST — KM</p>
+    <p id="overlayRound">ROUND —</p>
+    <p id="overlaySong">SONG —</p>
 </div>
 
 <noscript><p style="color:#ff00ff;text-align:center;padding:20px">This game needs JavaScript. Enable JavaScript to play.</p></noscript>
