@@ -314,3 +314,212 @@ body.overlay { animation: none; background-image: none; }
     #qualityBtn { min-width: 84px; }
 }
 @media (prefers-reduced-motion: reduce) { .bulbs i, .btn-start, .splash-coin, .cab-ham { animation: none !important; } }
+
+/* ================= v32 NEO — minimal, futuristic =================
+   Supersedes the v31 arcade layer above. Same ids, same layout
+   skeleton, new visual language: hairline borders, glass panels,
+   generous spacing, one accent (cyan) + one signal (green), no chunky
+   borders, no marquee, no bulbs, no side art. Header is a slim row
+   (wordmark + one settings gear); secondary controls live in a sheet. */
+
+/* --- base: near-black, faint static grid, soft top glow --- */
+body {
+    background: #050607;
+    background-image: radial-gradient(ellipse 90% 40% at 50% -5%, rgba(0, 229, 255, .10), transparent 70%);
+}
+body::before { opacity: .05; animation: none; }
+#crt { opacity: .05; }
+
+/* --- slim header: wordmark left, one gear right --- */
+.neo-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 6px 14px; margin-bottom: 10px;
+}
+.neo-head h1 {
+    font-size: 17px; letter-spacing: 2px; margin: 0 0 5px;
+    color: #fff; text-shadow: 0 0 18px rgba(0, 229, 255, .45);
+}
+.neo-head h2 {
+    font-size: 9px; letter-spacing: 3px; margin: 0;
+    color: rgba(255, 255, 255, .45);
+}
+
+/* --- glass panels, hairline borders --- */
+.panel {
+    background: rgba(255, 255, 255, .03);
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 18px;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, .45);
+    padding: 16px;
+}
+#mainPanel { outline: none; box-shadow: 0 10px 32px rgba(0, 0, 0, .45); }
+#gamePanel { background: rgba(255, 255, 255, .02); }
+.container { gap: 12px; }
+.stack { gap: 10px; }
+
+/* --- buttons: thin, rounded, calm --- */
+button {
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .05);
+    box-shadow: none;
+    color: rgba(255, 255, 255, .85);
+    padding: 13px 12px;
+}
+button:active { transform: translateY(1px); box-shadow: none; }
+.btn-primary {
+    background: linear-gradient(135deg, #00ff88, #00e5ff);
+    color: #001318; border-color: transparent;
+    font-weight: 700;
+    box-shadow: 0 0 24px rgba(0, 229, 255, .25);
+}
+.btn-secondary { background: rgba(255, 255, 255, .04); color: #a5f3fc; border-color: rgba(0, 229, 255, .35); }
+.btn-danger { background: rgba(255, 0, 80, .10); color: #fda4af; border-color: rgba(255, 0, 80, .4); }
+.btn-icon {
+    border: 1px solid rgba(255, 255, 255, .18); border-radius: 12px;
+    background: rgba(255, 255, 255, .05); box-shadow: none;
+    height: 44px; min-width: 44px; padding: 0 12px;
+    font-size: 13px; color: rgba(255, 255, 255, .85);
+}
+.btn-start { animation: none; }
+
+/* --- segmented pills (genre / diff / options / mode) --- */
+.btn-diff {
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 999px; background: transparent;
+    color: rgba(255, 255, 255, .6);
+    box-shadow: none; padding: 11px 4px;
+}
+.btn-diff.active {
+    background: #00e5ff; color: #001318; border-color: transparent;
+    box-shadow: 0 0 16px rgba(0, 229, 255, .3);
+}
+.btn-diff.locked { opacity: .45; }
+
+/* --- tabs: one pill container, text only --- */
+#tabBar {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 999px; padding: 4px; margin-bottom: 14px;
+}
+.tab-btn {
+    border: none; border-radius: 999px; background: transparent;
+    box-shadow: none; color: rgba(255, 255, 255, .55);
+    padding: 10px 2px; font-size: 10px; letter-spacing: 1px;
+}
+.tab-btn.active {
+    background: rgba(0, 229, 255, .16); color: #00e5ff;
+    box-shadow: none;
+}
+
+/* --- text: quieter labels, calmer boxes --- */
+label { color: rgba(255, 255, 255, .5); letter-spacing: 2px; font-size: 10px; }
+h2, .boss-title, .league-title, .ach-title, .away-title, .mastery-title, .predict-title, .calib-title, #raceTitle, #liveTitle, #dailyTitle {
+    color: rgba(255, 255, 255, .65); letter-spacing: 2px;
+}
+.msg {
+    background: rgba(255, 255, 255, .03);
+    border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 10px; color: rgba(255, 255, 255, .7);
+    font-size: 11px; font-weight: 400; line-height: 1.6;
+}
+.warn {
+    border: 1px dashed rgba(255, 220, 0, .5); border-radius: 10px;
+    background: rgba(255, 220, 0, .05); font-size: 10px;
+}
+.anthem { color: #67e8f9; font-size: 11px; line-height: 1.7; }
+input[type="text"], textarea {
+    border: 1px solid rgba(255, 255, 255, .18); border-radius: 12px;
+    background: rgba(255, 255, 255, .04);
+}
+input[type="text"]:focus, textarea:focus { border-color: #00e5ff; box-shadow: 0 0 0 3px rgba(0, 229, 255, .15); }
+input[type="range"] { accent-color: #00e5ff; }
+
+/* --- info boxes: slim hairline cards --- */
+#raceBox, #liveBox, #dailyBox {
+    border: 1px solid rgba(0, 229, 255, .25); border-radius: 14px;
+    background: rgba(0, 229, 255, .04); padding: 12px; font-size: 11px; line-height: 1.65;
+}
+#dailyBox { border-color: rgba(0, 255, 136, .25); background: rgba(0, 255, 136, .04); }
+#raceBox { border-color: rgba(255, 200, 0, .25); background: rgba(255, 200, 0, .04); }
+
+/* --- latency row --- */
+.lat-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 12px; border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 12px; background: rgba(255, 255, 255, .02);
+    font-size: 11px; color: rgba(255, 255, 255, .7);
+}
+.lat-row .btn-secondary { padding: 9px 12px; }
+
+/* --- settings sheet (bottom sheet + backdrop) --- */
+#settingsBackdrop {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .6);
+    backdrop-filter: blur(2px); z-index: 40;
+}
+#settingsSheet {
+    position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
+    width: min(460px, 100%); z-index: 41;
+    background: #0b0e10; border: 1px solid rgba(255, 255, 255, .14);
+    border-bottom: none; border-radius: 20px 20px 0 0;
+    padding: 16px 16px calc(18px + env(safe-area-inset-bottom));
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, .6);
+}
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sheet-head p { margin: 0; font-size: 11px; letter-spacing: 3px; color: rgba(255, 255, 255, .7); }
+.sheet-body { display: flex; flex-direction: column; gap: 10px; }
+.sheet-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 12px; border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 12px; background: rgba(255, 255, 255, .02);
+    font-size: 11px; color: rgba(255, 255, 255, .7); letter-spacing: 2px;
+}
+.sheet-row label { margin: 0; }
+#settingsSheet .btn-secondary { width: 100%; }
+
+/* --- game panel polish --- */
+.stat { border: 1px solid rgba(255, 255, 255, .12); border-radius: 12px; background: rgba(255, 255, 255, .03); }
+.canvas-wrapper { border-radius: 14px; overflow: hidden; }
+#game-canvas { border-radius: 14px; }
+.grade { color: #00ff88; text-shadow: 0 0 24px rgba(0, 255, 136, .4); }
+.kv span { color: rgba(255, 255, 255, .5); }
+.kv b { color: rgba(255, 255, 255, .9); }
+.league-row, .diary-line, .unlock { border-radius: 10px; }
+.ach-chip { border-radius: 999px; }
+#vizBars i { background: #00e5ff; opacity: .5; }
+
+/* --- footer: one slim line --- */
+.footer {
+    border: none; padding: 16px 4px 8px; color: rgba(255, 255, 255, .35);
+    font-size: 9px; line-height: 1.7; letter-spacing: .5px; text-align: center;
+}
+.creator-link { color: #67e8f9; }
+
+/* --- splash: minimal glass card --- */
+.splash-box {
+    border: 1px solid rgba(255, 255, 255, .14); border-radius: 20px;
+    background: rgba(8, 10, 12, .92); box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+}
+.splash-title { color: #fff; text-shadow: 0 0 22px rgba(0, 229, 255, .5); }
+.splash-sub { color: rgba(255, 255, 255, .5); letter-spacing: 3px; }
+.splash-note { color: rgba(255, 255, 255, .4); }
+
+/* --- v32 PERFORMANCE: while a game runs, freeze every decoration so the
+   game loop gets the full frame budget (the lag fix). WebGL is paused
+   from JS (pauseGL); CSS hides the layers and pauses the animations. --- */
+body.playing #bg-gl, body.playing #bg-anim, body.playing #crt { display: none !important; }
+body.playing { background-image: none; animation: none; }
+body.playing * { animation-play-state: paused !important; }
+body.playing .stat.pop { animation: pop .3s !important; }
+body.playing #gamePanel.shake { animation: shake .3s !important; }
+
+/* --- v32: arcade leftovers are dead (no marquee/bulbs/side art in HTML) --- */
+.marquee, .bulbs, .cab-side, .splash-coin { display: none !important; }
+
+@media (max-width: 480px) {
+    .neo-head h1 { font-size: 15px; }
+    .panel { padding: 13px; }
+    #settingsSheet { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .btn-primary { box-shadow: none; } }

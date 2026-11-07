@@ -53,10 +53,10 @@ function levelFor(xp) { let lv = 1; for (let i = 0; i < XP_LEVELS.length; i++) i
 // LV7 Mirror mode, LV8 Gold avatar. LV1–LV4 already evolve the avatar
 // (glasses LV2, hat LV3, crown LV4).
 const UNLOCKS = {
-  5: { id: 'void', text: 'NEW GENRE: VOID' },
-  6: { id: 'lanes4', text: '4 LANES MODE' },
-  7: { id: 'mirror', text: 'MIRROR MODE' },
-  8: { id: 'gold', text: 'GOLD AVATAR' },
+  5: { id: 'void', text: 'NEW GENRE: VOID', k: 'unlockVoid' },
+  6: { id: 'lanes4', text: '4 LANES MODE', k: 'unlockLanes' },
+  7: { id: 'mirror', text: 'MIRROR MODE', k: 'unlockMirror' },
+  8: { id: 'gold', text: 'GOLD AVATAR', k: 'unlockGold' },
 };
 function unlocksForLevel(lv) { const out = []; for (let l = 5; l <= lv && l <= 8; l++) if (UNLOCKS[l]) out.push(UNLOCKS[l]); return out; }
 function playerLevel(w) { return levelFor(totalXP(w)); }
@@ -114,12 +114,12 @@ function mirrorForSong() {
 }
 
 const MISSION_POOL = [
-  { id: 'acc95', text: 'Accuracy >= 95%', check: r => r.acc >= 95 },
-  { id: 'combo50', text: 'Combo >= 50', check: r => r.maxCombo >= 50 },
-  { id: 'miss0', text: '0 Miss in one song', check: r => r.miss === 0 },
-  { id: 'score5000', text: 'Score >= 5000', check: r => r.score >= 5000 },
-  { id: 'perfect30', text: 'Perfect >= 30', check: r => r.perfect >= 30 },
-  { id: 'hard', text: 'Finish one song on HARD', check: r => r.diff === 'hard' },
+  { id: 'acc95', text: 'Accuracy >= 95%', k: 'missionAcc', check: r => r.acc >= 95 },
+  { id: 'combo50', text: 'Combo >= 50', k: 'missionCombo', check: r => r.maxCombo >= 50 },
+  { id: 'miss0', text: '0 Miss in one song', k: 'missionMiss0', check: r => r.miss === 0 },
+  { id: 'score5000', text: 'Score >= 5000', k: 'missionScore', check: r => r.score >= 5000 },
+  { id: 'perfect30', text: 'Perfect >= 30', k: 'missionPerfect', check: r => r.perfect >= 30 },
+  { id: 'hard', text: 'Finish one song on HARD', k: 'missionHard', check: r => r.diff === 'hard' },
 ];
 function dailyMissions(dateStr) {
   const r = rng(cyrb53('MISSION-' + dateStr));
@@ -218,8 +218,8 @@ function initGL() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const posLoc = gl.getAttribLocation(prog, 'position'); gl.enableVertexAttribArray(posLoc); gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
     uRes = gl.getUniformLocation(prog, 'u_resolution'); uTime = gl.getUniformLocation(prog, 'u_time'); uSeed = gl.getUniformLocation(prog, 'u_seed'); uAudio = gl.getUniformLocation(prog, 'u_audio'); uGlitch = gl.getUniformLocation(prog, 'u_glitch'); uShock = gl.getUniformLocation(prog, 'u_shock'); uCombo = gl.getUniformLocation(prog, 'u_combo');
-    resizeGL(); window.addEventListener('resize', resizeGL); glRunning = true; requestAnimationFrame(renderGL); setText('glStatus', 'WEBGL: OK • QLTY: ' + quality.toUpperCase() + ' • MOVING 3D BACKGROUND');
-  } catch (err) { gl = null; glRunning = false; document.body.classList.add('no-gl'); setText('glStatus', 'WEBGL: FAILED — GRADIENT BACKGROUND + CSS GRID (STILL MOVING) • QLTY: ' + quality.toUpperCase()); }
+    resizeGL(); window.addEventListener('resize', resizeGL); glRunning = true; requestAnimationFrame(renderGL); setText('glStatus', msgf('glOk', { q: quality.toUpperCase() }));
+  } catch (err) { gl = null; glRunning = false; document.body.classList.add('no-gl'); setText('glStatus', msgf('glFail', { q: quality.toUpperCase() })); }
 }
 function resizeGL() { if (!gl) return; const scale = 0.66; const dpr = Math.min(1.5, window.devicePixelRatio || 1); glCanvas.width = Math.max(2, Math.floor(window.innerWidth * dpr * scale)); glCanvas.height = Math.max(2, Math.floor(window.innerHeight * dpr * scale)); gl.viewport(0, 0, glCanvas.width, glCanvas.height); }
 let lastGlFrame = 0;
@@ -243,10 +243,15 @@ function setQuality(q) {
   document.body.classList.toggle('hemat', q === 'hemat'); // v26 FIX #7: efek terlihat walau WebGL mati — background halaman berubah jelas
   if (q === 'hemat') { glRunning = false; document.body.classList.add('no-gl'); }
   else { document.body.classList.remove('no-gl'); if (gl && !glRunning) { glRunning = true; requestAnimationFrame(renderGL); } }
-  setText('glStatus', 'WEBGL: ' + (gl ? 'OK' : 'FAILED') + ' • QLTY: ' + q.toUpperCase() + (q === 'hemat' ? ' • BACKGROUND: STATIC GRADIENT' : ' • BACKGROUND: 3D / MOVING GRID'));
-  say('QLTY: ' + q.toUpperCase() + (q === 'hemat' ? ' — WebGL off, static gradient background.' : ' — WebGL / moving grid.'), 'cyan');
+  setText('glStatus', msgf('glStatusTpl', { webgl: gl ? 'OK' : 'FAILED', q: q.toUpperCase(), tail: q === 'hemat' ? msg('glTailEco') : msg('glTailUltra') }));
+  say('QLTY: ' + q.toUpperCase() + (q === 'hemat' ? msg('qltyEco') : msg('qltyUltra')), 'cyan');
   try { localStorage.setItem('sqk-quality', q); } catch (_) {}
 }
+// v32 PERFORMANCE: pause/resume the WebGL background loop. renderGL stops
+// rescheduling itself when glRunning is false, so pauseGL freezes it and
+// resumeGL restarts it. Called on game start/stop/finish.
+function pauseGL() { glRunning = false; }
+function resumeGL() { if (gl && quality !== 'hemat' && !glRunning) { glRunning = true; requestAnimationFrame(renderGL); } }
 try { const savedQ = localStorage.getItem('sqk-quality'); if (savedQ === 'hemat') quality = 'hemat'; } catch (_) {}
 if (quality === 'hemat') setQuality('hemat');
 
@@ -266,7 +271,7 @@ let currentDiff = 'easy', currentGenre = 'cyber';
 function bindToggle(rowId, attr, cb, guard) { document.querySelectorAll(`#${rowId} .btn-diff`).forEach(b => b.addEventListener('click', () => { if (guard && !guard(b.dataset[attr])) return; document.querySelectorAll(`#${rowId} .btn-diff`).forEach(x => { x.classList.remove('active'); x.setAttribute('aria-pressed', 'false'); }); b.classList.add('active'); b.setAttribute('aria-pressed', 'true'); cb(b.dataset[attr]); })); }
 bindToggle('diffRow', 'diff', v => { currentDiff = v; preview(); });
 bindToggle('genreRow', 'genre', v => { currentGenre = v; preview(); }, v => {
-  if (v === 'void' && playerLevel(currentWallet()) < 5) { say('🔒 VOID GENRE UNLOCKS AT LV5 — PLAY MORE SONGS TO EARN XP.', 'pink'); return false; }
+  if (v === 'void' && playerLevel(currentWallet()) < 5) { say(msg('voidLock'), 'pink'); return false; }
   return true;
 });
 
@@ -354,11 +359,11 @@ function scheduleIntro() {
         introStep++; introNextTime += stepDur;
     }
 }
-function updateMusicModeBtn() { const b = $('musicModeBtn'); if (b) b.textContent = 'MUSIC: ' + introCfg().label + ' — TAP FOR ' + (introMode === 'seru' ? 'CALM' : 'HYPE'); }
+function updateMusicModeBtn() { const b = $('musicModeBtn'); if (b) b.textContent = (lang === 'id' ? 'MUSIK: ' : 'MUSIC: ') + introCfg().label + ' ' + msgf('musicTapFor', { other: introMode === 'seru' ? 'CALM' : 'HYPE' }); }
 function setIntroMode(m) {
     introMode = m; updateMusicModeBtn();
     if (introInterval) { stopIntroMusic(); if (ac && ac.state === 'running' && !muted) playIntroMusic(); }
-    if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('MUSIC: ' + introCfg().label + ' • TAP MUTE TO SILENCE.', 'green');
+    if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say(msgf('musicIntro', { label: introCfg().label }), 'green');
 }
 function playIntroMusic() {
     if (!ac || muted) return;
@@ -367,7 +372,7 @@ function playIntroMusic() {
     introStep = 0; introNextTime = ac.currentTime + 0.05;
     introInterval = setInterval(scheduleIntro, 40);
     updateMusicModeBtn();
-    if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('INTRO: ON — ' + introCfg().label + ' • TAP MUTE TO SILENCE.', 'green');
+    if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say(msgf('introOn', { label: introCfg().label }), 'green');
 }
 
 function stopIntroMusic() {
@@ -402,7 +407,7 @@ async function startMusicFromTap(mode) {
     try { await initAudio(); } catch (_) {}
     hideMusicSplash(); updateMusicModeBtn();
     if (ac && ac.state === 'running') playIntroMusic();
-    else if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say('AUDIO: ' + (ac ? ac.state : 'NONE') + ' — TAP AGAIN FOR MUSIC.', 'pink');
+    else if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say(msgf('audioTap', { state: ac ? ac.state : 'NONE' }), 'pink');
 }
 window.addEventListener('pointerdown', () => { startMusicFromTap(); }, {once: true});
 bindClick('startMusicBtn', () => { startMusicFromTap('seru'); });
@@ -426,18 +431,18 @@ const songTime = () => ac ? ac.currentTime - G.start : 0;
 async function play() {
   if (G && !G.ended) return say(msg('gameRunning'), 'cyan');
   const w = $('walletInput').value.trim();
-  if (w && !isAddr(w)) { $('walletInput').classList.add('invalid'); return say('INVALID WALLET ADDRESS.', 'pink'); }
+  if (w && !isAddr(w)) { $('walletInput').classList.add('invalid'); return say(msg('invalidWallet'), 'pink'); }
   $('walletInput').classList.remove('invalid');
-  try { await initAudio(); stopIntroMusic(); } catch (e) { return say('AUDIO FAILED: ' + String(e.message || e).slice(0, 60), 'pink'); }
+  try { await initAudio(); stopIntroMusic(); } catch (e) { return say(msgf('audioFail', { err: String(e.message || e).slice(0, 60) }), 'pink'); }
   // v27 LIVE: sample the real wheel right before the song is built — the tempo
   // IS the hamster's tempo at this moment. If the wheel is offline, the song
   // still starts on a 128 BPM fallback and says so (never fake live data).
   // v29: RACE uses the same live tempo (the race is against the live wheel).
   let liveStart = null;
   if (playMode === 'live' || playMode === 'race') {
-    say('FETCHING LIVE WHEEL...', 'cyan');
+    say(msg('fetchingWheel'), 'cyan');
     liveStart = await refreshLive();
-    if (!liveStart.ok) say('WHEEL OFFLINE — LIVE MODE USES 128 BPM FALLBACK (NOT LIVE DATA).', 'pink');
+    if (!liveStart.ok) say(msg('wheelOffline'), 'pink');
   }
   const seedKey = seedKeyFor(playMode);
   if (playMode === 'daily') applyDailySpec(); // v28: daily genre+diff come from the date, not the selection
@@ -447,19 +452,20 @@ async function play() {
   // v29 PRACTICE: 60% tempo, no XP/streak/history — scale every time value.
   if (practiceMode) { const k = 1 / 0.6; anthem.bpm = Math.round(anthem.bpm * 0.6); anthem.step *= k; anthem.duration *= k; anthem.chart.forEach(n => { n.t *= k; }); anthem.drums.forEach(d => { d.t *= k; }); CONFIG.SPEED = Math.round(CONFIG.SPEED * 0.6); }
   LW = GW / lanes; // v28: 4-lane mode widens the highway per lane
-  const kh = document.querySelector('.kbd-hint'); if (kh) kh.textContent = lanes === 4 ? 'KEYBOARD: ← ↓ ↑ → / A S D F  •  P = PAUSE  •  M = MUTE' : 'KEYBOARD: ← ↓ → / A S D  •  P = PAUSE  •  M = MUTE';
+  const kh = document.querySelector('.kbd-hint'); if (kh) kh.textContent = lanes === 4 ? msg('kbd4') : msg('kbd3');
   glSeed = w ? Math.abs(cyrb53(w) % 1000) / 100 : Math.random() * 10;
   glShockwave = 1.0; // Shockwave saat mulai
 
   G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, fever: false, practice: practiceMode, live: (playMode === 'live' || playMode === 'race') ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null, race: playMode === 'race' ? { startDistKm: liveStart && liveStart.ok ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), playerDist: 0, roundKey: roundKeyFor(new Date()), goldenNote: null } : null, boss: playMode === 'boss' };
-  if (playMode === 'challenge' && (challengeLanes === 4 || challengeMirror)) say('DUEL UNLOCK: ' + (challengeLanes === 4 ? '4 LANES ' : '') + (challengeMirror ? 'MIRROR ' : '') + '— TRY IT IN THIS SONG.', 'yellow');
+  if (playMode === 'challenge' && (challengeLanes === 4 || challengeMirror)) say(msgf('duelUnlock', { mods: (challengeLanes === 4 ? '4 LANES ' : '') + (challengeMirror ? 'MIRROR ' : '') }), 'yellow');
   floatTexts = [];
-  show('gamePanel'); setText('bpmVal', anthem.bpm); setText('gameAudioStatus', 'AUDIO: RUNNING • ' + anthem.bpm + ' BPM • AC: ' + (ac ? ac.state : '-') + (practiceMode ? ' • PRACTICE (NO XP)' : '')); hud();
+  show('gamePanel'); document.body.classList.add('playing'); pauseGL(); closeSettings(); // v32: freeze decorations + WebGL while playing (lag fix)
+  setText('bpmVal', anthem.bpm); setText('gameAudioStatus', msgf('gameAudioTpl', { bpm: anthem.bpm, state: ac ? ac.state : '-', practice: practiceMode ? msg('practiceTag2') : '' })); hud();
   stopMenuPoll(); // v29: the menu poll pauses while a game runs
   if (playMode === 'live') { const lh = $('liveHud'); if (lh) lh.classList.remove('hidden'); updateLiveHud(); startLivePoll(5000); }
   else if (playMode === 'race') { const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.remove('hidden'); updateRaceHud(); startLivePoll(5000); startRaceTick(); }
   else { const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); }
-  setText('pauseBtn', '[ PAUSE ]');
+  setText('pauseBtn', msg('pauseBtn'));
   clearInterval(sched); sched = setInterval(schedule, 25);
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
   cv.focus({ preventScroll: true });
@@ -518,14 +524,14 @@ function judge(lane) {
   hud();
 }
 
-let lastLoopTs = 0;
+let lastLoopTs = 0, lastVizTs = 0; // v32: viz + analyser update at most every 100ms (was every frame)
 function loop(ts) {
   if (!G || G.ended) return;
   if (G.paused) return;
   raf = requestAnimationFrame(loop);
   const dt = Math.min(0.05, lastLoopTs ? (ts - lastLoopTs) / 1000 : 1 / 60);
   lastLoopTs = ts;
-  glAudio = getAudioLevel(); updateViz();
+  if (ts - lastVizTs > 100) { lastVizTs = ts; glAudio = getAudioLevel(); updateViz(); }
   glCombo = G.combo;
   const st = songTime();
   // v29 GOLDEN NOTE: when a 10-minute round boundary passes mid-song, the next
@@ -644,6 +650,7 @@ function finish() {
   playResultJingle(g);
   playIntroMusic(); // Kembalikan intro setelah selesai
   startMenuPoll();
+  document.body.classList.remove('playing'); resumeGL(); // v32: decorations back on
 }
 function playResultJingle(g) {
   // v26-musik: fanfare hasil — SS/S naik penuh, A/B sedang, C/D pendek turun
@@ -653,9 +660,9 @@ function playResultJingle(g) {
   seq.forEach((m, i) => { tone(mtof(m), t0 + i * 0.11, 'square', 0.16, 0.16); tone(mtof(m + 7), t0 + i * 0.11, 'sawtooth', 0.07, 0.16); });
   if (g === 'SS' || g === 'S') kick(t0);
 }
-function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night'); const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.add('hidden'); show('mainPanel'); playIntroMusic(); startMenuPoll(); }
-async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', '[ RESUME ]'); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); }
-async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', '[ PAUSE ]'); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
+function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night'); const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.add('hidden'); document.body.classList.remove('playing'); resumeGL(); show('mainPanel'); playIntroMusic(); startMenuPoll(); }
+async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', msg('resumeBtn')); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); }
+async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', msg('pauseBtn')); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
 async function togglePause() { if (!G) return; if (G.paused) await resumeGame(); else await pauseGame(); }
 
 const KEY_LANES = { ArrowLeft: 0, a: 0, A: 0, '1': 0, ArrowDown: 1, s: 1, S: 1, '2': 1, ArrowRight: 2, d: 2, D: 2, '3': 2, ArrowUp: 3, f: 3, F: 3, '4': 3 }; // v28: lane 3 (4th) = ↑ / F — only active in 4-lane songs (judge() guards the lane)
@@ -704,15 +711,15 @@ const ZOOMIES_RPM = 70;
 function liveBpm(rpm) { if (!Number.isFinite(rpm) || rpm <= 0) return 100; return Math.min(180, Math.round(100 + rpm)); }
 function liveIsDay(s) { return !!(s && s.ok && s.rpm > 0); }
 function liveSummary(s) {
-  if (!s || !s.ok) return 'WHEEL OFFLINE — NEXT SONG USES 128 BPM FALLBACK (NOT LIVE DATA)';
+  if (!s || !s.ok) return msg('liveSumOff');
   const bpm = liveBpm(s.rpm);
-  return `RPM ${Math.round(s.rpm)} • ${s.dist.toFixed(3)} KM • ${liveIsDay(s) ? 'DAY — HAMSTER RUNNING' : 'NIGHT — HAMSTER RESTING'} • SONG ${bpm} BPM${s.rpm >= ZOOMIES_RPM ? ' • ZOOMIES ×2' : ''}`;
+  return msgf('liveSumTpl', { rpm: Math.round(s.rpm), dist: s.dist.toFixed(3), daynight: liveIsDay(s) ? msg('liveSumDay') : msg('liveSumNight'), bpm, zoom: s.rpm >= ZOOMIES_RPM ? msg('liveSumZoom') : '' });
 }
 function renderLiveBox() {
   const box = $('liveBox'); if (!box) return;
   box.classList.toggle('hidden', playMode !== 'live');
   if (playMode !== 'live') return;
-  const ll = $('liveLine'); if (ll) ll.textContent = liveSnapshot ? liveSummary(liveSnapshot) : 'FETCHING WHEEL…';
+  const ll = $('liveLine'); if (ll) ll.textContent = liveSnapshot ? liveSummary(liveSnapshot) : msg('fetchingWheel');
 }
 let lastSeenRound = null; // v30: the round the page is currently watching, so a round ending mid-session is finalized immediately
 async function refreshLive() {
@@ -745,8 +752,8 @@ function updateLiveHud() {
   document.body.classList.toggle('live-night', !day);
   lh.classList.toggle('zoomies', liveZoomies);
   lh.textContent = s && s.ok
-    ? `LIVE • RPM ${Math.round(s.rpm)} • ${s.dist.toFixed(3)} KM • ${day ? '☀️ DAY' : '🌙 NIGHT'}${liveZoomies ? ' • ZOOMIES ×2 SCORE' : ''}`
-    : 'LIVE: OFFLINE — FALLBACK 128 BPM (NOT LIVE DATA)';
+    ? msgf('liveHudTpl', { rpm: Math.round(s.rpm), dist: s.dist.toFixed(3), daynight: day ? msg('liveHudDay') : msg('liveHudNight'), zoom: liveZoomies ? msg('liveHudZoom') : '' })
+    : msg('liveHudOff');
 }
 
 function avatar(ctx, w, x0, y0, px, level) {
@@ -815,7 +822,7 @@ async function generateCard() {
 
 const cardBlob = () => new Promise(r => { try { $('card-canvas').toBlob(r, 'image/png'); } catch { r(null); } });
 async function download() {
-  const b = await cardBlob(); if (!b) return say('DOWNLOAD FAILED: empty canvas.', 'pink');
+  const b = await cardBlob(); if (!b) return say(msg('downloadFail'), 'pink');
   const u = URL.createObjectURL(b), a = document.createElement('a');
   a.href = u; a.download = 'squeek-id.png'; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(u), 1000);
@@ -849,7 +856,7 @@ function renderAvatarPreview(w) {
   const lv = levelFor(totalXP(w));
   avatar(ctx, w, 0, 0, 8, lv);
   const ll = $('levelLabel');
-  if (ll) { const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 }); ll.textContent = `LV ${lv} • ${totalXP(w)} XP${st.count ? ' • STREAK ' + st.count + ' DAYS' : ''}${lv >= 8 ? ' • GOLD' : ''}`; }
+  if (ll) { const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 }); ll.textContent = `LV ${lv} • ${totalXP(w)} XP` + (st.count ? msgf('streakDays', { n: st.count }) : '') + (lv >= 8 ? ' • GOLD' : ''); }
   wrap.classList.toggle('gold', lv >= 8); // v28: LV8 gold frame
   wrap.classList.remove('hidden');
   startPreviewSpin(w); // v26 FIX #4: putaran di DALAM canvas (scaleX = cos), kotaknya diam, teks tidak gepeng
@@ -881,13 +888,14 @@ function juiceHit(kind) {
 
 function preview() {
   const w = $('walletInput').value.trim();
-  if (w && !isAddr(w)) { $('anthemInfo').textContent = 'INVALID ADDRESS'; $('walletInput').classList.add('invalid'); return; }
+  if (w && !isAddr(w)) { $('anthemInfo').textContent = msg('invalidAddr'); $('walletInput').classList.add('invalid'); return; }
   $('walletInput').classList.remove('invalid');
   if (playMode === 'daily') applyDailySpec(); // v28: daily genre+diff come from the date
   const lanes = lanesForSong(), mirror = mirrorForSong();
   const a = makeAnthem(w, false, playMode === 'free' ? null : seedKeyFor(playMode), lanes, mirror), b = loadBest(w);
-  const modeTag = playMode === 'free' ? '' : playMode === 'daily' ? ' // DAILY ' + todayStr() + ' • ' + currentGenre.toUpperCase() + '/' + currentDiff.toUpperCase() : playMode === 'live' ? ' // LIVE ' + (liveSnapshot && liveSnapshot.ok ? 'RPM ' + Math.round(liveSnapshot.rpm) + ' • ' + a.bpm + ' BPM' : 'WHEEL OFFLINE • 128 BPM FALLBACK') : playMode === 'race' ? ' // RACE VS SQUEEKTOSHI ' + (liveSnapshot && liveSnapshot.ok ? 'RPM ' + Math.round(liveSnapshot.rpm) + ' • ' + a.bpm + ' BPM' : 'WHEEL OFFLINE • 128 BPM FALLBACK') : playMode === 'boss' ? ' // WEEKLY BOSS ' + weeklyKey() : ' // DUEL ' + String(challengeCode || '').slice(0, 12) + (lanes === 4 ? ' • 4 LANES' : '') + (mirror ? ' • MIRROR' : '');
-  $('anthemInfo').textContent = `>> ANTHEM: ${a.key} ${a.scaleName} [${a.bpm} BPM] // NOTES: ${a.chart.length}${b ? ' // BEST: ' + b.score : ''}${modeTag}`;
+  const liveTag = liveSnapshot && liveSnapshot.ok ? msgf('anthemLiveOk', { rpm: Math.round(liveSnapshot.rpm), bpm: a.bpm }) : msg('anthemLiveOff');
+  const modeTag = playMode === 'free' ? '' : playMode === 'daily' ? msgf('anthemDaily', { date: todayStr(), genre: currentGenre.toUpperCase(), diff: currentDiff.toUpperCase() }) : playMode === 'live' ? msgf('anthemLive', { live: liveTag }) : playMode === 'race' ? msgf('anthemRace', { live: liveTag }) : playMode === 'boss' ? msgf('anthemBoss', { week: weeklyKey() }) : msgf('anthemDuel', { code: String(challengeCode || '').slice(0, 12), lanes: lanes === 4 ? ' • 4 LANES' : '', mirror: mirror ? ' • MIRROR' : '' });
+  $('anthemInfo').textContent = msg('anthemPrefix') + `${a.key} ${a.scaleName} [${a.bpm} BPM] // NOTES: ${a.chart.length}` + (b ? msgf('anthemBest', { score: b.score }) : '') + modeTag;
   renderAvatarPreview(w); renderUnlocks(); applyHue(a.hue);
 }
 
@@ -901,24 +909,24 @@ if (walletEl) walletEl.addEventListener('input', preview);
 // user rejects, manual 0x input stays the way in. Never auto-requests on load.
 async function connectWallet() {
   const eth = window.ethereum;
-  if (!eth || typeof eth.request !== 'function') return say('NO WALLET FOUND IN THIS BROWSER — TYPE YOUR 0x ADDRESS MANUALLY.', 'pink');
+  if (!eth || typeof eth.request !== 'function') return say(msg('noWallet'), 'pink');
   try {
     const accounts = await eth.request({ method: 'eth_requestAccounts' });
     const addr = Array.isArray(accounts) ? accounts[0] : null;
-    if (!addr || !isAddr(addr)) return say('WALLET RETURNED NO VALID ADDRESS — TYPE YOUR 0x ADDRESS MANUALLY.', 'pink');
+    if (!addr || !isAddr(addr)) return say(msg('walletInvalid'), 'pink');
     if (walletEl) walletEl.value = addr;
     preview();
-    say('WALLET CONNECTED: ' + addr.slice(0, 6) + '...' + addr.slice(-4) + ' — ADDRESS ONLY, NO SIGNATURE REQUESTED.', 'green');
+    say(msgf('walletConnected', { addr: addr.slice(0, 6) + '...' + addr.slice(-4) }), 'green');
   } catch (e) {
     const code = e && e.code;
-    if (code === 4001) return say('CONNECTION REJECTED — TYPE YOUR 0x ADDRESS MANUALLY.', 'pink');
-    return say('CONNECT FAILED: ' + String((e && e.message) || e).slice(0, 60), 'pink');
+    if (code === 4001) return say(msg('connRejected'), 'pink');
+    return say(msgf('connFail', { err: String((e && e.message) || e).slice(0, 60) }), 'pink');
   }
 }
 if (window.ethereum && typeof window.ethereum.on === 'function') {
   window.ethereum.on('accountsChanged', (accounts) => {
     const addr = Array.isArray(accounts) ? accounts[0] : null;
-    if (addr && isAddr(addr) && walletEl) { walletEl.value = addr; preview(); say('WALLET SWITCHED TO ' + addr.slice(0, 6) + '...' + addr.slice(-4) + '.', 'cyan'); }
+    if (addr && isAddr(addr) && walletEl) { walletEl.value = addr; preview(); say(msgf('walletSwitched', { addr: addr.slice(0, 6) + '...' + addr.slice(-4) }), 'cyan'); }
   });
 }
 bindClick('connectBtn', connectWallet);
@@ -929,6 +937,12 @@ bindClick('pauseBtn', togglePause); bindClick('muteBtn', toggleMute);
 bindClick('qualityBtn', () => setQuality(quality === 'ultra' ? 'hemat' : 'ultra'));
 bindClick('homeBtn', () => show('mainPanel'));
 bindClick('toCardBtn', () => { setTab('play'); show('mainPanel'); generateCard() }); // v31: the card lives in the PLAY tab
+// v32 NEO: settings sheet + PLAY-tab latency shortcut
+function closeSettings() { const s = $('settingsSheet'), b = $('settingsBackdrop'); if (s) s.classList.add('hidden'); if (b) b.classList.add('hidden'); }
+bindClick('settingsBtn', () => { const s = $('settingsSheet'), b = $('settingsBackdrop'); if (s) s.classList.remove('hidden'); if (b) b.classList.remove('hidden'); });
+bindClick('settingsCloseBtn', closeSettings);
+bindClick('settingsBackdrop', closeSettings);
+bindClick('latCalibBtn', () => { startCalibration(); });
 
 function renderDailyBox() {
   const box = $('dailyBox'); if (!box) return;
@@ -937,20 +951,20 @@ function renderDailyBox() {
   box.classList.toggle('hidden', !isDaily);
   if (!isDaily) return;
   const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 });
-  const sl = $('streakLine'); if (sl) sl.textContent = `STREAK: ${st.count} DAYS — play Daily every day to keep the flame alive.`;
-  const fl = $('freezeLine'); if (fl) { const fr = loadJSON('sqk29:freeze:' + walletKey(w), 0); fl.classList.toggle('hidden', fr <= 0); fl.textContent = fr > 0 ? `❄️ STREAK FREEZE ×${fr} — MISS ONE DAY AND YOUR STREAK SURVIVES (EARN MORE BY CLEARING ALL 3 MISSIONS).` : ''; }
-  const dt = $('dailyTitle'); if (dt) dt.textContent = 'DAILY ANTHEM — ' + todayStr();
-  const di = $('dailyInfo'); if (di) { const s = dailySpec(); di.textContent = `Today's song is the same for everyone: ${s.genre.toUpperCase()} / ${s.diff.toUpperCase()} — ${todayStr()}. Play today, come back tomorrow — the song changes.`; }
+  const sl = $('streakLine'); if (sl) sl.textContent = msgf('streakTpl', { n: st.count });
+  const fl = $('freezeLine'); if (fl) { const fr = loadJSON('sqk29:freeze:' + walletKey(w), 0); fl.classList.toggle('hidden', fr <= 0); fl.textContent = fr > 0 ? msgf('freezeTpl', { n: fr }) : ''; }
+  const dt = $('dailyTitle'); if (dt) dt.textContent = msgf('dailyTitleTpl', { date: todayStr() });
+  const di = $('dailyInfo'); if (di) { const s = dailySpec(); di.textContent = msgf('dailyInfoTpl', { genre: s.genre.toUpperCase(), diff: s.diff.toUpperCase(), date: todayStr() }); }
   const done = loadJSON(missionsDoneKey(w), []);
   const ml = $('missionList');
-  if (ml) ml.innerHTML = dailyMissions(todayStr()).map(m => `<div class="mission${done.includes(m.id) ? ' done' : ''}">${m.text}</div>`).join('');
+  if (ml) ml.innerHTML = dailyMissions(todayStr()).map(m => `<div class="mission${done.includes(m.id) ? ' done' : ''}">${msg(m.k)}</div>`).join('');
 }
 function renderMastery() {
   const w = $('walletInput') ? $('walletInput').value.trim() : '';
   const hist = loadJSON('sqk24:hist:' + walletKey(w), []);
   const bars = $('historyBars'), stats = $('masteryStats');
   if (!bars || !stats) return;
-  if (!hist.length) { bars.innerHTML = ''; stats.textContent = 'No games recorded in this browser yet.'; return; }
+  if (!hist.length) { bars.innerHTML = ''; stats.textContent = msg('masteryEmpty'); return; }
   const max = Math.max.apply(null, hist.map(h => h.score).concat([1]));
   const best = Math.max.apply(null, hist.map(h => h.score));
   bars.innerHTML = hist.map(h => `<i style="height:${Math.max(6, Math.round(h.score / max * 100))}%" title="${h.score} • ${h.acc}%"></i>`).join('');
@@ -959,18 +973,16 @@ function renderMastery() {
   const avgOff = avgOffs.length ? Math.round(avgOffs.reduce((s, h) => s + h.avgOff, 0) / avgOffs.length) : null;
   const bestBy = {};
   hist.forEach(h => { const k = h.genre + '/' + h.diff; if (!bestBy[k] || h.score > bestBy[k]) bestBy[k] = h.score; });
-  stats.textContent = `GAMES: ${hist.length} • BEST: ${best} • AVG ACCURACY: ${avgAcc}%` +
-    (avgOff !== null ? ` • AVG OFFSET: ${avgOff > 0 ? '+' : ''}${avgOff} ms` : '') +
-    ' • BEST PER GENRE/DIFF: ' + Object.entries(bestBy).map(([k, v]) => `${k} ${v}`).join(', ');
+  stats.textContent = msgf('masteryTpl', { n: hist.length, best, acc: avgAcc, avgOff: avgOff !== null ? msgf('masteryAvgOff', { off: (avgOff > 0 ? '+' : '') + avgOff }) : '', bestPer: msgf('masteryBestPer', { list: Object.entries(bestBy).map(([k, v]) => `${k} ${v}`).join(', ') }) });
 }
 
 // v28 FIX — UNLOCKS road map in the menu + options row (lanes / mirror).
 function renderUnlocks() {
   const box = $('unlockBox'); if (!box) return;
   const lv = playerLevel(currentWallet());
-  box.innerHTML = `<p class="unlock-title">UNLOCKS — LV ${lv}</p>` + [5, 6, 7, 8].map(l => {
+  box.innerHTML = `<p class="unlock-title">${msgf('unlockTitleTpl', { lv })}</p>` + [5, 6, 7, 8].map(l => {
     const u = UNLOCKS[l], done = lv >= l;
-    return `<div class="unlock${done ? ' done' : ''}">${done ? '✓' : '🔒'} LV${l} — ${u.text}</div>`;
+    return `<div class="unlock${done ? ' done' : ''}">${done ? '✓' : '🔒'} LV${l} — ${msg(u.k)}</div>`;
   }).join('');
   const vg = document.querySelector('#genreRow [data-genre="void"]');
   if (vg) { vg.classList.toggle('locked', lv < 5); vg.textContent = lv < 5 ? 'VOID 🔒 LV5' : 'VOID'; }
@@ -980,10 +992,12 @@ function renderOptionsRow() {
   const lv = playerLevel(currentWallet());
   const lb = $('lanesBtn'), mb = $('mirrorBtn');
   if (lb) { lb.textContent = 'LANES: ' + (lanes4Enabled ? '4' : '3') + (lv < 6 ? ' 🔒 LV6' : ''); lb.classList.toggle('locked', lv < 6); }
-  if (mb) { mb.textContent = 'MIRROR: ' + (mirrorEnabled ? 'ON' : 'OFF') + (lv < 7 ? ' 🔒 LV7' : ''); mb.classList.toggle('locked', lv < 7); }
+  if (mb) { mb.textContent = 'MIRROR: ' + (mirrorEnabled ? msg('mirrorOn') : msg('mirrorOff')) + (lv < 7 ? ' 🔒 LV7' : ''); mb.classList.toggle('locked', lv < 7); }
 }
 function renderOffsetLine() {
-  const el = $('offsetLine'); if (el) el.textContent = 'OFFSET: ' + (offsetMs > 0 ? '+' : '') + offsetMs + ' ms' + (offsetMs === 0 ? ' (DEFAULT — TAP AUTO-CALIBRATE IF YOUR HITS FEEL EARLY/LATE)' : '');
+  const off = (offsetMs > 0 ? '+' : '') + offsetMs;
+  const el = $('offsetLine'); if (el) el.textContent = 'OFFSET: ' + off + ' ms' + (offsetMs === 0 ? msg('offsetDefault') : '');
+  const lv2 = $('latVal'); if (lv2) lv2.textContent = msgf('latTpl', { off }); // v32: the PLAY-tab latency row mirrors the offset
 }
 
 // v28 FIX — AUTO-CALIBRATE: 8 metronome beats (100 BPM) on the audio clock;
@@ -1001,9 +1015,9 @@ function startCalibration() {
     calib = { beats, taps: [], next: 0 };
     const tb = $('calibTapBtn'), pm = $('calibProg'), cm = $('calibMsg');
     if (tb) tb.classList.remove('hidden');
-    if (pm) { pm.classList.remove('hidden'); pm.textContent = 'LISTEN… THE FIRST BEAT COMES IN 1 SECOND — TAP THE BUTTON ON EACH BEAT.'; }
+    if (pm) { pm.classList.remove('hidden'); pm.textContent = msg('calibListen'); }
     if (cm) cm.classList.add('hidden');
-    say('CALIBRATING… TAP ON EACH OF THE 8 BEATS.', 'yellow');
+    say(msg('calibStart'), 'yellow');
     calibTimer = setInterval(() => {
       if (!calib) return;
       const now = ac.currentTime;
@@ -1025,7 +1039,7 @@ function calibTap() {
   if (calib.taps.some(t => t.beat === best)) return; // one tap per beat
   calib.taps.push({ beat: best, err: (now - calib.beats[best]) * 1000 });
   const pm = $('calibProg');
-  if (pm) pm.textContent = `TAP ${calib.taps.length}/8 — ${calib.taps.length < 8 ? 'KEEP GOING, TAP ON EACH BEAT.' : 'DONE — CALCULATING…'}`;
+  if (pm) pm.textContent = msgf('calibTapN', { n: calib.taps.length, more: calib.taps.length < 8 ? msg('calibKeep') : msg('calibCalc') });
 }
 function finishCalibration() {
   if (!calib) return;
@@ -1035,13 +1049,13 @@ function finishCalibration() {
   if (tb) tb.classList.add('hidden');
   if (pm) pm.classList.add('hidden');
   if (taps.length < 4) {
-    if (cm) { cm.classList.remove('hidden'); cm.textContent = `ONLY ${taps.length} GOOD TAPS — NEED AT LEAST 4. TRY AGAIN, TAP RIGHT ON THE BEAT.`; }
+    if (cm) { cm.classList.remove('hidden'); cm.textContent = msgf('calibFew', { n: taps.length }); }
     say(msg('calibFail'), 'pink');
   } else {
     const med = taps[Math.floor(taps.length / 2)].err;
     setOffsetMs(med);
     const avg = Math.round(taps.reduce((s, t) => s + t.err, 0) / taps.length);
-    if (cm) { cm.classList.remove('hidden'); cm.textContent = `CALIBRATED: OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms (MEDIAN OF ${taps.length} TAPS, AVG ${avg > 0 ? '+' : ''}${avg} ms — ${offsetMs > 0 ? 'YOU TAP LATE ON AVERAGE' : offsetMs < 0 ? 'YOU TAP EARLY ON AVERAGE' : 'YOUR TIMING IS SPOT ON'}).`; }
+    if (cm) { cm.classList.remove('hidden'); cm.textContent = msgf('calibDoneTpl', { off: (offsetMs > 0 ? '+' : '') + offsetMs, n: taps.length, avg: (avg > 0 ? '+' : '') + avg, verdict: offsetMs > 0 ? msg('calibLate') : offsetMs < 0 ? msg('calibEarly') : msg('calibSpot') }); }
     say(msgf('calibDone', { off: (offsetMs > 0 ? '+' : '') + offsetMs }), 'green');
   }
   calib = null;
@@ -1085,12 +1099,12 @@ bindClick('offsetPlusBtn', () => setOffsetMs(offsetMs + 5));
 bindClick('calibBtn', startCalibration);
 bindClick('calibTapBtn', calibTap);
 bindClick('lanesBtn', () => {
-  if (playerLevel(currentWallet()) < 6) return say('🔒 4 LANES UNLOCKS AT LV6 — PLAY MORE SONGS TO EARN XP.', 'pink');
+  if (playerLevel(currentWallet()) < 6) return say(msg('lanesLock'), 'pink');
   lanes4Enabled = !lanes4Enabled; saveJSON('sqk28:lanes4', lanes4Enabled); renderOptionsRow(); preview();
   say(lanes4Enabled ? 'LANES: 4 — HARDER HIGHWAY, MORE NOTES.' : 'LANES: 3 — CLASSIC.', 'cyan');
 });
 bindClick('mirrorBtn', () => {
-  if (playerLevel(currentWallet()) < 7) return say('🔒 MIRROR MODE UNLOCKS AT LV7 — PLAY MORE SONGS TO EARN XP.', 'pink');
+  if (playerLevel(currentWallet()) < 7) return say(msg('mirrorLock'), 'pink');
   mirrorEnabled = !mirrorEnabled; saveJSON('sqk28:mirror', mirrorEnabled); renderOptionsRow(); preview();
   say(mirrorEnabled ? 'MIRROR: ON — THE CHART IS FLIPPED.' : 'MIRROR: OFF.', 'cyan');
 });
@@ -1141,8 +1155,8 @@ function finalizeRound(key) {
 function renderRoundHist() {
   const el = $('roundHistList'); if (!el) return;
   const list = loadRounds().slice().reverse();
-  if (!list.length) { el.innerHTML = '<p class="msg">No finished rounds recorded yet — keep this page open and rounds settle here.</p>'; return; }
-  el.innerHTML = list.map(r => `<div class="league-row">${r.key} — ${roundLabel(r.cls)} (AVG ${r.avg} RPM, ${r.n} SAMPLES)</div>`).join('');
+  if (!list.length) { el.innerHTML = `<p class="msg">${I18N[lang].roundHistEmpty}</p>`; return; }
+  el.innerHTML = list.map(r => `<div class="league-row">${msgf('roundHistRowTpl', { key: r.key, label: roundLabel(r.cls), avg: r.avg, n: r.n })}</div>`).join('');
 }
 
 // --- v30 TOTAL: Daily Champions (best score of each day, this wallet) ---
@@ -1159,7 +1173,7 @@ function recordChampion(res) {
 function renderChamps() {
   const el = $('champList'); if (!el) return;
   const list = loadJSON('sqk30:champs:' + walletKey(currentWallet()), []).slice().reverse();
-  if (!list.length) { el.innerHTML = '<p class="msg">No champions yet — your best score of each day lands here.</p>'; return; }
+  if (!list.length) { el.innerHTML = `<p class="msg">${I18N[lang].champsEmpty}</p>`; return; }
   el.innerHTML = list.map(c => `<div class="league-row">${c.date} — ${c.score} PTS • ${c.grade} • ${c.mode.toUpperCase()}</div>`).join('');
 }
 
@@ -1198,7 +1212,7 @@ function renderPredict() {
   const cur = currentRoundKey();
   const avg = roundAvg(cur);
   const curClass = avg !== null ? roundClass(avg) : (liveSnapshot && liveSnapshot.ok ? roundClass(liveSnapshot.rpm) : null);
-  rl.textContent = `ROUND ${cur} • NOW: ${curClass ? roundLabel(curClass) : '—'}${avg !== null ? ' (AVG ' + avg.toFixed(0) + ' RPM)' : ''} • NEXT ROUND IN ${fmtCountdown(nextRoundInMs(now))}`;
+  rl.textContent = msgf('roundTpl', { cur, cls: curClass ? roundLabel(curClass) : '—', avg: avg !== null ? msgf('roundAvgPart', { avg: avg.toFixed(0) }) : '', cd: fmtCountdown(nextRoundInMs(now)) });
   const w = currentWallet();
   const preds = loadPreds(w);
   const mine = preds[nextRoundKey()];
@@ -1214,16 +1228,16 @@ function renderPredict() {
 
 // --- Achievements (10, named) ---
 const ACHIEVEMENTS = [
-  { id: 'first', name: 'FIRST STEPS', desc: 'Finish 1 song', check: c => c.games >= 1 },
-  { id: 'perfect30', name: 'PERFECT 30', desc: '30+ PERFECT in one song', check: c => c.res && c.res.perfect >= 30 },
-  { id: 'combo100', name: 'COMBO 100', desc: 'Max combo 100+', check: c => c.res && c.res.maxCombo >= 100 },
-  { id: 'zoomies', name: 'ZOOMIES RIDER', desc: 'Finish a live/race song with ZOOMIES', check: c => !!c.zoomiesEver },
-  { id: 'racewin', name: 'RACE WINNER', desc: 'Win a race vs Squeektoshi', check: c => !!c.raceWin },
-  { id: 'oracle', name: 'ORACLE', desc: 'A correct Wheel Call', check: c => !!c.oracle },
-  { id: 'streak7', name: 'WEEK STREAK', desc: '7-day daily streak', check: c => (c.streak || 0) >= 7 },
-  { id: 'gold', name: 'GOLDEN', desc: 'Reach LV8', check: c => (c.level || 0) >= 8 },
-  { id: 'void', name: 'VOID WALKER', desc: 'Finish a VOID song', check: c => c.genre === 'void' },
-  { id: 'mirror', name: 'MIRROR MASTER', desc: 'Finish a Mirror song', check: c => c.mirror === true },
+  { id: 'first', name: 'FIRST STEPS', desc: 'Finish 1 song', k: 'achFirst', check: c => c.games >= 1 },
+  { id: 'perfect30', name: 'PERFECT 30', desc: '30+ PERFECT in one song', k: 'achPerfect', check: c => c.res && c.res.perfect >= 30 },
+  { id: 'combo100', name: 'COMBO 100', desc: 'Max combo 100+', k: 'achCombo', check: c => c.res && c.res.maxCombo >= 100 },
+  { id: 'zoomies', name: 'ZOOMIES RIDER', desc: 'Finish a live/race song with ZOOMIES', k: 'achZoomies', check: c => !!c.zoomiesEver },
+  { id: 'racewin', name: 'RACE WINNER', desc: 'Win a race vs Squeektoshi', k: 'achRacewin', check: c => !!c.raceWin },
+  { id: 'oracle', name: 'ORACLE', desc: 'A correct Wheel Call', k: 'achOracle', check: c => !!c.oracle },
+  { id: 'streak7', name: 'WEEK STREAK', desc: '7-day daily streak', k: 'achStreak', check: c => (c.streak || 0) >= 7 },
+  { id: 'gold', name: 'GOLDEN', desc: 'Reach LV8', k: 'achGold', check: c => (c.level || 0) >= 8 },
+  { id: 'void', name: 'VOID WALKER', desc: 'Finish a VOID song', k: 'achVoid', check: c => c.genre === 'void' },
+  { id: 'mirror', name: 'MIRROR MASTER', desc: 'Finish a Mirror song', k: 'achMirror', check: c => c.mirror === true },
 ];
 function achCtx(extra) {
   const w = currentWallet();
@@ -1245,7 +1259,7 @@ function checkAchievements(extra) {
 function renderAchievements() {
   const el = $('achList'); if (!el) return;
   const have = loadJSON('sqk29:ach:' + walletKey(currentWallet()), []);
-  el.innerHTML = ACHIEVEMENTS.map(a => `<span class="ach-chip${have.includes(a.id) ? ' done' : ''}" title="${a.desc}">${have.includes(a.id) ? '🏆 ' : '🔒 '}${a.name}</span>`).join('');
+  el.innerHTML = ACHIEVEMENTS.map(a => `<span class="ach-chip${have.includes(a.id) ? ' done' : ''}" title="${msg(a.k)}">${have.includes(a.id) ? '🏆 ' : '🔒 '}${a.name}</span>`).join('');
 }
 
 // --- Duel League (local rivals; the score travels inside the duel link) ---
@@ -1268,9 +1282,9 @@ function recordLeagueResult(rival, myScore) {
 function renderLeague() {
   const el = $('leagueList'); if (!el) return;
   const list = loadJSON('sqk29:league:' + walletKey(currentWallet()), []);
-  if (!list.length) { el.innerHTML = '<p class="msg">No duels yet — send a Duel Link after a song, and when a friend plays it, their result lands here.</p>'; return; }
+  if (!list.length) { el.innerHTML = `<p class="msg">${I18N[lang].leagueEmpty}</p>`; return; }
   const sorted = list.slice().sort((a, b) => b.myScore - a.myScore).slice(0, 8);
-  el.innerHTML = sorted.map(r => `<div class="league-row${r.win ? ' win' : ' lose'}">YOU ${r.myScore} vs ${escHtml(r.rival)} ${r.rivalScore} — ${r.win ? 'WIN ✓' : 'LOSE'} • ${r.date}</div>`).join('');
+  el.innerHTML = sorted.map(r => `<div class="league-row${r.win ? ' win' : ' lose'}">${msgf('leagueRowTpl', { mine: r.myScore, rival: escHtml(r.rival), theirs: r.rivalScore, result: r.win ? msg('leagueWin') : msg('leagueLose'), date: r.date })}</div>`).join('');
 }
 
 // --- LIVE RACE HUD ---
@@ -1301,15 +1315,15 @@ function renderRaceBox() {
   if (playMode !== 'race') return;
   const pl = $('petLine');
   if (pl) {
-    if (!liveSnapshot) pl.textContent = '🐹 SQUEEKTOSHI IS WAITING…';
-    else if (!liveSnapshot.ok) pl.textContent = '❓ WHEEL OFFLINE — SQUEEKTOSHI IS HIDING.';
-    else if (liveSnapshot.rpm > 0) pl.textContent = `🐹 SQUEEKTOSHI IS RUNNING — ${Math.round(liveSnapshot.rpm)} RPM${liveSnapshot.rpm >= ZOOMIES_RPM ? ' • ZOOMIES!' : ''}`;
-    else pl.textContent = '😴 SQUEEKTOSHI IS NAPPING (0 RPM) — EASY WIN?';
+    if (!liveSnapshot) pl.textContent = msg('petWaiting');
+    else if (!liveSnapshot.ok) pl.textContent = msg('petOffline');
+    else if (liveSnapshot.rpm > 0) pl.textContent = msgf('petRunning', { rpm: Math.round(liveSnapshot.rpm), zoom: liveSnapshot.rpm >= ZOOMIES_RPM ? msg('petZoom') : '' });
+    else pl.textContent = msg('petNapping');
   }
   const rl = $('raceLast');
   if (rl) {
     const last = loadJSON('sqk29:lastRace:' + walletKey(currentWallet()), null);
-    rl.textContent = last ? `LAST RACE: YOU ${last.you} m vs SQUEEKTOSHI ${last.opp} m — ${last.win ? 'YOU WON ✓' : 'SQUEEKTOSHI WON'}` : 'NO RACE YET — BEAT THE HAMSTER.';
+    rl.textContent = last ? msgf('raceLastTpl', { you: last.you, opp: last.opp, result: last.win ? msg('raceLastWin') : msg('raceLastLose') }) : msg('raceLastNone');
   }
 }
 
@@ -1360,28 +1374,30 @@ function recordDiary(entry) {
 function renderDiaryList() {
   const dl = $('diaryList'); if (!dl) return;
   const diary = loadJSON('sqk29:diary:' + walletKey(currentWallet()), []);
-  dl.innerHTML = diary.slice(-5).reverse().map(e => `<div class="diary-line"><b>${new Date(e.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${new Date(e.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</b> — ${e.song} • ${e.score} PTS • ${e.grade}${e.note ? ' • “' + String(e.note).replace(/</g, '&lt;') + '”' : ''}</div>`).join('');
+  dl.innerHTML = diary.slice(-5).reverse().map(e => `<div class="diary-line"><b>${new Date(e.at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-GB', { day: 'numeric', month: 'short' })} ${new Date(e.at).toLocaleTimeString(lang === 'id' ? 'id-ID' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}</b> — ${e.song} • ${e.score} PTS • ${e.grade}${e.note ? ' • “' + String(e.note).replace(/</g, '&lt;') + '”' : ''}</div>`).join('');
 }
+let awayLastVisitCache = {}; // v32: the lastVisit shown is captured on the first renderAway of a session, so applyLang can re-render the away line without resetting it
 function renderAway() {
   const w = currentWallet();
+  const wk = walletKey(w);
   const al = $('awayLine'); if (!al) return;
-  const hist = loadJSON('sqk24:hist:' + walletKey(w), []);
-  const lastVisit = loadJSON('sqk29:lastVisit:' + walletKey(w), 0);
-  const ach = loadJSON('sqk29:ach:' + walletKey(w), []);
-  const achSeen = loadJSON('sqk29:achSeen:' + walletKey(w), 0);
+  const hist = loadJSON('sqk24:hist:' + wk, []);
+  const lastVisit = awayLastVisitCache[wk] !== undefined ? awayLastVisitCache[wk] : loadJSON('sqk29:lastVisit:' + wk, 0);
+  if (awayLastVisitCache[wk] === undefined) { awayLastVisitCache[wk] = lastVisit; saveJSON('sqk29:lastVisit:' + wk, Date.now()); }
+  const ach = loadJSON('sqk29:ach:' + wk, []);
+  const achSeen = loadJSON('sqk29:achSeen:' + wk, 0);
   const newAch = ach.length - achSeen;
-  if (!hist.length) al.textContent = 'Welcome back — play a song and your diary starts here.';
+  if (!hist.length) al.textContent = msg('awayEmpty');
   else {
-    const lastDate = lastVisit ? new Date(lastVisit).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'a while ago';
-    const streak = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 }).count;
+    const lastDate = lastVisit ? new Date(lastVisit).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-GB', { day: 'numeric', month: 'short' }) : (lang === 'id' ? 'lama lalu' : 'a while ago');
+    const streak = loadJSON('sqk24:streak:' + wk, { count: 0 }).count;
     // v30: what the hamster did while you were away — rounds settled since the
     // last visit (only rounds this browser recorded; never invented).
     const awayRounds = lastVisit ? loadRounds().filter(r => r.key > roundKeyFor(new Date(lastVisit))).slice(-3) : [];
-    const awayTxt = awayRounds.length ? ' • WHILE YOU WERE AWAY: ' + awayRounds.map(r => r.key.slice(11) + ' ' + roundLabel(r.cls) + ' (AVG ' + r.avg + ' RPM)').join(' • ') : ' • NO RECORDED WHEEL ROUNDS WHILE YOU WERE AWAY.';
-    al.textContent = `LAST VISIT ${lastDate} • STREAK ${streak} DAYS • BEST ${Math.max.apply(null, hist.map(h => h.score))} • NEW ACHIEVEMENTS SINCE THEN: ${newAch > 0 ? newAch : 'NONE'}.${awayTxt}`;
+    const awayTxt = awayRounds.length ? msgf('awayRoundsTpl', { list: awayRounds.map(r => msgf('awayRoundItem', { time: r.key.slice(11), label: roundLabel(r.cls), avg: r.avg })).join(' • ') }) : msg('awayNoRounds');
+    al.textContent = msgf('awayTpl', { date: lastDate, n: streak, best: Math.max.apply(null, hist.map(h => h.score)), new: newAch > 0 ? newAch : msg('awayNewNone'), away: awayTxt });
   }
-  saveJSON('sqk29:achSeen:' + walletKey(w), ach.length);
-  saveJSON('sqk29:lastVisit:' + walletKey(w), Date.now());
+  saveJSON('sqk29:achSeen:' + wk, ach.length);
   renderDiaryList();
 }
 function addDiaryNote() {
@@ -1446,6 +1462,76 @@ const MSG = {
     duelCopied: 'DUEL LINK COPIED — SEND IT TO A FRIEND, THEY PLAY THE EXACT SAME SONG.',
     duelBlocked: 'CLIPBOARD BLOCKED — THE LINK IS IN THE BOX BELOW, COPY IT MANUALLY.',
     gameRunning: 'GAME ALREADY RUNNING.',
+    anthemPrefix: '>> ANTHEM: ', anthemBest: ' // BEST: {score}',
+    anthemDaily: ' // DAILY {date} • {genre}/{diff}', anthemLive: ' // LIVE {live}', anthemRace: ' // RACE VS SQUEEKTOSHI {live}',
+    anthemBoss: ' // WEEKLY BOSS {week}', anthemDuel: ' // DUEL {code}{lanes}{mirror}',
+    anthemLiveOk: 'RPM {rpm} • {bpm} BPM', anthemLiveOff: 'WHEEL OFFLINE • 128 BPM FALLBACK',
+    invalidAddr: 'INVALID ADDRESS', invalidWallet: 'INVALID WALLET ADDRESS.', audioFail: 'AUDIO FAILED: {err}',
+    fetchingWheel: 'FETCHING LIVE WHEEL...', wheelOffline: 'WHEEL OFFLINE — LIVE MODE USES 128 BPM FALLBACK (NOT LIVE DATA).',
+    duelUnlock: 'DUEL UNLOCK: {mods}— TRY IT IN THIS SONG.', downloadFail: 'DOWNLOAD FAILED: empty canvas.',
+    noWallet: 'NO WALLET FOUND IN THIS BROWSER — TYPE YOUR 0x ADDRESS MANUALLY.',
+    walletInvalid: 'WALLET RETURNED NO VALID ADDRESS — TYPE YOUR 0x ADDRESS MANUALLY.',
+    walletConnected: 'WALLET CONNECTED: {addr} — ADDRESS ONLY, NO SIGNATURE REQUESTED.',
+    connRejected: 'CONNECTION REJECTED — TYPE YOUR 0x ADDRESS MANUALLY.', connFail: 'CONNECT FAILED: {err}',
+    walletSwitched: 'WALLET SWITCHED TO {addr}.', calibStart: 'CALIBRATING… TAP ON EACH OF THE 8 BEATS.',
+    qltyEco: ' — WebGL off, static gradient background.', qltyUltra: ' — WebGL / moving grid.',
+    voidLock: '🔒 VOID GENRE UNLOCKS AT LV5 — PLAY MORE SONGS TO EARN XP.',
+    lanesLock: '🔒 4 LANES UNLOCKS AT LV6 — PLAY MORE SONGS TO EARN XP.',
+    mirrorLock: '🔒 MIRROR MODE UNLOCKS AT LV7 — PLAY MORE SONGS TO EARN XP.',
+    musicIntro: 'MUSIC: {label} • TAP MUTE TO SILENCE.', introOn: 'INTRO: ON — {label} • TAP MUTE TO SILENCE.',
+    audioTap: 'AUDIO: {state} — TAP AGAIN FOR MUSIC.', musicTapFor: '— TAP FOR {other}',
+    gameAudioTpl: 'AUDIO: RUNNING • {bpm} BPM • AC: {state}{practice}', practiceTag2: ' • PRACTICE (NO XP)',
+    pauseBtn: '[ PAUSE ]', resumeBtn: '[ RESUME ]',
+    kbd3: 'KEYBOARD: ← ↓ → / A S D  •  P = PAUSE  •  M = MUTE', kbd4: 'KEYBOARD: ← ↓ ↑ → / A S D F  •  P = PAUSE  •  M = MUTE',
+    streakTpl: 'STREAK: {n} DAYS — play Daily every day to keep the flame alive.',
+    dailyTitleTpl: 'DAILY ANTHEM — {date}',
+    dailyInfoTpl: "Today's song is the same for everyone: {genre} / {diff} — {date}. Play today, come back tomorrow — the song changes.",
+    freezeTpl: '❄️ STREAK FREEZE ×{n} — MISS ONE DAY AND YOUR STREAK SURVIVES (EARN MORE BY CLEARING ALL 3 MISSIONS).',
+    masteryEmpty: 'No games recorded in this browser yet.',
+    masteryTpl: 'GAMES: {n} • BEST: {best} • AVG ACCURACY: {acc}%{avgOff}{bestPer}',
+    masteryAvgOff: ' • AVG OFFSET: {off} ms', masteryBestPer: ' • BEST PER GENRE/DIFF: {list}',
+    offsetDefault: ' (DEFAULT — TAP AUTO-CALIBRATE IF YOUR HITS FEEL EARLY/LATE)',
+    latTpl: 'LATENCY: {off} ms',
+    calibListen: 'LISTEN… THE FIRST BEAT COMES IN 1 SECOND — TAP THE BUTTON ON EACH BEAT.',
+    calibTapN: 'TAP {n}/8 — {more}', calibKeep: 'KEEP GOING, TAP ON EACH BEAT.', calibCalc: 'DONE — CALCULATING…',
+    calibFew: 'ONLY {n} GOOD TAPS — NEED AT LEAST 4. TRY AGAIN, TAP RIGHT ON THE BEAT.',
+    calibDoneTpl: 'CALIBRATED: OFFSET {off} ms (MEDIAN OF {n} TAPS, AVG {avg} ms — {verdict}).',
+    calibLate: 'YOU TAP LATE ON AVERAGE', calibEarly: 'YOU TAP EARLY ON AVERAGE', calibSpot: 'YOUR TIMING IS SPOT ON',
+    roundTpl: 'ROUND {cur} • NOW: {cls}{avg} • NEXT ROUND IN {cd}', roundAvgPart: ' (AVG {avg} RPM)',
+    petWaiting: '🐹 SQUEEKTOSHI IS WAITING…', petOffline: '❓ WHEEL OFFLINE — SQUEEKTOSHI IS HIDING.',
+    petRunning: '🐹 SQUEEKTOSHI IS RUNNING — {rpm} RPM{zoom}', petZoom: ' • ZOOMIES!', petNapping: '😴 SQUEEKTOSHI IS NAPPING (0 RPM) — EASY WIN?',
+    raceLastTpl: 'LAST RACE: YOU {you} m vs SQUEEKTOSHI {opp} m — {result}', raceLastWin: 'YOU WON ✓', raceLastLose: 'SQUEEKTOSHI WON',
+    raceLastNone: 'NO RACE YET — BEAT THE HAMSTER.',
+    awayEmpty: 'Welcome back — play a song and your diary starts here.',
+    awayTpl: 'LAST VISIT {date} • STREAK {n} DAYS • BEST {best} • NEW ACHIEVEMENTS SINCE THEN: {new}.{away}',
+    awayRoundsTpl: ' • WHILE YOU WERE AWAY: {list}', awayNoRounds: ' • NO RECORDED WHEEL ROUNDS WHILE YOU WERE AWAY.',
+    awayRoundItem: '{time} {label} (AVG {avg} RPM)', awayNewNone: 'NONE',
+    liveSumOff: 'WHEEL OFFLINE — NEXT SONG USES 128 BPM FALLBACK (NOT LIVE DATA)',
+    liveSumTpl: 'RPM {rpm} • {dist} KM • {daynight} • SONG {bpm} BPM{zoom}',
+    liveSumDay: 'DAY — HAMSTER RUNNING', liveSumNight: 'NIGHT — HAMSTER RESTING', liveSumZoom: ' • ZOOMIES ×2',
+    liveHudTpl: 'LIVE • RPM {rpm} • {dist} KM • {daynight}{zoom}',
+    liveHudDay: '☀️ DAY', liveHudNight: '🌙 NIGHT', liveHudZoom: ' • ZOOMIES ×2 SCORE',
+    liveHudOff: 'LIVE: OFFLINE — FALLBACK 128 BPM (NOT LIVE DATA)',
+    glOk: 'WEBGL: OK • QLTY: {q} • MOVING 3D BACKGROUND', glFail: 'WEBGL: FAILED — GRADIENT BACKGROUND + CSS GRID (STILL MOVING) • QLTY: {q}',
+    glStatusTpl: 'WEBGL: {webgl} • QLTY: {q}{tail}', glTailEco: ' • BACKGROUND: STATIC GRADIENT', glTailUltra: ' • BACKGROUND: 3D / MOVING GRID',
+    leagueWin: 'WIN ✓', leagueLose: 'LOSE',
+    leagueRowTpl: 'YOU {mine} vs {rival} {theirs} — {result} • {date}',
+    roundHistRowTpl: '{key} — {label} (AVG {avg} RPM, {n} SAMPLES)',
+    unlockTitleTpl: 'UNLOCKS — LV {lv}',
+    unlockVoid: 'NEW GENRE: VOID', unlockLanes: '4 LANES MODE', unlockMirror: 'MIRROR MODE', unlockGold: 'GOLD AVATAR',
+    missionAcc: 'Accuracy >= 95%', missionCombo: 'Combo >= 50', missionMiss0: '0 Miss in one song',
+    missionScore: 'Score >= 5000', missionPerfect: 'Perfect >= 30', missionHard: 'Finish one song on HARD',
+    achFirst: 'Finish 1 song', achPerfect: '30+ PERFECT in one song', achCombo: 'Max combo 100+',
+    achZoomies: 'Finish a live/race song with ZOOMIES', achRacewin: 'Win a race vs Squeektoshi',
+    achOracle: 'A correct Wheel Call', achStreak: '7-day daily streak', achGold: 'Reach LV8',
+    achVoid: 'Finish a VOID song', achMirror: 'Finish a Mirror song',
+    ovRpmOff: 'RPM — (WHEEL OFFLINE)', ovDistOff: 'DIST — KM',
+    ovZoomOn: '🔥 ZOOMIES ×2 — SCORE DOUBLED', ovZoomJog: '🏃 JOG — NORMAL SCORE', ovZoomNap: '😴 NAP — NORMAL SCORE', ovZoomOff: 'ZOOMIES —',
+    ovPetRun: '🐹 SQUEEKTOSHI RUNNING — {rpm} RPM', ovPetNap: '😴 SQUEEKTOSHI NAPPING (0 RPM)', ovPetOff: '❓ WHEEL OFFLINE — SQUEEKTOSHI HIDING',
+    ovSong: 'SONG {key} {scale} • {bpm} BPM', ovSongOff: 'SONG —',
+    ovRoundTpl: 'ROUND {cur} • {cls} • NEXT IN {cd}',
+    practiceOnBtn: 'PRACTICE: ON (60% TEMPO, NO XP)', practiceOffBtn: 'PRACTICE: OFF',
+    mirrorOn: 'ON', mirrorOff: 'OFF',
   },
   id: {
     wheelCallSet: 'TEBAKAN DIPASANG: {label} UNTUK RONDE {round} — SEMOGA BERUNTUNG.',
@@ -1490,6 +1576,76 @@ const MSG = {
     duelCopied: 'DUEL LINK DISALIN — KIRIM KE TEMAN, MEREKA MEMAINKAN LAGU YANG SAMA PERSIS.',
     duelBlocked: 'CLIPBOARD DIBLOKIR — TAUTAN ADA DI KOTAK DI BAWAH, SALIN MANUAL.',
     gameRunning: 'GAME SUDAH BERJALAN.',
+    anthemPrefix: '>> LAGU: ', anthemBest: ' // TERBAIK: {score}',
+    anthemDaily: ' // HARIAN {date} • {genre}/{diff}', anthemLive: ' // LIVE {live}', anthemRace: ' // BALAPAN VS SQUEEKTOSHI {live}',
+    anthemBoss: ' // BOSS MINGGUAN {week}', anthemDuel: ' // DUEL {code}{lanes}{mirror}',
+    anthemLiveOk: 'RPM {rpm} • {bpm} BPM', anthemLiveOff: 'RODA OFFLINE • 128 BPM CADANGAN',
+    invalidAddr: 'ALAMAT TIDAK VALID', invalidWallet: 'ALAMAT WALLET TIDAK VALID.', audioFail: 'AUDIO GAGAL: {err}',
+    fetchingWheel: 'MENGAMBIL DATA RODA LIVE...', wheelOffline: 'RODA OFFLINE — MODE LIVE MEMAKAI 128 BPM CADANGAN (BUKAN DATA LIVE).',
+    duelUnlock: 'DUEL TERBUKA: {mods}— COBA DI LAGU INI.', downloadFail: 'UNDUH GAGAL: kanvas kosong.',
+    noWallet: 'TIDAK ADA WALLET DI BROWSER INI — KETIK ALAMAT 0x SECARA MANUAL.',
+    walletInvalid: 'WALLET TIDAK MENGEMBALIKAN ALAMAT VALID — KETIK ALAMAT 0x SECARA MANUAL.',
+    walletConnected: 'WALLET TERHUBUNG: {addr} — HANYA ALAMAT, TANPA SIGNATURE.',
+    connRejected: 'KONEKSI DITOLAK — KETIK ALAMAT 0x SECARA MANUAL.', connFail: 'KONEKSI GAGAL: {err}',
+    walletSwitched: 'WALLET BERGANTI KE {addr}.', calibStart: 'MENGALIBRASI… KETUK DI SETIAP DARI 8 KETUKAN.',
+    qltyEco: ' — WebGL mati, latar gradien statis.', qltyUltra: ' — WebGL / grid bergerak.',
+    voidLock: '🔒 GENRE VOID TERBUKA DI LV5 — MAIN LAGU LAGI UNTUK XP.',
+    lanesLock: '🔒 4 JALUR TERBUKA DI LV6 — MAIN LAGU LAGI UNTUK XP.',
+    mirrorLock: '🔒 MODE CERMIN TERBUKA DI LV7 — MAIN LAGU LAGI UNTUK XP.',
+    musicIntro: 'MUSIK: {label} • KETUK MUTE UNTUK MEMBISUKAN.', introOn: 'INTRO: AKTIF — {label} • KETUK MUTE UNTUK MEMBISUKAN.',
+    audioTap: 'AUDIO: {state} — KETUK LAGI UNTUK MUSIK.', musicTapFor: '— KETUK UNTUK {other}',
+    gameAudioTpl: 'AUDIO: BERJALAN • {bpm} BPM • AC: {state}{practice}', practiceTag2: ' • LATIHAN (TANPA XP)',
+    pauseBtn: '[ JEDA ]', resumeBtn: '[ LANJUT ]',
+    kbd3: 'KEYBOARD: ← ↓ → / A S D  •  P = JEDA  •  M = BISU', kbd4: 'KEYBOARD: ← ↓ ↑ → / A S D F  •  P = JEDA  •  M = BISU',
+    streakTpl: 'STREAK: {n} HARI — main Daily setiap hari supaya apinya tetap menyala.',
+    dailyTitleTpl: 'LAGU HARIAN — {date}',
+    dailyInfoTpl: 'Lagu hari ini sama untuk semua orang: {genre} / {diff} — {date}. Main hari ini, kembali besok — lagunya berganti.',
+    freezeTpl: '❄️ STREAK FREEZE ×{n} — LEWAT SATU HARI DAN STREAK-MU TETAP AMAN (DAPATKAN LAGI DENGAN MENYELESAIKAN KETIGA MISI).',
+    masteryEmpty: 'Belum ada game yang tercatat di browser ini.',
+    masteryTpl: 'GAME: {n} • TERBAIK: {best} • AKURASI RATA-RATA: {acc}%{avgOff}{bestPer}',
+    masteryAvgOff: ' • OFFSET RATA-RATA: {off} ms', masteryBestPer: ' • TERBAIK PER GENRE/DIFF: {list}',
+    offsetDefault: ' (BAWAAN — KETUK KALIBRASI OTOMATIS JIKA PUKULANMU TERASA TERLALU AWAL/TERLAMBAT)',
+    latTpl: 'LATENSI: {off} ms',
+    calibListen: 'DENGARKAN… KETUKAN PERTAMA DATANG DALAM 1 DETIK — KETUK TOMBOLNYA DI SETIAP KETUKAN.',
+    calibTapN: 'KETUK {n}/8 — {more}', calibKeep: 'TERUSKAN, KETUK DI SETIAP KETUKAN.', calibCalc: 'SELESAI — MENGHITUNG…',
+    calibFew: 'HANYA {n} KETUKAN BAGUS — BUTUH MINIMAL 4. COBA LAGI, KETUK TEPAT DI KETUKAN.',
+    calibDoneTpl: 'TERKALIBRASI: OFFSET {off} ms (MEDIAN DARI {n} KETUKAN, RATA-RATA {avg} ms — {verdict}).',
+    calibLate: 'KAMU RATA-RATA KETUK TERLAMBAT', calibEarly: 'KAMU RATA-RATA KETUK TERLALU AWAL', calibSpot: 'TIMINGMU TEPAT SEKALI',
+    roundTpl: 'RONDE {cur} • SEKARANG: {cls}{avg} • RONDE BERIKUTNYA DALAM {cd}', roundAvgPart: ' (RATA-RATA {avg} RPM)',
+    petWaiting: '🐹 SQUEEKTOSHI MENUNGGU…', petOffline: '❓ RODA OFFLINE — SQUEEKTOSHI SEMBUNYI.',
+    petRunning: '🐹 SQUEEKTOSHI BERLARI — {rpm} RPM{zoom}', petZoom: ' • ZOOMIES!', petNapping: '😴 SQUEEKTOSHI TIDUR (0 RPM) — MENANG MUDAH?',
+    raceLastTpl: 'BALAPAN TERAKHIR: KAMU {you} m vs SQUEEKTOSHI {opp} m — {result}', raceLastWin: 'KAMU MENANG ✓', raceLastLose: 'SQUEEKTOSHI MENANG',
+    raceLastNone: 'BELUM ADA BALAPAN — KALAHKAN HAMSTERNYA.',
+    awayEmpty: 'Selamat datang kembali — main satu lagu dan diarimu dimulai di sini.',
+    awayTpl: 'KUNJUNGAN TERAKHIR {date} • STREAK {n} HARI • TERBAIK {best} • PENCAPAIAN BARU SEJAK SAAT ITU: {new}.{away}',
+    awayRoundsTpl: ' • SELAMA KAMU PERGI: {list}', awayNoRounds: ' • TIDAK ADA RONDE RODA TERCATAT SELAMA KAMU PERGI.',
+    awayRoundItem: '{time} {label} (RATA-RATA {avg} RPM)', awayNewNone: 'TIDAK ADA',
+    liveSumOff: 'RODA OFFLINE — LAGU BERIKUTNYA MEMAKAI 128 BPM CADANGAN (BUKAN DATA LIVE)',
+    liveSumTpl: 'RPM {rpm} • {dist} KM • {daynight} • LAGU {bpm} BPM{zoom}',
+    liveSumDay: 'SIANG — HAMSTER BERLARI', liveSumNight: 'MALAM — HAMSTER ISTIRAHAT', liveSumZoom: ' • ZOOMIES ×2',
+    liveHudTpl: 'LIVE • RPM {rpm} • {dist} KM • {daynight}{zoom}',
+    liveHudDay: '☀️ SIANG', liveHudNight: '🌙 MALAM', liveHudZoom: ' • ZOOMIES ×2 SKOR',
+    liveHudOff: 'LIVE: OFFLINE — CADANGAN 128 BPM (BUKAN DATA LIVE)',
+    glOk: 'WEBGL: OK • KUALITAS: {q} • LATAR 3D BERGERAK', glFail: 'WEBGL: GAGAL — LATAR GRADIEN + GRID CSS (TETAP BERGERAK) • KUALITAS: {q}',
+    glStatusTpl: 'WEBGL: {webgl} • KUALITAS: {q}{tail}', glTailEco: ' • LATAR: GRADIEN STATIS', glTailUltra: ' • LATAR: 3D / GRID BERGERAK',
+    leagueWin: 'MENANG ✓', leagueLose: 'KALAH',
+    leagueRowTpl: 'KAMU {mine} vs {rival} {theirs} — {result} • {date}',
+    roundHistRowTpl: '{key} — {label} (RATA-RATA {avg} RPM, {n} SAMPEL)',
+    unlockTitleTpl: 'TERBUKA — LV {lv}',
+    unlockVoid: 'GENRE BARU: VOID', unlockLanes: 'MODE 4 JALUR', unlockMirror: 'MODE CERMIN', unlockGold: 'AVATAR EMAS',
+    missionAcc: 'Akurasi >= 95%', missionCombo: 'Kombo >= 50', missionMiss0: '0 Miss dalam satu lagu',
+    missionScore: 'Skor >= 5000', missionPerfect: 'Perfect >= 30', missionHard: 'Selesaikan satu lagu di SULIT',
+    achFirst: 'Selesaikan 1 lagu', achPerfect: '30+ PERFECT dalam satu lagu', achCombo: 'Kombo maks 100+',
+    achZoomies: 'Selesaikan lagu live/balapan dengan ZOOMIES', achRacewin: 'Menangkan balapan vs Squeektoshi',
+    achOracle: 'Satu tebakan Wheel Call benar', achStreak: 'Streak harian 7 hari', achGold: 'Capai LV8',
+    achVoid: 'Selesaikan lagu VOID', achMirror: 'Selesaikan lagu Mirror',
+    ovRpmOff: 'RPM — (RODA OFFLINE)', ovDistOff: 'JARAK — KM',
+    ovZoomOn: '🔥 ZOOMIES ×2 — SKOR BERLIPAT', ovZoomJog: '🏃 JOG — SKOR NORMAL', ovZoomNap: '😴 NAP — SKOR NORMAL', ovZoomOff: 'ZOOMIES —',
+    ovPetRun: '🐹 SQUEEKTOSHI BERLARI — {rpm} RPM', ovPetNap: '😴 SQUEEKTOSHI TIDUR (0 RPM)', ovPetOff: '❓ RODA OFFLINE — SQUEEKTOSHI SEMBUNYI',
+    ovSong: 'LAGU {key} {scale} • {bpm} BPM', ovSongOff: 'LAGU —',
+    ovRoundTpl: 'RONDE {cur} • {cls} • BERIKUTNYA DALAM {cd}',
+    practiceOnBtn: 'LATIHAN: AKTIF (TEMPO 60%, TANPA XP)', practiceOffBtn: 'LATIHAN: MATI',
+    mirrorOn: 'AKTIF', mirrorOff: 'MATI',
   }
 };
 function msg(k) { const d = MSG[lang] || MSG.en; return d[k] !== undefined ? d[k] : (MSG.en[k] !== undefined ? MSG.en[k] : k); }
@@ -1504,8 +1660,42 @@ function rl(k) { const d = RLBL[lang] || RLBL.en; return d[k] !== undefined ? d[
 
 // --- EN/ID toggle (menu labels only; dynamic game messages stay English) ---
 const I18N = {
-  en: { wallet: 'WALLET ADDRESS', connect: '[ CONNECT WALLET ]', genre: '// GENRE', diff: '// DIFFICULTY', options: '// OPTIONS', mode: '// MODE', play: 'INITIALIZE RHYTHM', card: 'GENERATE ID CARD', retry: 'RETRY', resultCard: '[ SHARE RESULT CARD ]', obs: '[ OBS OVERLAY LINK ]', wheelcall: 'WHEEL CALL — PREDICT THE NEXT ROUND', boss: 'WEEKLY BOSS', bossFight: '[ FIGHT WEEKLY BOSS ]', league: 'DUEL LEAGUE — LOCAL RIVALS', ach: 'ACHIEVEMENTS', away: 'WHILE YOU WERE AWAY', addNote: '[ ADD NOTE ]', howto: 'HOW TO PLAY', gotIt: '[ GOT IT — LET\'S PLAY ]', howBtn: '[ HOW TO PLAY ]', roundhist: 'ROUND HISTORY — LAST 12 SETTLED ROUNDS', champs: 'DAILY CHAMPIONS — YOUR BEST SCORE EACH DAY' },
-  id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR YANG SELESAI', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI' },
+  en: { wallet: 'WALLET ADDRESS', connect: '[ CONNECT WALLET ]', genre: '// GENRE', diff: '// DIFFICULTY', options: '// OPTIONS', mode: '// MODE', play: 'INITIALIZE RHYTHM', card: 'GENERATE ID CARD', retry: 'RETRY', resultCard: '[ SHARE RESULT CARD ]', obs: '[ OBS OVERLAY LINK ]', wheelcall: 'WHEEL CALL — PREDICT THE NEXT ROUND', boss: 'WEEKLY BOSS', bossFight: '[ FIGHT WEEKLY BOSS ]', league: 'DUEL LEAGUE — LOCAL RIVALS', ach: 'ACHIEVEMENTS', away: 'WHILE YOU WERE AWAY', addNote: '[ ADD NOTE ]', howto: 'HOW TO PLAY', gotIt: '[ GOT IT — LET\'S PLAY ]', howBtn: '[ HOW TO PLAY ]', roundhist: 'ROUND HISTORY — LAST 12 SETTLED ROUNDS', champs: 'DAILY CHAMPIONS — YOUR BEST SCORE EACH DAY',
+    warn: '⚠️ 0x address ONLY. NEVER enter a seed phrase / private key here, anywhere.',
+    splashSub: 'CHOOSE YOUR OPENING MUSIC', splashNote: 'Browsers block sound before your first tap — the music starts on your first tap, not before.',
+    liveInfo: 'The song\'s tempo follows the real hamster wheel, live from api.squeekchain.com/v1/status. Resting hamster = CALM 100 BPM. Running hamster = 100 + RPM (max 180). At 70+ RPM ZOOMIES starts and all scores double. Day follows the wheel running, night follows it resting. If the wheel is offline, the song uses a 128 BPM fallback and says so.',
+    raceInfo: 'A real race against the live hamster: your distance grows with every note you hit (PERFECT 1.0 m • GREAT 0.7 m • GOOD 0.4 m). Squeektoshi\'s distance is the real wheel\'s distance since the song started. Win the race for +50 XP. When a new 10-minute round starts mid-song, the next note turns GOLDEN (+1000 pts, +5 m).',
+    predStatus: 'Rounds are 10 minutes. NAP < 5 RPM • JOG 5–69 RPM • ZOOMIES 70+ RPM. A correct call earns +40 XP.',
+    duelMsgPh: 'THE DUEL LINK WILL APPEAR HERE AFTER THE GAME ENDS.',
+    diaryPh: 'Add a note to your last song…', duelOutPh: 'The duel link will appear here — copy it manually if the clipboard is blocked.',
+    hintTap: 'TAP LANE WHEN BLOCK HITS THE LINE.', lastHitLbl: 'LAST HIT', avgHitLbl: 'AVG',
+    calibTitle: 'PRECISION — TIMING CALIBRATION', calibBtn: '[ AUTO-CALIBRATE — TAP THE BEAT ]', calibTap: 'TAP ON THE BEAT!',
+    masteryTitle: 'MASTERY — LAST 10 GAMES', volLabel: 'VOLUME', settingsTitle: 'SETTINGS',
+    footerNote: 'UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia.',
+    duelLink: '[ DUEL LINK ]', shareX: '[ SHARE RESULT TO X ]', exitMenu: 'EXIT TO MENU', latCalib: '[ CALIBRATE ]',
+    langLabel: 'LANGUAGE', qualityLabel: 'GRAPHICS', soundLabel: 'SOUND', avatarSelf: 'YOUR PIXEL SELF',
+    download: '[ DOWNLOAD ]', share: '[ SHARE ]', feverTag: '🔥 FEVER ×1.5 — COMBO 30+', youLbl: 'YOU',
+    leagueEmpty: 'No duels yet — send a Duel Link after a song, and when a friend plays it, their result lands here.',
+    champsEmpty: 'No champions yet — your best score of each day lands here.',
+    roundHistEmpty: 'No finished rounds recorded yet — keep this page open and rounds settle here.' },
+  id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR YANG SELESAI', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI',
+    warn: '⚠️ Hanya alamat 0x. JANGAN PERNAH memasukkan seed phrase / private key di sini, di mana pun.',
+    splashSub: 'PILIH MUSIK PEMBUKA', splashNote: 'Browser memblokir suara sebelum ketukan pertamamu — musik mulai saat kamu pertama kali mengetuk, bukan sebelumnya.',
+    liveInfo: 'Tempo lagu mengikuti roda hamster asli, live dari api.squeekchain.com/v1/status. Hamster istirahat = CALM 100 BPM. Hamster berlari = 100 + RPM (maks 180). Di 70+ RPM ZOOMIES mulai dan semua skor berlipat dua. Siang mengikuti roda yang berlari, malam mengikuti roda yang istirahat. Kalau rodanya offline, lagu memakai 128 BPM cadangan dan mengatakannya.',
+    raceInfo: 'Balapan sungguhan melawan hamster live: jarakmu bertambah setiap not yang kamu pukul (PERFECT 1,0 m • GREAT 0,7 m • GOOD 0,4 m). Jarak Squeektoshi adalah jarak roda aslinya sejak lagu dimulai. Menangkan balapannya untuk +50 XP. Saat ronde 10 menit baru dimulai di tengah lagu, not berikutnya berubah EMAS (+1000 poin, +5 m).',
+    predStatus: 'Ronde berdurasi 10 menit. NAP < 5 RPM • JOG 5–69 RPM • ZOOMIES 70+ RPM. Tebakan benar dapat +40 XP.',
+    duelMsgPh: 'TAUTAN DUEL AKAN MUNCUL DI SINI SETELAH GAME SELESAI.',
+    diaryPh: 'Tambahkan catatan untuk lagu terakhirmu…', duelOutPh: 'Tautan duel akan muncul di sini — salin manual jika clipboard diblokir.',
+    hintTap: 'KETUK JALUR SAAT BLOK MENYENTUH GARIS.', lastHitLbl: 'TERAKHIR', avgHitLbl: 'RATA-RATA',
+    calibTitle: 'PRESISI — KALIBRASI TIMING', calibBtn: '[ KALIBRASI OTOMATIS — KETUK MENGIKUTI KETUKAN ]', calibTap: 'KETUK MENGIKUTI KETUKAN!',
+    masteryTitle: 'MASTERY — 10 GAME TERAKHIR', volLabel: 'VOLUME', settingsTitle: 'PENGATURAN',
+    footerNote: 'TIDAK RESMI. Data on-chain dibaca read-only (token Sepolia, bukan BNB mainnet). Koneksi wallet opsional hanya membaca alamatmu — tanpa signature, tanpa approval, tanpa transaksi. Dibuat di Indonesia.',
+    duelLink: '[ TAUTAN DUEL ]', shareX: '[ BAGIKAN HASIL KE X ]', exitMenu: 'KELUAR KE MENU', latCalib: '[ KALIBRASI ]',
+    langLabel: 'BAHASA', qualityLabel: 'GRAFIS', soundLabel: 'SUARA', avatarSelf: 'DIRIMU DALAM PIXEL',
+    download: '[ UNDUH ]', share: '[ BAGIKAN ]', feverTag: '🔥 FEVER ×1.5 — KOMBO 30+', youLbl: 'KAMU',
+    leagueEmpty: 'Belum ada duel — kirim Duel Link setelah satu lagu, dan saat teman memainkannya, hasilnya muncul di sini.',
+    champsEmpty: 'Belum ada juara — skor terbaikmu setiap hari muncul di sini.',
+    roundHistEmpty: 'Belum ada ronde selesai yang tercatat — biarkan halaman ini terbuka dan ronde akan tercatat di sini.' },
 };
 let lang = loadJSON('sqk29:lang', 'en');
 function applyLang(l) {
@@ -1514,7 +1704,10 @@ function applyLang(l) {
   const dict = I18N[lang];
   document.querySelectorAll('[data-i18n]').forEach(el => { const k = el.dataset.i18n; if (dict[k]) el.textContent = dict[k]; });
   const lb = $('langBtn'); if (lb) lb.textContent = lang.toUpperCase();
-  renderPredict(); renderBossBox(); renderRaceBox(); renderLeague(); renderChamps(); renderRoundHist(); renderTutorial(); // v30: dynamic lines re-render in the new language (renderAway is once-per-load by design)
+  const dn = $('diaryNote'); if (dn && dict.diaryPh) dn.placeholder = dict.diaryPh;
+  const du = $('duelOut'); if (du && dict.duelOutPh) du.placeholder = dict.duelOutPh;
+  renderPredict(); renderBossBox(); renderRaceBox(); renderLeague(); renderChamps(); renderRoundHist(); renderTutorial();
+  preview(); renderDailyBox(); renderMastery(); renderUnlocks(); renderPracticeBtn(); updateMusicModeBtn(); renderOffsetLine(); renderLiveBox(); renderAway(); // v32: everything re-renders in the new language (renderAway reuses the first-load lastVisit, so re-rendering is safe)
 }
 
 // --- OBS overlay (?overlay=1): minimal live widget, transparent background ---
@@ -1528,20 +1721,20 @@ async function copyObsLink() {
 function updateOverlay() {
   const ob = $('overlayBox'); if (!ob || ob.classList.contains('hidden')) return;
   const s = liveSnapshot;
-  setText('overlayRpm', s && s.ok ? `RPM ${Math.round(s.rpm)}${s.rpm >= ZOOMIES_RPM ? ' • ZOOMIES ×2' : ''}` : 'RPM — (WHEEL OFFLINE)');
-  setText('overlayDist', s && s.ok ? `DIST ${s.dist.toFixed(3)} KM` : 'DIST — KM');
+  setText('overlayRpm', s && s.ok ? `RPM ${Math.round(s.rpm)}${s.rpm >= ZOOMIES_RPM ? msg('liveSumZoom') : ''}` : msg('ovRpmOff'));
+  setText('overlayDist', s && s.ok ? (lang === 'id' ? 'JARAK ' : 'DIST ') + s.dist.toFixed(3) + ' KM' : msg('ovDistOff'));
   const cur = currentRoundKey();
   const avg = roundAvg(cur);
   const cls = avg !== null ? roundClass(avg) : (s && s.ok ? roundClass(s.rpm) : null);
-  setText('overlayRound', `ROUND ${cur} • ${cls ? roundLabel(cls) : '—'} • NEXT IN ${fmtCountdown(nextRoundInMs(new Date()))}`);
-  setText('overlayZoom', liveZoomies ? '🔥 ZOOMIES ×2 — SCORE DOUBLED' : (s && s.ok && s.rpm >= 5 ? '🏃 JOG — NORMAL SCORE' : s && s.ok ? '😴 NAP — NORMAL SCORE' : 'ZOOMIES —'));
-  setText('overlayPet', s && s.ok ? (s.rpm > 0 ? `🐹 SQUEEKTOSHI RUNNING — ${Math.round(s.rpm)} RPM` : '😴 SQUEEKTOSHI NAPPING (0 RPM)') : '❓ WHEEL OFFLINE — SQUEEKTOSHI HIDING');
-  setText('overlaySong', lastAnthem ? `SONG ${lastAnthem.key} ${lastAnthem.scaleName} • ${lastAnthem.bpm} BPM` : 'SONG —');
+  setText('overlayRound', msgf('ovRoundTpl', { cur, cls: cls ? roundLabel(cls) : '—', cd: fmtCountdown(nextRoundInMs(new Date())) }));
+  setText('overlayZoom', liveZoomies ? msg('ovZoomOn') : (s && s.ok && s.rpm >= 5 ? msg('ovZoomJog') : s && s.ok ? msg('ovZoomNap') : msg('ovZoomOff')));
+  setText('overlayPet', s && s.ok ? (s.rpm > 0 ? msgf('ovPetRun', { rpm: Math.round(s.rpm) }) : msg('ovPetNap')) : msg('ovPetOff'));
+  setText('overlaySong', lastAnthem ? msgf('ovSong', { key: lastAnthem.key, scale: lastAnthem.scaleName, bpm: lastAnthem.bpm }) : msg('ovSongOff'));
 }
 
 // --- Practice mode (60% tempo, no XP/streak/history) ---
 let practiceMode = loadJSON('sqk29:practice', false) === true;
-function renderPracticeBtn() { const b = $('practiceBtn'); if (b) b.textContent = 'PRACTICE: ' + (practiceMode ? 'ON (60% TEMPO, NO XP)' : 'OFF'); }
+function renderPracticeBtn() { const b = $('practiceBtn'); if (b) b.textContent = practiceMode ? msg('practiceOnBtn') : msg('practiceOffBtn'); }
 
 // --- Menu poll: 30s wheel fetch while the menu is open (feeds predictions) ---
 let menuPoll = null;
