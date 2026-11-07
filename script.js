@@ -68,6 +68,7 @@ const MSG = {
     modeLive: 'LIVE ACTIVE — THE SONG TEMPO FOLLOWS THE REAL HAMSTER WHEEL. 70+ RPM = ZOOMIES ×2 SCORE.',
     modeRace: 'RACE ACTIVE — BEAT THE LIVE HAMSTER. YOUR HITS MOVE YOU FORWARD, THE WHEEL MOVES SQUEEKTOSHI.',
     modeDaily: 'DAILY ACTIVE — {date} • TODAY: {genre} / {diff} — SAME SONG FOR EVERYONE.',
+    modeFree: 'FREE MODE — YOUR OWN ANTHEM, ANY GENRE, ANY DIFFICULTY.',
     calibDone: 'CALIBRATION DONE — OFFSET {off} ms.',
     calibFail: 'CALIBRATION FAILED — NOT ENOUGH GOOD TAPS.',
     calibNeedSound: 'UNMUTE FIRST — CALIBRATION NEEDS SOUND.',
@@ -182,6 +183,7 @@ const MSG = {
     modeLive: 'MODE LIVE AKTIF — TEMPO LAGU MENGIKUTI RODA HAMSTER ASLI. 70+ RPM = ZOOMIES ×2 SKOR.',
     modeRace: 'MODE BALAPAN AKTIF — KALAHKAN HAMSTER ASLI. PUKULANMU MEMAJUKANMU, RODA MENGGERAKKAN SQUEEKTOSHI.',
     modeDaily: 'LAGU HARIAN AKTIF — {date} • HARI INI: {genre} / {diff} — LAGU YANG SAMA UNTUK SEMUA ORANG.',
+    modeFree: 'MODE FREE — LAGUMU SENDIRI, GENRE DAN KESULITAN BEBAS.',
     calibDone: 'KALIBRASI SELESAI — OFFSET {off} ms.',
     calibFail: 'KALIBRASI GAGAL — KETUKAN BAGUS KURANG.',
     calibNeedSound: 'NYALAKAN SUARA DULU — KALIBRASI BUTUH SUARA.',
@@ -1369,6 +1371,7 @@ function setMode(m) {
   else if (m === 'race') { renderRaceBox(); refreshLive(); startLivePoll(10000); say(msg('modeRace'), 'yellow'); const rb = $('raceBox'); if (rb) rb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   else stopLivePoll();
   if (m === 'daily') { const s = dailySpec(); say(msgf('modeDaily', { date: todayStr(), genre: s.genre.toUpperCase(), diff: s.diff.toUpperCase() }), 'yellow'); const db = $('dailyBox'); if (db) db.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  else if (m === 'free') say(msg('modeFree'), 'cyan'); // v32.2: switching back to FREE used to leave the stale "MODE LIVE AKTIF" banner in #message
 }
 function duelLink() { if (!G || !G.seedKey) return null; const base = location.href.split('?')[0]; const from = isAddr(G.wallet) ? G.wallet.slice(0, 6) + '...' + G.wallet.slice(-4) : 'GUEST'; return `${base}?challenge=${encodeURIComponent(G.seedKey)}&genre=${G.genre}&diff=${G.diff}${G.lanes === 4 ? '&lanes=4' : ''}${G.mirror ? '&mirror=1' : ''}&from=${encodeURIComponent(from)}&score=${G.score}`; }
 async function shareDuel() {

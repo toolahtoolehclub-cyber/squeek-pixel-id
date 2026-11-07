@@ -55,6 +55,7 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - `AUDIT-v30-TOTAL.md` — notes on the v29 → v30 TOTAL upgrade (round history, daily champions, share-to-X, full EN/ID, tutorial, volume, haptics, achievement XP, away-rounds, past bosses, richer OBS) and the v29.2 live verification
 - `AUDIT-v32-NEO.md` — notes on the v31 → v32 NEO redesign (minimal futuristic theme, settings sheet, full EN/ID, low-lag performance mode)
 - `AUDIT-v32.1-FIX.md` — P0 fix: MSG/RLBL/I18N moved to the top of script.js (initGL ran before MSG existed, killed the whole script, splash never closed)
+- `AUDIT-v32.2-FIX.md` — small fixes from the v32.1 smoke test: stale LIVE banner when switching back to FREE, latency value wrapping onto two lines
 
 ## Notes
 

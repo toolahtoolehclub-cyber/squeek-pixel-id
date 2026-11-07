@@ -523,3 +523,6 @@ body.playing #gamePanel.shake { animation: shake .3s !important; }
     #settingsSheet { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .btn-primary { box-shadow: none; } }
+
+/* v32.2 FIX: the latency value must not wrap onto two lines ("LATENSI: 0" / "ms"). */
+#latVal { white-space: nowrap; }
