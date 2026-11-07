@@ -31,3 +31,6 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - No transactions, no seed/private key — never enter a seed. Optional read-only wallet connect (address only, no signature).
 - All scores, XP, streaks, and missions are stored 100% in the browser's `localStorage`.
 - Sound only starts after your first tap (browser autoplay rule).
+
+<!-- Genesis verification (Squeekchain Buildooooor, do not remove) -->
+squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7
