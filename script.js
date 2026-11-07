@@ -1047,7 +1047,7 @@ function setMode(m) {
   document.querySelectorAll('#modeRow .btn-diff').forEach(x => { const on = x.dataset.mode === m; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); });
   lockGenreDiffRows(m === 'daily'); // v28: in Daily the genre+diff are fixed by the date
   if (m === 'daily') applyDailySpec();
-  renderDailyBox(); renderLiveBox(); preview();
+  renderDailyBox(); renderLiveBox(); renderRaceBox(); preview(); // v29.1: the race box must hide when leaving RACE mode (it stayed visible until the next poll)
   if (m === 'live') { refreshLive(); startLivePoll(10000); say('LIVE ACTIVE — THE SONG TEMPO FOLLOWS THE REAL HAMSTER WHEEL. 70+ RPM = ZOOMIES ×2 SCORE.', 'yellow'); const lb = $('liveBox'); if (lb) lb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   else if (m === 'race') { renderRaceBox(); refreshLive(); startLivePoll(10000); say('RACE ACTIVE — BEAT THE LIVE HAMSTER. YOUR HITS MOVE YOU FORWARD, THE WHEEL MOVES SQUEEKTOSHI.', 'yellow'); const rb = $('raceBox'); if (rb) rb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   else stopLivePoll();
