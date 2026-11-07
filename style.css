@@ -559,3 +559,10 @@ body.playing #gamePanel.shake { animation: shake .3s !important; }
 #resultPanel { background: rgba(5, 6, 7, .94); }
 /* The fixed minimize bar used to float over the footer text. */
 body.cardbar { padding-bottom: 72px; }
+
+/* ==========================================
+   v33.2 FIX — auto-scroll must stop below the sticky header
+   ========================================== */
+/* v33.1 made the header sticky; play()/finish() scroll the panels to the
+   very top, so the header covered the grade (result) and the stats (game). */
+#gamePanel, #resultPanel { scroll-margin-top: 76px; }

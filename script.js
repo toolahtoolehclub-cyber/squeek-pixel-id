@@ -117,7 +117,7 @@ const MSG = {
     mirrorLock: '🔒 MIRROR MODE UNLOCKS AT LV7 — PLAY MORE SONGS TO EARN XP.',
     musicIntro: 'MUSIC: {label} • TAP MUTE TO SILENCE.', introOn: 'INTRO: ON — {label} • TAP MUTE TO SILENCE.',
     audioTap: 'AUDIO: {state} — TAP AGAIN FOR MUSIC.', musicTapFor: '— TAP FOR {other}',
-    gameAudioTpl: 'AUDIO: RUNNING • {bpm} BPM • AC: {state}{practice}', practiceTag2: ' • PRACTICE (NO XP)',
+    gameAudioTpl: 'AUDIO: {run} • {bpm} BPM • AC: {state}{practice}', audioRunning: 'RUNNING', audioPaused: 'PAUSED', practiceTag2: ' • PRACTICE (NO XP)',
     pauseBtn: '[ PAUSE ]', resumeBtn: '[ RESUME ]',
     kbd3: 'KEYBOARD: ← ↓ → / A S D  •  P = PAUSE  •  M = MUTE', kbd4: 'KEYBOARD: ← ↓ ↑ → / A S D F  •  P = PAUSE  •  M = MUTE',
     streakTpl: 'STREAK: {n} DAYS — play Daily every day to keep the flame alive.',
@@ -233,7 +233,7 @@ const MSG = {
     mirrorLock: '🔒 MODE CERMIN TERBUKA DI LV7 — MAIN LAGU LAGI UNTUK XP.',
     musicIntro: 'MUSIK: {label} • KETUK MUTE UNTUK MEMBISUKAN.', introOn: 'INTRO: AKTIF — {label} • KETUK MUTE UNTUK MEMBISUKAN.',
     audioTap: 'AUDIO: {state} — KETUK LAGI UNTUK MUSIK.', musicTapFor: '— KETUK UNTUK {other}',
-    gameAudioTpl: 'AUDIO: BERJALAN • {bpm} BPM • AC: {state}{practice}', practiceTag2: ' • LATIHAN (TANPA XP)',
+    gameAudioTpl: 'AUDIO: {run} • {bpm} BPM • AC: {state}{practice}', audioRunning: 'BERJALAN', audioPaused: 'DIJEDA', practiceTag2: ' • LATIHAN (TANPA XP)',
     pauseBtn: '[ JEDA ]', resumeBtn: '[ LANJUT ]',
     kbd3: 'KEYBOARD: ← ↓ → / A S D  •  P = JEDA  •  M = BISU', kbd4: 'KEYBOARD: ← ↓ ↑ → / A S D F  •  P = JEDA  •  M = BISU',
     streakTpl: 'STREAK: {n} HARI — main Daily setiap hari supaya apinya tetap menyala.',
@@ -770,7 +770,7 @@ async function play() {
   show('gamePanel'); document.body.classList.add('playing'); pauseGL(); closeSettings(); // v32: freeze decorations + WebGL while playing (lag fix)
   const emPlay = $('cardErrMsg'); if (emPlay) emPlay.classList.add('hidden'); // v33.1: a stale card error must not survive into the next game
   $('gamePanel').scrollIntoView({ behavior: 'auto', block: 'start' }); // v33: no more manual scroll to find the score + lanes
-  setText('bpmVal', anthem.bpm); setText('gameAudioStatus', msgf('gameAudioTpl', { bpm: anthem.bpm, state: ac ? ac.state : '-', practice: practiceMode ? msg('practiceTag2') : '' })); hud();
+  setText('bpmVal', anthem.bpm); setText('gameAudioStatus', msgf('gameAudioTpl', { run: msg('audioRunning'), bpm: anthem.bpm, state: ac ? ac.state : '-', practice: practiceMode ? msg('practiceTag2') : '' })); hud();
   stopMenuPoll(); // v29: the menu poll pauses while a game runs
   if (playMode === 'live') { const lh = $('liveHud'); if (lh) lh.classList.remove('hidden'); updateLiveHud(); startLivePoll(5000); }
   else if (playMode === 'race') { const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.remove('hidden'); updateRaceHud(); startLivePoll(5000); startRaceTick(); }
@@ -959,7 +959,7 @@ function finish() {
   renderRaceBox(); renderLeague(); renderAchievements(); renderPredict(); renderBossBox(); renderDiaryList(); renderChamps();
   $('gradeVal').textContent = g; $('gradeVal').style.color = g.startsWith('S') ? 'var(--green)' : g === 'A' ? 'var(--cyan)' : 'var(--pink)';
   const c = G.counts;
-  $('resultKv').innerHTML = `<span>${rl('score')}</span><b>${G.score}</b><span>${rl('acc')}</span><b>${a.toFixed(2)}%</b><span>${rl('combo')}</span><b>${G.maxCombo}</b><span>${rl('pg')}</span><b>${c.perfect}/${c.great}</b><span>${rl('gm')}</span><b>${c.good}/${c.miss}</b><span>${rl('anthem')}</span><b>${anthem.key} ${anthem.scaleName} • "${anthem.name}"</b><span>${rl('setup')}</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? rl('tryCalib') : ''}${G.practice ? rl('practiceTag') : ''}</b>` + (G.live ? `<span>${rl('live')}</span><b>${G.live.offline ? rl('offline') : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '') + (G.race ? `<span>${rl('race')}</span><b>YOU ${G.race.playerDist.toFixed(0)} m vs SQUEEKTOSHI ${oppDist.toFixed(0)} m — ${raceWin ? rl('raceWin') : rl('raceLose')}${G.race.offline ? ' (' + rl('offline') + ')' : ''}</b>` : '') + (G.boss ? `<span>${rl('boss')}</span><b>${rl('bossDefeated')}</b>` : '');
+  $('resultKv').innerHTML = `<span>${rl('score')}</span><b>${G.score}</b><span>${rl('acc')}</span><b>${a.toFixed(2)}%</b><span>${rl('combo')}</span><b>${G.maxCombo}</b><span>${rl('pg')}</span><b>${c.perfect}/${c.great}</b><span>${rl('gm')}</span><b>${c.good}/${c.miss}</b><span>${rl('anthem')}</span><b>"${anthem.name}" • ${anthem.key}</b><span>${rl('setup')}</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? rl('tryCalib') : ''}${G.practice ? rl('practiceTag') : ''}</b>` + (G.live ? `<span>${rl('live')}</span><b>${G.live.offline ? rl('offline') : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '') + (G.race ? `<span>${rl('race')}</span><b>YOU ${G.race.playerDist.toFixed(0)} m vs SQUEEKTOSHI ${oppDist.toFixed(0)} m — ${raceWin ? rl('raceWin') : rl('raceLose')}${G.race.offline ? ' (' + rl('offline') + ')' : ''}</b>` : '') + (G.boss ? `<span>${rl('boss')}</span><b>${rl('bossDefeated')}</b>` : '');
   $('bestMsg').textContent = (isNew && G.score > 0) ? msg('newHigh') : (prev ? msgf('bestIs', { score: prev.score, grade: prev.grade }) : ''); // v30.1: a 0-score first game is not a "NEW HIGH SCORE"
   // v33.1: the score counts up instead of appearing instantly (skipped for reduced motion).
   const sb = $('resultKv').querySelector('b');
@@ -982,8 +982,8 @@ function playResultJingle(g) {
   if (g === 'SS' || g === 'S') kick(t0);
 }
 function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night'); const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.add('hidden'); document.body.classList.remove('playing'); resumeGL(); show('mainPanel'); playIntroMusic(); startMenuPoll(); }
-async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', msg('resumeBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { bpm: anthem.bpm, state: 'paused', practice: G.practice ? msg('practiceTag2') : '' })); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); } // v33.1: the audio line used to keep saying RUNNING while paused
-async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', msg('pauseBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { bpm: anthem.bpm, state: 'running', practice: G.practice ? msg('practiceTag2') : '' })); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
+async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', msg('resumeBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { run: msg('audioPaused'), bpm: anthem.bpm, state: 'paused', practice: G.practice ? msg('practiceTag2') : '' })); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); } // v33.2: v33.1 only changed the AC state — the template's leading word still said RUNNING
+async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', msg('pauseBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { run: msg('audioRunning'), bpm: anthem.bpm, state: 'running', practice: G.practice ? msg('practiceTag2') : '' })); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
 async function togglePause() { if (!G) return; if (G.paused) await resumeGame(); else await pauseGame(); }
 
 const KEY_LANES = { ArrowLeft: 0, a: 0, A: 0, '1': 0, ArrowDown: 1, s: 1, S: 1, '2': 1, ArrowRight: 2, d: 2, D: 2, '3': 2, ArrowUp: 3, f: 3, F: 3, '4': 3 }; // v28: lane 3 (4th) = ↑ / F — only active in 4-lane songs (judge() guards the lane)
@@ -1151,7 +1151,7 @@ async function generateCard() {
   const hair = y => { ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(24, y); ctx.lineTo(CW - 24, y); ctx.stroke(); };
   row('WALLET', w.slice(0, 10) + '...' + w.slice(-8), 24, 244, '#00e5ff');
   hair(268);
-  row('ANTHEM', `"${an.name}" • ${an.key} ${an.scaleName}`, 24, 292, '#ff5ce1');
+  row('ANTHEM', `"${an.name}" • ${an.key}`, 24, 292, '#ff5ce1'); // v33.2: name + key only (26 chars) — key + scale + name was 43 chars and got sliced off the card
   row('TEMPO', `${an.bpm} BPM`, 224, 292, '#ff5ce1');
   row('BEST SCORE', b ? String(b.score) : 'NONE', 24, 336, '#ffe14d');
   row('GRADE', b ? b.grade : '--', 224, 336, '#ffe14d');
@@ -1853,7 +1853,7 @@ function drawResultCard() {
   ctx.beginPath(); ctx.moveTo(24, 340); ctx.lineTo(CW - 24, 340); ctx.stroke();
   ctx.font = '12px "Space Mono"';
   let y = 366;
-  const detail = (l, v) => { ctx.textAlign = 'left'; ctx.fillStyle = '#7d8a8d'; ctx.fillText(l, 24, y); ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.fillText(String(v).slice(0, 34), CW - 24, y); y += 26; };
+  const detail = (l, v) => { ctx.textAlign = 'left'; ctx.fillStyle = '#7d8a8d'; ctx.fillText(l, 24, y); ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.fillText(String(v).slice(0, 40), CW - 24, y); y += 26; }; // v33.2: slice 34 -> 40 (the anthem name made values longer)
   detail(parts[10] || 'ANTHEM', val(10));
   detail(parts[12] || 'SETUP', val(12));
   for (let i = 14; i + 1 < parts.length && y <= 500; i += 2) detail(parts[i], parts[i + 1]);
