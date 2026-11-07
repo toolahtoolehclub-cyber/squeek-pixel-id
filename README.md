@@ -1,4 +1,4 @@
-# Squeekchain v34 THEMES
+# Squeekchain v34.1
 
 A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only; optional wallet connect reads your address only, no signature, no transactions), play 3 or 4 lanes, earn XP, play the Daily Anthem, complete daily missions, generate your ID Card, race the real hamster in LIVE mode, and race Squeektoshi himself in RACE mode.
 
@@ -44,6 +44,7 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - **NEO+ upgrade (v33)** — card overlay (ID card and result card open on top of any panel, with close + minimize, no more jumping back to the menu), redesigned cards (gradient frame, compact layout, no empty void, no creator line on the cards), settings work during play (the sheet lives outside the menu now; opening it pauses the game), auto-scroll to the game and the result on start/finish, pause buttons above the canvas, ACC as an integer (no more "58..."), in-canvas effects (shockwave rings, bigger hit particles, lane judgement text, miss glitch, beat-pulse background, gold hit line in FEVER), 10 song scales (was 5) with 4–5 per genre
 - **NEO+ fixes + songs (v33.1)** — the result panel's ID-card button now shows a visible error when no wallet is entered (it used to fail silently), the browser tab title is correct, the header sticks so the gear stays reachable during play, the audio line says PAUSED while paused, the minimize bar no longer floats over the footer, the result panel is solid so the animated background can't wash out its text; every song now has a name from its scale + mood ("Neon Dorian"), the score counts up on the result panel, a NEW BEST ribbon appears on the result card, and songs are built around a repeating 2-bar motif instead of random notes (same seed = same song, verified)
 - **NEO+ fixes (v33.2)** — the audio line really says PAUSED now (v33.1 only changed the AC state — the template's leading word still said RUNNING), the song name on the result card and the ID card is no longer cut off at the right edge, and auto-scroll stops below the sticky header so the grade is not covered when the result appears
+- **v34.1** — footer note no longer names any other chain (Sepolia token only); no gameplay changes.
 - **THEMES (v34)** — one look per mode, so no two modes feel the same: FREE is CYBER neon, DAILY is SUNRISE gold, LIVE is WHEEL green, RACE is VERSUS magenta, BOSS is VOID purple, duel is GOLD. The notes are now pixel hamsters (Guitar Hero gems in Squeekchain's pixel language, after the official pixel-grid poster) with a white aim dot in the middle, landing inside colored receptor rings on the hit line that pop when you hit; a faint pixel grid covers the canvas, and the game panel glows in the mode's accent. ZOOMIES gets a banner when the wheel goes wild
 - **Live Squeekchain API** — the ID Card shows the live hamster-wheel status and distance from `api.squeekchain.com/v1/status`, plus your Sepolia token balance (read-only)
 
@@ -64,11 +65,12 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - `AUDIT-v33.1-FIX.md` — fixes from the v33 smoke test (silent ID-card failure, stale tab title, header scrolling away, audio line on pause, minimize bar over the footer, translucent result panel) + song names, count-up score, NEW BEST ribbon, motif-based songs
 - `AUDIT-v33.2-FIX.md` — fixes from the v33.1 smoke test (audio line still said RUNNING, song name cut off on the cards, grade covered by the sticky header)
 - `AUDIT-v34-THEMES.md` — notes on the v33.2 → v34 THEMES upgrade (one look per mode, pixel hamster notes, receptor rings, pixel grid, ZOOMIES banner)
+- `AUDIT-v34.1.md` — footer note cleanup (Sepolia token only); no other changes
 - `REFERENSI-RHYTHM-GAMES.md` — reference research (Guitar Hero, Beat Saber, osu!, Phigros, Cytus II, DDR) for the v33 upgrade
 
 ## Notes
 
-- UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet).
+- UNOFFICIAL. On-chain data is read read-only (Sepolia token).
 - No transactions, no seed/private key — never enter a seed. Optional read-only wallet connect (address only, no signature).
 - All scores, XP, streaks, and missions are stored 100% in the browser's `localStorage`.
 - Sound only starts after your first tap (browser autoplay rule).

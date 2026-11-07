@@ -1,4 +1,4 @@
-// v34 THEMES tests — run: node TEST-v34-neo.js  (cwd = the v34 folder)
+// v34.1 tests — run: node TEST-v34-neo.js  (cwd = the v34.1 folder)
 const fs = require('fs');
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
@@ -36,8 +36,9 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v34 THEMES', (html.match(/v34 THEMES/g) || []).length >= 2);
-t('browser tab title is v34 THEMES', html.includes('<title>SQUEEKCHAIN // v34 THEMES</title>'));
+t('html says v34.1', (html.match(/v34\.1/g) || []).length >= 2);
+t('browser tab title is v34.1', html.includes('<title>SQUEEKCHAIN // v34.1</title>'));
+t('no BNB/Binance anywhere (v34.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('Genesis meta present', html.includes('<meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">'));
 t('README proof last line', readme.trimEnd().split('\n').pop().trim() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 // --- 4. CSS: NEO layer present ---

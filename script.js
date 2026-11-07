@@ -310,7 +310,7 @@ const I18N = {
     hintTap: 'TAP LANE WHEN BLOCK HITS THE LINE.', lastHitLbl: 'LAST HIT', avgHitLbl: 'AVG',
     calibTitle: 'PRECISION — TIMING CALIBRATION', calibBtn: '[ AUTO-CALIBRATE — TAP THE BEAT ]', calibTap: 'TAP ON THE BEAT!',
     masteryTitle: 'MASTERY — LAST 10 GAMES', volLabel: 'VOLUME', settingsTitle: 'SETTINGS',
-    footerNote: 'UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia.',
+    footerNote: 'UNOFFICIAL. On-chain data is read read-only (Sepolia token). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia.',
     duelLink: '[ DUEL LINK ]', shareX: '[ SHARE RESULT TO X ]', exitMenu: 'EXIT TO MENU', latCalib: '[ CALIBRATE ]',
     langLabel: 'LANGUAGE', qualityLabel: 'GRAPHICS', soundLabel: 'SOUND', avatarSelf: 'YOUR PIXEL SELF',
     download: '[ DOWNLOAD ]', share: '[ SHARE ]', feverTag: '🔥 FEVER ×1.5 — COMBO 30+', youLbl: 'YOU',
@@ -329,7 +329,7 @@ const I18N = {
     hintTap: 'KETUK JALUR SAAT BLOK MENYENTUH GARIS.', lastHitLbl: 'TERAKHIR', avgHitLbl: 'RATA-RATA',
     calibTitle: 'PRESISI — KALIBRASI TIMING', calibBtn: '[ KALIBRASI OTOMATIS — KETUK MENGIKUTI KETUKAN ]', calibTap: 'KETUK MENGIKUTI KETUKAN!',
     masteryTitle: 'MASTERY — 10 GAME TERAKHIR', volLabel: 'VOLUME', settingsTitle: 'PENGATURAN',
-    footerNote: 'TIDAK RESMI. Data on-chain dibaca read-only (token Sepolia, bukan BNB mainnet). Koneksi wallet opsional hanya membaca alamatmu — tanpa signature, tanpa approval, tanpa transaksi. Dibuat di Indonesia.',
+    footerNote: 'TIDAK RESMI. Data on-chain dibaca read-only (token Sepolia). Koneksi wallet opsional hanya membaca alamatmu — tanpa signature, tanpa approval, tanpa transaksi. Dibuat di Indonesia.',
     duelLink: '[ TAUTAN DUEL ]', shareX: '[ BAGIKAN HASIL KE X ]', exitMenu: 'KELUAR KE MENU', latCalib: '[ KALIBRASI ]',
     langLabel: 'BAHASA', qualityLabel: 'GRAFIS', soundLabel: 'SUARA', avatarSelf: 'DIRIMU DALAM PIXEL',
     download: '[ UNDUH ]', share: '[ BAGIKAN ]', feverTag: '🔥 FEVER ×1.5 — KOMBO 30+', youLbl: 'KAMU',
@@ -1291,7 +1291,7 @@ const walletEl = $('walletInput');
 if (walletEl) walletEl.addEventListener('input', preview);
 
 // v26.1 CONNECT WALLET (read-only): fills the address field from the browser
-// wallet (MetaMask / Binance Wallet / any EIP-1193 provider). It only asks the
+// wallet (MetaMask / any EIP-1193 wallet). It only asks the
 // wallet to REVEAL the address (eth_requestAccounts) — no signature, no
 // approval, no transaction, no chain switch. If no provider exists, or the
 // user rejects, manual 0x input stays the way in. Never auto-requests on load.
