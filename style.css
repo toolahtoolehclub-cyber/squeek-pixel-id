@@ -587,3 +587,18 @@ body[data-theme="calm"] { --theme-accent: #7aa0ff; --theme-glow: rgba(122, 160, 
 body[data-theme="void"] { --theme-accent: #a050ff; --theme-glow: rgba(160, 80, 255, .30); }
 body[data-theme="gold"] { --theme-accent: #ffd700; --theme-glow: rgba(255, 215, 0, .28); }
 body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 10px 32px rgba(0, 0, 0, .45), 0 0 26px var(--theme-glow); }
+
+/* v37: global leaderboard (Cloudflare Workers + D1) */
+#lbBox { margin-top: 12px; }
+.lb-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.lb-row input[type=text] { flex: 1; min-width: 0; padding: 10px; }
+.lb-row .btn-secondary { flex: none; }
+#lbModes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.lb-mode { padding: 6px 10px; font-size: 11px; }
+#lbList { margin-top: 8px; }
+.lb-row.league-row { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.lb-rank { color: var(--yellow); min-width: 28px; }
+.lb-wallet { color: #888; font-size: 10px; }
+.lb-score { color: var(--green); margin-left: auto; }
+.lb-me { border-color: var(--yellow) !important; color: #fff; }
+#lbSubmitBtn:disabled { opacity: .45; }

@@ -1,4 +1,4 @@
-// v36.1 tests — run: node TEST-v34-neo.js  (cwd = the v36.1 folder)
+// v37 tests — run: node TEST-v34-neo.js  (cwd = the v37 folder)
 const fs = require('fs');
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
@@ -36,14 +36,14 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v36.1', (html.match(/v36.1/g) || []).length >= 2);
-t('browser tab title is v36.1', html.includes('<title>SQUEEKCHAIN // v36.1</title>'));
-t('no BNB/Binance anywhere (v36.1)', !/BNB|Binance/i.test(html + css + js + readme));
-t('SQK token is the current deployment (v36.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
-// --- v36.1 CHAIN panel + frontier-aware Round History ---
-['chainBox', 'chainLines'].forEach(id => t('v36.1 chain id present once: ' + id, (html.match(new RegExp('id="' + id + '"', 'g')) || []).length === 1));
+t('html says v37', (html.match(/v37/g) || []).length >= 2);
+t('browser tab title is v37', html.includes('<title>SQUEEKCHAIN // v37</title>'));
+t('no BNB/Binance anywhere (v37)', !/BNB|Binance/i.test(html + css + js + readme));
+t('SQK token is the current deployment (v37)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
+// --- v37 CHAIN panel + frontier-aware Round History ---
+['chainBox', 'chainLines'].forEach(id => t('v37 chain id present once: ' + id, (html.match(new RegExp('id="' + id + '"', 'g')) || []).length === 1));
 t('chain box uses i18n title', html.includes('data-i18n="chainTitle"') && html.includes('data-i18n="chainLoading"'));
-['CORE_URL', 'ECONOMY_URL', 'GENESIS_TS', 'fetchChain', 'refreshChain', 'renderChainBox', 'roundIdForKey', 'roundSettled', 'estWork', 'estBlocks'].forEach(s => t('v36.1 js has ' + s, js.includes(s)));
+['CORE_URL', 'ECONOMY_URL', 'GENESIS_TS', 'fetchChain', 'refreshChain', 'renderChainBox', 'roundIdForKey', 'roundSettled', 'estWork', 'estBlocks'].forEach(s => t('v37 js has ' + s, js.includes(s)));
 t('chain urls are the public API', js.includes("CORE_URL: 'https://api.squeekchain.com/v1/core'") && js.includes("ECONOMY_URL: 'https://api.squeekchain.com/v1/economy/state'"));
 t('genesis ts matches docs', js.includes('GENESIS_TS = 1793735400'));
 t('chain unknown never zero', js.includes("chainUnknown") && js.includes("'UNAVAILABLE'"));
@@ -65,7 +65,7 @@ const eb = new Function(ewLine + '\n' + ebLine + '\nreturn { estWork, estBlocks 
 t('estWork(35) = 350', eb.estWork(35) === 350);
 t('estBlocks(35, 8238) = 4.2', eb.estBlocks(35, 8238) === 4.2);
 t('estBlocks needs a difficulty', eb.estBlocks(35, 0) === null);
-// --- v36.1 MY SQUEEK on the ID Card ---
+// --- v37 MY SQUEEK on the ID Card ---
 t('fetchAccount defined', js.includes('async function fetchAccount(w)'));
 t('account url is the public API', js.includes("https://api.squeekchain.com/v1/accounts/' + w.toLowerCase()"));
 t('card fetches account with wheel + balance', js.includes('[wheel, bal, acct] = await Promise.all([fetchWheel(), fetchBalance(w), fetchAccount(w)])'));
@@ -83,14 +83,14 @@ t('fmtSqk scales power 1e21 -> 1,000', fsq('1000000000000000000000') === '1,000'
 t('fmtSqk claimable -> 25,260.72', fsq('25260722452361385112852') === '25,260.72');
 t('fmtSqk zero -> 0', fsq('0') === '0');
 t('fmtSqk bad input -> ?', fsq('nope') === '?');
-// --- v36.1 Squeek art on the ID Card ---
-['fetchSqueekImage', 'loadSqueekImage', 'fixSvgSize', 'squeekImgCache'].forEach(s => t('v36.1 js has ' + s, js.includes(s)));
+// --- v37 Squeek art on the ID Card ---
+['fetchSqueekImage', 'loadSqueekImage', 'fixSvgSize', 'squeekImgCache'].forEach(s => t('v37 js has ' + s, js.includes(s)));
 t('squeek image url is the public API', js.includes("https://api.squeekchain.com/v1/squeeks/' + id"));
 t('card draws the Squeek image', js.includes('drawImage(sqkImg, 26, 510, 72, 72)'));
 t('card frames the image', js.includes('strokeRect(24, 508, 76, 76)'));
 t('card has a dashed placeholder', js.includes('setLineDash([4, 4])'));
 t('image fetch is time-boxed', js.includes('setTimeout(() => res(null), 4000)') && js.includes('setTimeout(() => r(null), 5000)'));
-t('card is 400x680 (v36.1)', js.includes('CW = 400, CH = 680;'));
+t('card is 400x680 (v37)', js.includes('CW = 400, CH = 680;'));
 // fixSvgSize: run it on real-shape samples
 const fssSrc = js.slice(js.indexOf('function fixSvgSize'), js.indexOf('function loadSqueekImage'));
 const fss = new Function(fssSrc + '; return fixSvgSize;')();
@@ -103,7 +103,7 @@ const sizedSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1568" height="1
 const sizedUri = 'data:image/svg+xml;base64,' + Buffer.from(sizedSvg).toString('base64');
 t('fixSvgSize leaves sized SVGs alone', fss(sizedUri) === sizedUri);
 t('fixSvgSize passes bad input through', fss('not-a-uri') === 'not-a-uri' && fss(null) === null);
-// --- v36.1 ANTHEM no longer collides with TEMPO ---
+// --- v37 ANTHEM no longer collides with TEMPO ---
 t('anthemSize defined', js.includes('function anthemSize(v)'));
 t('row() takes an optional font size', js.includes("const row = (l, v, x, y, col, fs) =>"));
 t('ANTHEM row uses anthemSize', js.includes("row('ANTHEM', anVal, 24, 292, '#ff5ce1', anthemSize(anVal))"));
@@ -115,9 +115,9 @@ t('anthemSize shrinks the longest name', asz('"Sunny Major Pentatonic" • C') =
 t('anthemSize keeps short names at 14', asz('"Neon Dorian" • C') === 14);
 t('anthemSize boundary is 22 chars', asz('x'.repeat(22)) === 14 && asz('x'.repeat(23)) === 10);
 t('worst case fits the 200px column', 30 * 10 * 0.6 < 200 && 22 * 14 * 0.6 < 200);
-// --- v36.1 LIVE tab fetches immediately ---
+// --- v37 LIVE tab fetches immediately ---
 t('setTab refreshes LIVE on open', js.includes("if (name === 'live') refreshLive();"));
-// --- v36.1 precision readout resets with the game ---
+// --- v37 precision readout resets with the game ---
 t('game start resets the precision readout', js.includes("if (lh0) lh0.textContent = '-- ms';") && js.includes("if (ah0) ah0.textContent = '-- ms';") && js.includes("if (hd0) hd0.textContent = '—';"));
 t('precision readout reset sits next to the hitOffsets reset', (() => { const a = js.indexOf("anthem = makeAnthem(w, false, seedKey, lanes, mirror); lastAnthem = anthem; hitOffsets = [];"); const b = js.indexOf("lh0.textContent = '-- ms'"); return a > 0 && b > a && b - a < 400; })());
 t('Genesis meta present', html.includes('<meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">'));
@@ -195,7 +195,7 @@ t('play scrolls to the game', js.includes("$('gamePanel').scrollIntoView"));
 t('finish scrolls to the result', js.includes("$('resultPanel').scrollIntoView"));
 t('shared cardFrame helper', js.includes('function cardFrame('));
 t('no CREATOR line on the cards', !js.includes('CREATOR: pancigoreng'));
-t('id card 400x680, result card 400x560 (v36.1)', js.includes('CW = 400, CH = 680;') && (js.match(/CW = 400, CH = 560/g) || []).length === 1);
+t('id card 400x680, result card 400x560 (v37)', js.includes('CW = 400, CH = 680;') && (js.match(/CW = 400, CH = 560/g) || []).length === 1);
 t('overlay open/close/minimize wired', js.includes("bindClick('cardCloseBtn'") && js.includes("bindClick('cardMinBtn'") && js.includes("bindClick('cardBarOpen'"));
 t('ID card opens the overlay', js.includes("openCard(msg('cardTitleId'))"));
 t('result card opens the overlay', js.includes("openCard(msg('cardTitleResult'))"));
@@ -214,7 +214,7 @@ t('result card reads the score from G (count-up safe)', js.includes('G.score !==
 t('audio template has a {run} word (v33.2)', js.includes("gameAudioTpl: 'AUDIO: {run}"));
 t('audio run word passed in play/pause/resume', js.includes("run: msg('audioRunning')") && js.includes("run: msg('audioPaused')"));
 t('anthem kv row is name + key only (v33.2)', js.includes('<b>"${anthem.name}" • ${anthem.key}</b>'));
-t('ID card anthem row is name + key only, adaptive size (v36.1)', js.includes('const anVal = `"${an.name}" • ${an.key}`;') && js.includes("row('ANTHEM', anVal, 24, 292, '#ff5ce1', anthemSize(anVal))"));
+t('ID card anthem row is name + key only, adaptive size (v37)', js.includes('const anVal = `"${an.name}" • ${an.key}`;') && js.includes("row('ANTHEM', anVal, 24, 292, '#ff5ce1', anthemSize(anVal))"));
 t('card detail slice is 40 (v33.2)', js.includes('.slice(0, 40)'));
 t('no 34-char card slice left', !js.includes('.slice(0, 34)'));
 
@@ -243,6 +243,41 @@ t('setTab persists sqk31:tab', js.includes("sqk31:tab"));
 ['INSERT COIN', 'SQUEEKCHAIN</h1>'].forEach(s => t('js free of: ' + s, !js.includes(s)));
 // --- 10. storage keys unchanged (no user data lost) ---
 ['sqk24:', 'sqk28:', 'sqk29:', 'sqk30:', 'sqk31:tab'].forEach(s => t('storage key kept: ' + s, js.includes(s)));
+
+// --- 11. v37 global leaderboard (Cloudflare Workers + D1) ---
+['lbBox', 'lbName', 'lbModes', 'lbList', 'lbRank', 'lbRefreshBtn', 'lbSubmitBtn', 'lbSubmitMsg'].forEach(id => {
+  const n = (html.match(new RegExp('id="' + id + '"', 'g')) || []).length;
+  t('v37 id present once: ' + id, n === 1);
+});
+t('lbBox uses i18n title/note', html.includes('data-i18n="lbTitle"') && html.includes('data-i18n="lbNote"'));
+t('lb submit button uses i18n', html.includes('data-i18n="lbSubmit"'));
+['LB_URL', 'LB_MODES', 'lbState', 'lastResult', 'truncAddr', 'lbCleanName', 'lbMode', 'lbName', 'renderLbModes', 'renderLb', 'fetchLb', 'fetchLbRank', 'resetLbSubmit', 'submitLb'].forEach(s => t('v37 js has ' + s, js.includes(s)));
+t('LB_URL is the workers.dev endpoint', js.includes("LB_URL: 'https://squeekchain-leaderboard.pancigoreng.workers.dev'"));
+t('lb modes are the six game modes', js.includes("const LB_MODES = ['free', 'daily', 'live', 'race', 'boss', 'challenge'];"));
+['lbLoading', 'lbOffline', 'lbEmpty', 'lbSent', 'lbKept', 'lbNeedWallet', 'lbNoScore', 'lbPractice', 'lbYourRank'].forEach(k => t('MSG has lb key: ' + k, js.includes(k + ':')));
+['lbTitle', 'lbNote', 'lbRefresh', 'lbSubmit'].forEach(k => t('I18N has lb key: ' + k, js.includes(k + ':')));
+t('setTab fetches the board on LEAGUE', js.includes("if (name === 'league') fetchLb(lbState.mode);"));
+t('endGame captures the submittable result', js.includes('lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice };'));
+t('submit is disabled while sending', js.includes('b.disabled = true') && js.includes('resetLbSubmit()'));
+t('submit posts to /scores', js.includes("CONFIG.LB_URL + '/scores'") && js.includes("method: 'POST'"));
+t('submit only beats the stored best (worker upsert)', js.includes("d.improved ? msg('lbSent') : msg('lbKept')"));
+t('board rows escape names', js.includes("escHtml(r.name || 'GUEST')") && js.includes('escHtml(truncAddr(r.wallet))'));
+t('practice runs cannot submit', js.includes("if (lastResult.practice) return show(msg('lbPractice'));"));
+t('no wallet cannot submit', js.includes("if (!isAddr(w)) return show(msg('lbNeedWallet'));"));
+t('lb name saved to sqk37', js.includes('sqk37:lbname'));
+const taSrc = js.slice(js.indexOf('function truncAddr'), js.indexOf('\n', js.indexOf('function truncAddr')));
+const ta = new Function(taSrc + '; return truncAddr;')();
+t('truncAddr shortens a wallet', ta('0x372D48abe5eDccCcDE9BD914a6dE30Dc53e3a1Db') === '0x372D...a1Db');
+t('truncAddr rejects non-wallets', ta('x') === 'GUEST' && ta('') === 'GUEST');
+const cnSrc = js.slice(js.indexOf('function lbCleanName'), js.indexOf('\n', js.indexOf('function lbCleanName')));
+const cn = new Function(cnSrc + '; return lbCleanName;')();
+t('lbCleanName trims and caps at 16', cn('  pancigoreng-panjang  ') === 'pancigoreng-panj');
+t('lbCleanName strips markup', cn('a<b>c') === 'abc' && cn('x"y') === 'xy');
+t('lbCleanName empty is GUEST', cn('') === 'GUEST' && cn(null) === 'GUEST');
+const lmSrc = js.slice(js.indexOf('function lbMode'), js.indexOf('\n', js.indexOf('function lbMode')));
+const lm = new Function("const LB_MODES = ['free', 'daily', 'live', 'race', 'boss', 'challenge'];\n" + lmSrc + '; return lbMode;')();
+t('lbMode passes known modes', lm('race') === 'race' && lm('boss') === 'boss');
+t('lbMode falls back to free', lm('bogus') === 'free' && lm('') === 'free');
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

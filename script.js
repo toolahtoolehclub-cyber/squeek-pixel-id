@@ -152,6 +152,7 @@ const MSG = {
     glOk: 'WEBGL: OK • QLTY: {q} • MOVING 3D BACKGROUND', glFail: 'WEBGL: FAILED — GRADIENT BACKGROUND + CSS GRID (STILL MOVING) • QLTY: {q}',
     glStatusTpl: 'WEBGL: {webgl} • QLTY: {q}{tail}', glTailEco: ' • BACKGROUND: STATIC GRADIENT', glTailUltra: ' • BACKGROUND: 3D / MOVING GRID',
     leagueWin: 'WIN ✓', leagueLose: 'LOSE',
+    lbLoading: 'LOADING LEADERBOARD…', lbOffline: 'LEADERBOARD OFFLINE — CHECK YOUR CONNECTION.', lbEmpty: 'NO SCORES YET — BE THE FIRST.', lbSent: 'SCORE SENT — NEW BEST!', lbKept: 'SCORE SENT — YOUR BEST STANDS.', lbNeedWallet: 'CONNECT A WALLET FIRST TO SUBMIT YOUR SCORE.', lbNoScore: 'NO SCORE TO SUBMIT.', lbPractice: 'PRACTICE RUNS DO NOT COUNT.', lbYourRank: 'YOUR RANK #{rank} OF {total}',
     leagueRowTpl: 'YOU {mine} vs {rival} {theirs} — {result} • {date}',
     roundHistRowTpl: '{key} — {label} (AVG {avg} RPM, {n} SAMPLES, ~{work} WORK, {blocks} BLOCKS) — {state}',
     chainUnknown: 'CHAIN STATE UNKNOWN [{status}] — SHOWING NOTHING AS ZERO.',
@@ -275,6 +276,7 @@ const MSG = {
     glOk: 'WEBGL: OK • KUALITAS: {q} • LATAR 3D BERGERAK', glFail: 'WEBGL: GAGAL — LATAR GRADIEN + GRID CSS (TETAP BERGERAK) • KUALITAS: {q}',
     glStatusTpl: 'WEBGL: {webgl} • KUALITAS: {q}{tail}', glTailEco: ' • LATAR: GRADIEN STATIS', glTailUltra: ' • LATAR: 3D / GRID BERGERAK',
     leagueWin: 'MENANG ✓', leagueLose: 'KALAH',
+    lbLoading: 'MEMUAT LEADERBOARD…', lbOffline: 'LEADERBOARD OFFLINE — PERIKSA KONEKSIMU.', lbEmpty: 'BELUM ADA SKOR — JADILAH YANG PERTAMA.', lbSent: 'SKOR TERKIRIM — REKOR BARU!', lbKept: 'SKOR TERKIRIM — REKORMU TETAP.', lbNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK KIRIM SKOR.', lbNoScore: 'TIDAK ADA SKOR UNTUK DIKIRIM.', lbPractice: 'LATIHAN TIDAK DIHITUNG.', lbYourRank: 'PERINGKATMU #{rank} DARI {total}',
     leagueRowTpl: 'KAMU {mine} vs {rival} {theirs} — {result} • {date}',
     roundHistRowTpl: '{key} — {label} (RATA-RATA {avg} RPM, {n} SAMPEL, ~{work} KERJA, {blocks} BLOK) — {state}',
     chainUnknown: 'STATUS CHAIN TIDAK DIKETAHUI [{status}] — TIDAK ADA YANG DITAMPILKAN SEBAGAI NOL.',
@@ -313,7 +315,7 @@ function rl(k) { const d = RLBL[lang] || RLBL.en; return d[k] !== undefined ? d[
 
 // --- EN/ID toggle (v32: menu labels AND dynamic messages are both translated) ---
 const I18N = {
-  en: { wallet: 'WALLET ADDRESS', connect: '[ CONNECT WALLET ]', genre: '// GENRE', diff: '// DIFFICULTY', options: '// OPTIONS', mode: '// MODE', play: 'INITIALIZE RHYTHM', card: 'GENERATE ID CARD', retry: 'RETRY', resultCard: '[ SHARE RESULT CARD ]', obs: '[ OBS OVERLAY LINK ]', wheelcall: 'WHEEL CALL — PREDICT THE NEXT ROUND', boss: 'WEEKLY BOSS', bossFight: '[ FIGHT WEEKLY BOSS ]', league: 'DUEL LEAGUE — LOCAL RIVALS', ach: 'ACHIEVEMENTS', away: 'WHILE YOU WERE AWAY', addNote: '[ ADD NOTE ]', howto: 'HOW TO PLAY', gotIt: '[ GOT IT — LET\'S PLAY ]', howBtn: '[ HOW TO PLAY ]', roundhist: 'ROUND HISTORY — LAST 12 ROUNDS', chainTitle: 'CHAIN — LIVE FROM SQUEEKCORE', chainLoading: 'FETCHING CHAIN STATE…', champs: 'DAILY CHAMPIONS — YOUR BEST SCORE EACH DAY',
+  en: { wallet: 'WALLET ADDRESS', connect: '[ CONNECT WALLET ]', genre: '// GENRE', diff: '// DIFFICULTY', options: '// OPTIONS', mode: '// MODE', play: 'INITIALIZE RHYTHM', card: 'GENERATE ID CARD', retry: 'RETRY', resultCard: '[ SHARE RESULT CARD ]', obs: '[ OBS OVERLAY LINK ]', wheelcall: 'WHEEL CALL — PREDICT THE NEXT ROUND', boss: 'WEEKLY BOSS', bossFight: '[ FIGHT WEEKLY BOSS ]', league: 'DUEL LEAGUE — LOCAL RIVALS', lbTitle: 'GLOBAL LEADERBOARD — TOP SCORES', lbNote: 'Scores are public. Your wallet shows truncated.', lbRefresh: '[ REFRESH ]', lbSubmit: '[ SUBMIT SCORE ]', ach: 'ACHIEVEMENTS', away: 'WHILE YOU WERE AWAY', addNote: '[ ADD NOTE ]', howto: 'HOW TO PLAY', gotIt: '[ GOT IT — LET\'S PLAY ]', howBtn: '[ HOW TO PLAY ]', roundhist: 'ROUND HISTORY — LAST 12 ROUNDS', chainTitle: 'CHAIN — LIVE FROM SQUEEKCORE', chainLoading: 'FETCHING CHAIN STATE…', champs: 'DAILY CHAMPIONS — YOUR BEST SCORE EACH DAY',
     warn: '⚠️ 0x address ONLY. NEVER enter a seed phrase / private key here, anywhere.',
     splashSub: 'CHOOSE YOUR OPENING MUSIC', splashNote: 'Browsers block sound before your first tap — the music starts on your first tap, not before.',
     liveInfo: 'The song\'s tempo follows the real hamster wheel, live from api.squeekchain.com/v1/status. Resting hamster = CALM 100 BPM. Running hamster = 100 + RPM (max 180). At 70+ RPM ZOOMIES starts and all scores double. Day follows the wheel running, night follows it resting. If the wheel is offline, the song uses a 128 BPM fallback and says so.',
@@ -332,7 +334,7 @@ const I18N = {
     champsEmpty: 'No champions yet — your best score of each day lands here.',
     roundHistEmpty: 'No finished rounds recorded yet — keep this page open and rounds settle here.',
     cardBarLbl: 'ID CARD — TAP TO OPEN' },
-  id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR', chainTitle: 'CHAIN — LIVE DARI SQUEEKCORE', chainLoading: 'MENGAMBIL STATUS CHAIN…', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI',
+  id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', lbTitle: 'LEADERBOARD GLOBAL — SKOR TERATAS', lbNote: 'Skor bersifat publik. Walletmu tampil terpotong.', lbRefresh: '[ MUAT ULANG ]', lbSubmit: '[ KIRIM SKOR ]', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR', chainTitle: 'CHAIN — LIVE DARI SQUEEKCORE', chainLoading: 'MENGAMBIL STATUS CHAIN…', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI',
     warn: '⚠️ Hanya alamat 0x. JANGAN PERNAH memasukkan seed phrase / private key di sini, di mana pun.',
     splashSub: 'PILIH MUSIK PEMBUKA', splashNote: 'Browser memblokir suara sebelum ketukan pertamamu — musik mulai saat kamu pertama kali mengetuk, bukan sebelumnya.',
     liveInfo: 'Tempo lagu mengikuti roda hamster asli, live dari api.squeekchain.com/v1/status. Hamster istirahat = CALM 100 BPM. Hamster berlari = 100 + RPM (maks 180). Di 70+ RPM ZOOMIES mulai dan semua skor berlipat dua. Siang mengikuti roda yang berlari, malam mengikuti roda yang istirahat. Kalau rodanya offline, lagu memakai 128 BPM cadangan dan mengatakannya.',
@@ -572,7 +574,7 @@ class CircuitBreaker {
   async execute(fn) { if (this.state === 'OPEN') { if (Date.now() > this.next) this.state = 'HALF_OPEN'; else throw new Error('CIRCUIT_OPEN'); } try { const res = await fn(); this.fails = 0; this.state = 'CLOSED'; return res; } catch (e) { this.fails++; if (this.fails >= this.threshold) { this.state = 'OPEN'; this.next = Date.now() + this.timeout; } throw e; } }
 }
 const rpcBreaker = new CircuitBreaker(3, 10000);
-const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', CORE_URL: 'https://api.squeekchain.com/v1/core', ECONOMY_URL: 'https://api.squeekchain.com/v1/economy/state', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } }; // BARS 32 (Lagu lebih panjang)
+const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', CORE_URL: 'https://api.squeekchain.com/v1/core', ECONOMY_URL: 'https://api.squeekchain.com/v1/economy/state', LB_URL: 'https://squeekchain-leaderboard.pancigoreng.workers.dev', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } }; // BARS 32 (Lagu lebih panjang)
 const DIFFICULTIES = { easy: { speed: 350, density: 0.4, chord: 0.0 }, normal: { speed: 480, density: 0.7, chord: 0.1 }, hard: { speed: 600, density: 0.9, chord: 0.25 } };
 const GENRES = { cyber: { scales: ['Phrygian', 'Harmonic Minor', 'Minor Pentatonic', 'Aeolian', 'Blues'], bpm: 120 }, synth: { scales: ['Dorian', 'Major Pentatonic', 'Lydian', 'Major'], bpm: 100 }, chip: { scales: ['Major Pentatonic', 'Dorian', 'Mixolydian', 'Blues'], bpm: 140 }, void: { scales: ['Phrygian', 'Harmonic Minor', 'Aeolian', 'Blues'], bpm: 150 } }; // v33: 10 scales, 4-5 per genre (was 5 total) — songs stop feeling the same
 let currentDiff = 'easy', currentGenre = 'cyber';
@@ -1007,6 +1009,7 @@ function finish() {
     if (achAdded.length && xpEl) xpEl.textContent += ' • +' + (achAdded.length * 25) + ' XP (ACHIEVEMENTS)'; // v30: achievement XP is awarded inside checkAchievements — keep the XP line honest
   }
   renderRaceBox(); renderLeague(); renderAchievements(); renderPredict(); renderBossBox(); renderDiaryList(); renderChamps();
+  lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice }; resetLbSubmit(); // v37: this result is submittable to the global board
   $('gradeVal').textContent = g; $('gradeVal').style.color = g.startsWith('S') ? 'var(--green)' : g === 'A' ? 'var(--cyan)' : 'var(--pink)';
   const c = G.counts;
   $('resultKv').innerHTML = `<span>${rl('score')}</span><b>${G.score}</b><span>${rl('acc')}</span><b>${a.toFixed(2)}%</b><span>${rl('combo')}</span><b>${G.maxCombo}</b><span>${rl('pg')}</span><b>${c.perfect}/${c.great}</b><span>${rl('gm')}</span><b>${c.good}/${c.miss}</b><span>${rl('anthem')}</span><b>"${anthem.name}" • ${anthem.key}</b><span>${rl('setup')}</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? rl('tryCalib') : ''}${G.practice ? rl('practiceTag') : ''}</b>` + (G.live ? `<span>${rl('live')}</span><b>${G.live.offline ? rl('offline') : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '') + (G.race ? `<span>${rl('race')}</span><b>YOU ${G.race.playerDist.toFixed(0)} m vs SQUEEKTOSHI ${oppDist.toFixed(0)} m — ${raceWin ? rl('raceWin') : rl('raceLose')}${G.race.offline ? ' (' + rl('offline') + ')' : ''}</b>` : '') + (G.boss ? `<span>${rl('boss')}</span><b>${rl('bossDefeated')}</b>` : '');
@@ -1872,6 +1875,83 @@ function renderLeague() {
   el.innerHTML = sorted.map(r => `<div class="league-row${r.win ? ' win' : ' lose'}">${msgf('leagueRowTpl', { mine: r.myScore, rival: escHtml(r.rival), theirs: r.rivalScore, result: r.win ? msg('leagueWin') : msg('leagueLose'), date: r.date })}</div>`).join('');
 }
 
+// --- v37: Global leaderboard (Cloudflare Workers + D1, public scoreboard) ---
+// The board is real server data, never fabricated: fetchLb shows the live top
+// 10, and when the backend is unreachable the box says OFFLINE instead of
+// inventing scores. Scores are public; wallets display truncated.
+const LB_MODES = ['free', 'daily', 'live', 'race', 'boss', 'challenge'];
+const lbState = { mode: 'free', rows: [], loading: false };
+let lastResult = null;
+function truncAddr(w) { return (typeof w === 'string' && w.length === 42 && w.slice(0, 2) === '0x') ? '0x' + w.slice(2, 6) + '...' + w.slice(-4) : 'GUEST'; }
+function lbCleanName(n) { const s = String(n || '').replace(/[\u0000-\u001f<>&"']/g, '').trim(); return s.slice(0, 16) || 'GUEST'; }
+function lbMode(m) { return LB_MODES.indexOf(m) >= 0 ? m : 'free'; }
+function lbName() { const el = $('lbName'); const v = el ? el.value : ''; return lbCleanName(v || loadJSON('sqk37:lbname', '')); }
+function renderLbModes() {
+  const el = $('lbModes'); if (!el) return;
+  el.innerHTML = LB_MODES.map(m => `<button class="btn-diff lb-mode${lbState.mode === m ? ' active' : ''}" type="button" data-mode="${m}">${m.toUpperCase()}</button>`).join('');
+  el.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { lbState.mode = b.dataset.mode; renderLbModes(); fetchLb(lbState.mode); }));
+}
+function renderLb() {
+  const el = $('lbList'); if (!el) return;
+  if (!lbState.rows.length) { el.innerHTML = `<p class="msg">${msg('lbEmpty')}</p>`; return; }
+  const me = (currentWallet() || '').toLowerCase();
+  el.innerHTML = lbState.rows.map(r => `<div class="league-row lb-row${r.wallet && r.wallet.toLowerCase() === me ? ' lb-me' : ''}"><span class="lb-rank">#${r.rank}</span> <b>${escHtml(r.name || 'GUEST')}</b> <span class="lb-wallet">${escHtml(truncAddr(r.wallet))}</span> <b class="lb-score">${r.score}</b> <span>${(+r.acc || 0).toFixed(1)}%</span></div>`).join('');
+}
+async function fetchLb(mode) {
+  const el = $('lbList'); if (!el) return;
+  lbState.mode = lbMode(mode);
+  lbState.loading = true;
+  el.innerHTML = `<p class="msg">${msg('lbLoading')}</p>`;
+  try {
+    const r = await tfetch(CONFIG.LB_URL + '/scores?mode=' + lbState.mode + '&limit=10', null, 8000);
+    if (!r.ok) throw new Error('HTTP_' + r.status);
+    const d = await r.json();
+    if (!d || !Array.isArray(d.scores)) throw new Error('bad board');
+    lbState.rows = d.scores; lbState.loading = false;
+    renderLb(); fetchLbRank();
+  } catch (_) {
+    lbState.rows = []; lbState.loading = false;
+    el.innerHTML = `<p class="msg">${msg('lbOffline')}</p>`;
+    const rk = $('lbRank'); if (rk) rk.textContent = '';
+  }
+}
+async function fetchLbRank() {
+  const rk = $('lbRank'); if (!rk) return;
+  const w = currentWallet();
+  if (!isAddr(w)) { rk.textContent = ''; return; }
+  try {
+    const r = await tfetch(CONFIG.LB_URL + '/rank?wallet=' + w + '&mode=' + lbState.mode, null, 8000);
+    if (!r.ok) throw new Error('HTTP_' + r.status);
+    const d = await r.json();
+    rk.textContent = (d && d.rank) ? msgf('lbYourRank', { rank: d.rank, total: d.total }) : '';
+  } catch (_) { rk.textContent = ''; }
+}
+function resetLbSubmit() {
+  const b = $('lbSubmitBtn'); if (b) b.disabled = false;
+  const m = $('lbSubmitMsg'); if (m) { m.textContent = ''; m.classList.add('hidden'); }
+}
+async function submitLb() {
+  const m = $('lbSubmitMsg');
+  const show = t => { if (m) { m.textContent = t; m.classList.remove('hidden'); } };
+  if (!lastResult || !lastResult.score) return show(msg('lbNoScore'));
+  if (lastResult.practice) return show(msg('lbPractice'));
+  const w = currentWallet();
+  if (!isAddr(w)) return show(msg('lbNeedWallet'));
+  const b = $('lbSubmitBtn'); if (b) b.disabled = true;
+  try {
+    const r = await tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode) }) }, 8000);
+    if (!r.ok) throw new Error('HTTP_' + r.status);
+    const d = await r.json();
+    if (!d || !d.ok) throw new Error('submit failed');
+    show(d.improved ? msg('lbSent') : msg('lbKept'));
+    saveJSON('sqk37:lbname', lbName());
+    lbState.mode = lbMode(lastResult.mode); renderLbModes(); fetchLb(lbState.mode);
+  } catch (_) {
+    show(msg('lbOffline'));
+    if (b) b.disabled = false;
+  }
+}
+
 // --- LIVE RACE HUD ---
 let raceTick = null;
 function raceOppDist() {
@@ -2133,6 +2213,8 @@ function shareToX() {
 
 // --- v29 wiring ---
 bindClick('shareXBtn', shareToX); // v30: one-tap share of the result to X
+bindClick('lbRefreshBtn', () => fetchLb(lbState.mode)); // v37: reload the global board
+bindClick('lbSubmitBtn', submitLb); // v37: send this result to the global board
 bindClick('tutorialCloseBtn', hideTutorial); // v30
 bindClick('howBtn', showTutorial); // v30: re-open the tutorial
 bindClick('predNapBtn', () => placePrediction('nap'));
@@ -2165,6 +2247,7 @@ renderDailyBox(); renderLiveBox(); renderMastery(); renderOffsetLine(); renderUn
 if (playMode === 'live' || playMode === 'race') { refreshLive(); startLivePoll(10000); }
 try { Object.keys(localStorage).filter(k => k.indexOf('sqk29:samples:') === 0).forEach(k => finalizeRound(k.slice('sqk29:samples:'.length))); } catch (_) {} // v30: rounds recorded while the page was closed join the history at boot
 applyLang(lang); renderPredict(); renderRaceBox(); renderBossBox(); renderLeague(); renderAchievements(); renderPracticeBtn(); renderChamps(); renderTutorial(); settlePredictions(); renderAway();
+renderLbModes(); const ln = $('lbName'); if (ln) { ln.value = loadJSON('sqk37:lbname', ''); ln.addEventListener('input', () => saveJSON('sqk37:lbname', ln.value.slice(0, 16))); } // v37: leaderboard name + mode buttons
 const vs = $('volSlider'); if (vs) { vs.value = vol; applyVol(); vs.addEventListener('input', () => { vol = +vs.value; saveJSON('sqk30:vol', vol); applyVol(); }); } // v30: volume slider
 if (overlayMode) { document.body.classList.add('overlay'); const ob = $('overlayBox'); if (ob) ob.classList.remove('hidden'); hideMusicSplash(); refreshLive(); startLivePoll(5000); }
 else startMenuPoll();
@@ -2183,6 +2266,7 @@ function setTab(name) {
   });
   saveJSON('sqk31:tab', name);
   if (name === 'live') refreshLive(); // v36: the CHAIN panel + Wheel Call fetch immediately when the LIVE tab opens, instead of staring at "FETCHING…" until the 30s menu poll (smoke test 2026-11-07 saw ~8s)
+  if (name === 'league') fetchLb(lbState.mode); // v37: the global board fetches when the LEAGUE tab opens
 }
 document.querySelectorAll('#tabBar [data-tab]').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 setTab(loadJSON('sqk31:tab', 'play'));
