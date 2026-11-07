@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="SQUEEKCHAIN v26 FIX — Daily, XP, Missions, Duel. Audible intro, visible Duel Link, avatar inside the canvas.">
+<meta name="description" content="SQUEEKCHAIN v27 LIVE — Daily, XP, Missions, Duel, and LIVE mode: the song tempo follows the real hamster wheel. Audible intro, visible Duel Link, avatar inside the canvas.">
 <meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect x='3' y='3' width='10' height='10' fill='%2300ff00'/%3E%3C/svg%3E">
-<title>SQUEEKCHAIN // v26 FIX</title>
+<title>SQUEEKCHAIN // v27 LIVE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
         <div class="header-row">
             <div>
                 <h1 id="mainTitle" class="flicker">SQUEEKCHAIN</h1>
-                <h2>PIXEL ID // v26 FIX</h2>
+                <h2>PIXEL ID // v27 LIVE</h2>
             </div>
             <button class="btn-icon" id="qualityBtn" type="button" aria-label="Change graphics quality" title="Quality: ULTRA / ECO">QLTY: ULTRA</button>
             <button class="btn-icon" id="muteBtn" type="button" aria-label="Mute / unmute sound" aria-pressed="false" title="Mute (M)">🔊</button>
@@ -76,6 +76,12 @@
                 <div class="diff-row" id="modeRow" role="group" aria-labelledby="modeLabel">
                     <button class="btn-diff active" type="button" data-mode="free" aria-pressed="true">FREE</button>
                     <button class="btn-diff" type="button" data-mode="daily" aria-pressed="false">DAILY</button>
+                    <button class="btn-diff" type="button" data-mode="live" aria-pressed="false">LIVE</button>
+                </div>
+                <div id="liveBox" class="hidden">
+                    <p id="liveTitle">LIVE — RACE THE HAMSTER</p>
+                    <p id="liveInfo">The song's tempo follows the real hamster wheel, live from api.squeekchain.com/v1/status. Resting hamster = CALM 100 BPM. Running hamster = 100 + RPM (max 180). At 70+ RPM ZOOMIES starts and all scores double. Day follows the wheel running, night follows it resting. If the wheel is offline, the song uses a 128 BPM fallback and says so.</p>
+                    <p id="liveLine">FETCHING WHEEL…</p>
                 </div>
                 <div id="dailyBox" class="hidden">
                     <p id="dailyTitle">DAILY ANTHEM</p>
@@ -115,6 +121,7 @@
             <div class="canvas-wrapper"><canvas id="game-canvas" tabindex="0" aria-label="Game area. Use the left, down, right arrow keys or A S D to hit the lanes."></canvas></div>
             <div id="precisionBox" aria-live="polite"><span>LAST HIT <b id="lastHit">-- ms</b></span><span>AVG <b id="avgHit">-- ms</b></span><span id="hitDir">—</span></div>
             <p class="msg" id="gameAudioStatus">AUDIO: —</p>
+            <p class="msg hidden" id="liveHud">LIVE: —</p>
             <div id="vizBars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
             <p class="hint">TAP LANE WHEN BLOCK HITS THE LINE.<br><span class="kbd-hint">KEYBOARD: ← ↓ → / A S D &nbsp;•&nbsp; P = PAUSE &nbsp;•&nbsp; M = MUTE</span></p>
             <div class="row">
@@ -139,7 +146,7 @@
             </div>
         </section>
     </main>
-    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v26 FIX — UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia. Daily: ?daily=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard</footer>
+    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v27 LIVE — UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia. Daily: ?daily=1 • Live: ?live=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard</footer>
 </div>
 
 <noscript><p style="color:#ff00ff;text-align:center;padding:20px">This game needs JavaScript. Enable JavaScript to play.</p></noscript>

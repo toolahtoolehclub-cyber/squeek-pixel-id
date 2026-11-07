@@ -129,6 +129,17 @@ body.hemat #bg-gl { opacity: .1; }
 
 #dailyBox { border: 2px dashed var(--yellow); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
 #dailyBox.hidden { display: none; }
+
+/* v27 LIVE: info box for LIVE mode + day/night theme driven by the real wheel. */
+#liveBox { border: 2px dashed var(--green); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+#liveBox.hidden { display: none; }
+#liveTitle { margin: 0; font-size: 12px; color: var(--green); font-weight: bold; letter-spacing: 2px; }
+#liveInfo { margin: 0; font-size: 11px; color: #aaa; line-height: 1.5; }
+#liveLine { margin: 0; font-size: 12px; color: var(--cyan); font-weight: bold; }
+#liveHud.zoomies { border-color: var(--yellow); color: var(--yellow); }
+body.live-night #bg-anim { filter: brightness(.45) hue-rotate(200deg); }
+body.live-night #bg-gl { opacity: .35; }
+body.live-day #bg-anim { filter: saturate(1.4); }
 #dailyTitle { margin: 0; font-size: 12px; color: var(--yellow); font-weight: bold; letter-spacing: 2px; }
 #dailyInfo { margin: 0; font-size: 11px; color: #aaa; line-height: 1.5; }
 #streakLine { margin: 0; font-size: 12px; color: var(--pink); font-weight: bold; }

@@ -1,6 +1,6 @@
-# Squeekchain v26 FIX
+# Squeekchain v27 LIVE
 
-A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only; optional wallet connect reads your address only, no signature, no transactions), play 3 lanes, earn XP, play the Daily Anthem, complete daily missions, and generate your ID Card.
+A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only; optional wallet connect reads your address only, no signature, no transactions), play 3 lanes, earn XP, play the Daily Anthem, complete daily missions, generate your ID Card, and race the real hamster in LIVE mode.
 
 Built by [pancigoreng](https://x.com/pancigoreng) — Made in Indonesia.
 
@@ -15,15 +15,16 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - **Duel Link** — share `?challenge=...` so a friend plays the exact same song
 - **Opening music, 2 modes** — HYPE 128 BPM / CALM 100 BPM, switch with 1 tap in the menu
 - **Moving background** — grid + orbs + sweep (still moves even if WebGL fails), QLTY ULTRA/ECO
+- **LIVE — Race the Hamster** — the song's tempo follows the real hamster wheel, live from `api.squeekchain.com/v1/status`: resting hamster = CALM 100 BPM, running hamster = 100 + RPM (max 180). At 70+ RPM ZOOMIES starts and all scores double. Day follows the wheel running, night follows it resting. If the wheel is offline the song uses a 128 BPM fallback and says so — never fake live data. Deep link: `?live=1`
 - **Live Squeekchain API** — the ID Card shows the live hamster-wheel status and distance from `api.squeekchain.com/v1/status`, plus your Sepolia token balance (read-only)
 
 ## Files
 
 - `index.html` — main page
 - `style.css` — pixel / CRT styling
-- `script.js` — game, music, Daily, XP, missions, ID Card
+- `script.js` — game, music, Daily, XP, missions, ID Card, LIVE mode
 - `AUDIT-v26-FIX.md` — notes on the v25 → v26 fixes
-- `squeekchain-v26-single.html` — single-file build (CSS + JS inlined)
+- `AUDIT-v27-LIVE.md` — notes on the v26 → v27 LIVE mode
 
 ## Notes
 

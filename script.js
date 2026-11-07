@@ -1,5 +1,6 @@
 'use strict';
-/* SQUEEKCHAIN v26 FIX — basis v25 ULTIMATE + v24 RETENTION.
+/* SQUEEKCHAIN v27 LIVE — basis v26 FIX + LIVE mode (song tempo follows the real hamster wheel).
+ * v26 FIX — basis v25 ULTIMATE + v24 RETENTION.
  * Perbaikan dari tes HP 2026-11-06 (AudioContext running, WebGL OK, clipboard OK):
  * #1 intro 50Hz sawtooth -> 220Hz triangle + stop race-safe; #4 avatar putar di dalam canvas, kartu tidak ikut muter;
  * #5 Daily banner + scroll; #6 Duel Link feedback di resultPanel + kotak link terlihat; #7 QLTY efek terlihat walau WebGL mati + status WebGL;
@@ -15,10 +16,13 @@ let lastAnthem = null;
 
 let playMode = 'free';
 let challengeCode = null;
+// v27 LIVE state: last wheel snapshot, poll timer, ZOOMIES flag (70+ RPM = x2 score).
+let liveSnapshot = null, livePoll = null, liveZoomies = false;
 function todayStr(d) { const t = d || new Date(); const p = n => String(n).padStart(2, '0'); return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`; }
 function yesterdayStr() { const t = new Date(); t.setDate(t.getDate() - 1); return todayStr(t); }
 function seedKeyFor(mode) {
   if (mode === 'daily') return 'DAILY-' + todayStr();
+  if (mode === 'live') return 'LIVE-' + todayStr() + '-' + (liveSnapshot && liveSnapshot.ok ? liveBpm(liveSnapshot.rpm) : 128);
   if (mode === 'challenge' && challengeCode) return challengeCode;
   return 'FREE-' + Math.floor(Math.random() * 1e9);
 }
@@ -196,7 +200,12 @@ function makeAnthem(wallet, randomize = false, seedOverride = null) {
   const r = rng(seed), genreInfo = GENRES[currentGenre];
   const scaleName = genreInfo.scales[Math.floor(r() * genreInfo.scales.length)];
   const scale = SCALES[scaleName], root = Math.floor(r() * 12);
-  const bpm = genreInfo.bpm + Math.floor(r() * 20) - 10, step = 60 / bpm / 4, span = scale.length * 2;
+  // v27 LIVE: a LIVE seed encodes the hamster BPM (LIVE-YYYY-MM-DD-<bpm>) — the
+  // tempo comes from the wheel, not the genre. Skipping the bpm rng draw here
+  // keeps the song identical when a duel link replays the same seed.
+  const liveBpmMatch = seedOverride ? String(seedOverride).match(/^LIVE-\d{4}-\d{2}-\d{2}-(\d{2,3})$/) : null;
+  const bpm = liveBpmMatch ? parseInt(liveBpmMatch[1], 10) : genreInfo.bpm + Math.floor(r() * 20) - 10;
+  const step = 60 / bpm / 4, span = scale.length * 2;
   const chart = [], drums = [], diff = DIFFICULTIES[currentDiff]; let lastT = -1;
   for (let bar = 0; bar < CONFIG.BARS; bar++) {
     for (let s = 0; s < 16; s++) {
@@ -332,14 +341,25 @@ async function play() {
   if (w && !isAddr(w)) { $('walletInput').classList.add('invalid'); return say('INVALID WALLET ADDRESS.', 'pink'); }
   $('walletInput').classList.remove('invalid');
   try { await initAudio(); stopIntroMusic(); } catch (e) { return say('AUDIO FAILED: ' + String(e.message || e).slice(0, 60), 'pink'); }
+  // v27 LIVE: sample the real wheel right before the song is built — the tempo
+  // IS the hamster's tempo at this moment. If the wheel is offline, the song
+  // still starts on a 128 BPM fallback and says so (never fake live data).
+  let liveStart = null;
+  if (playMode === 'live') {
+    say('FETCHING LIVE WHEEL...', 'cyan');
+    liveStart = await refreshLive();
+    if (!liveStart.ok) say('WHEEL OFFLINE — LIVE MODE USES 128 BPM FALLBACK (NOT LIVE DATA).', 'pink');
+  }
   const seedKey = seedKeyFor(playMode);
   anthem = makeAnthem(w, false, seedKey); lastAnthem = anthem; hitOffsets = []; CONFIG.SPEED = DIFFICULTIES[currentDiff].speed; applyHue(anthem.hue);
   glSeed = w ? Math.abs(cyrb53(w) % 1000) / 100 : Math.random() * 10;
   glShockwave = 1.0; // Shockwave saat mulai
 
-  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: [0, 0, 0], ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff };
+  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: [0, 0, 0], ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, live: playMode === 'live' ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null };
   floatTexts = [];
   show('gamePanel'); setText('bpmVal', anthem.bpm); setText('gameAudioStatus', 'AUDIO: RUNNING • ' + anthem.bpm + ' BPM • AC: ' + (ac ? ac.state : '-')); hud();
+  if (playMode === 'live') { const lh = $('liveHud'); if (lh) lh.classList.remove('hidden'); updateLiveHud(); startLivePoll(5000); }
+  else { const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); }
   setText('pauseBtn', '[ PAUSE ]');
   clearInterval(sched); sched = setInterval(schedule, 25);
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
@@ -382,7 +402,7 @@ function judge(lane) {
   updatePrecision((target.t - st) * 1000, 'hit');
   const k = bd <= CONFIG.W.perfect ? 'perfect' : bd <= CONFIG.W.great ? 'great' : 'good';
   target.judged = k; G.counts[k]++; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
-  const mult = Math.min(2, 1 + Math.floor(G.combo / 10) * .1);
+  const mult = Math.min(2, 1 + Math.floor(G.combo / 10) * .1) * (liveZoomies ? 2 : 1); // v27 LIVE: ZOOMIES (70+ RPM) doubles all scores while it lasts
   G.score += Math.round({ perfect: 300, great: 200, good: 100 }[k] * mult);
   tone(mtof(target.midi), ac.currentTime, 'sawtooth', k === 'perfect' ? .22 : .15, .22); // v26-musik: hit note sawtooth, lebih galak
   if (k === 'perfect') { addFloatText('PERFECT!', '#00ff00'); juiceHit('perfect'); } else if (G.combo > 0 && G.combo % 10 === 0) addFloatText(`COMBO x${G.combo}!`, '#00ffff');
@@ -436,7 +456,7 @@ const grade = (a, miss) => a >= 95 && miss === 0 ? 'SS' : a >= 95 ? 'S' : a >= 8
 function hud() { $('scoreVal').textContent = G.score; $('comboVal').textContent = G.combo; $('accVal').textContent = accuracy().toFixed(1) + '%' }
 
 function finish() {
-  G.ended = true; clearInterval(sched); cancelAnimationFrame(raf);
+  G.ended = true; clearInterval(sched); cancelAnimationFrame(raf); stopLivePoll(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night');
   const a = accuracy(), g = grade(a, G.counts.miss), key = (G.wallet || 'GUEST').toLowerCase(), prev = loadBest(G.wallet);
   const rec = { score: G.score, acc: +a.toFixed(2), grade: g, maxCombo: G.maxCombo, at: Date.now() };
   const isNew = !prev || rec.score > prev.score;
@@ -470,7 +490,7 @@ function finish() {
   renderDailyBox(); renderMastery(); renderAvatarPreview(G.wallet);
   $('gradeVal').textContent = g; $('gradeVal').style.color = g.startsWith('S') ? 'var(--green)' : g === 'A' ? 'var(--cyan)' : 'var(--pink)';
   const c = G.counts;
-  $('resultKv').innerHTML = `<span>SCORE</span><b>${G.score}</b><span>ACCURACY</span><b>${a.toFixed(2)}%</b><span>MAX COMBO</span><b>${G.maxCombo}</b><span>PERFECT/GREAT</span><b>${c.perfect}/${c.great}</b><span>GOOD/MISS</span><b>${c.good}/${c.miss}</b><span>ANTHEM</span><b>${anthem.key} ${anthem.scaleName}</b>`;
+  $('resultKv').innerHTML = `<span>SCORE</span><b>${G.score}</b><span>ACCURACY</span><b>${a.toFixed(2)}%</b><span>MAX COMBO</span><b>${G.maxCombo}</b><span>PERFECT/GREAT</span><b>${c.perfect}/${c.great}</b><span>GOOD/MISS</span><b>${c.good}/${c.miss}</b><span>ANTHEM</span><b>${anthem.key} ${anthem.scaleName}</b>` + (G.live ? `<span>LIVE WHEEL</span><b>${G.live.offline ? 'OFFLINE (128 BPM FALLBACK)' : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '');
   $('bestMsg').textContent = isNew ? 'NEW HIGH SCORE!' : `BEST: ${prev.score} (${prev.grade})`;
   show('resultPanel');
   playResultJingle(g);
@@ -484,7 +504,7 @@ function playResultJingle(g) {
   seq.forEach((m, i) => { tone(mtof(m), t0 + i * 0.11, 'square', 0.16, 0.16); tone(mtof(m + 7), t0 + i * 0.11, 'sawtooth', 0.07, 0.16); });
   if (g === 'SS' || g === 'S') kick(t0);
 }
-function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } show('mainPanel'); playIntroMusic(); }
+function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night'); const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); show('mainPanel'); playIntroMusic(); }
 async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', '[ RESUME ]'); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); }
 async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', '[ PAUSE ]'); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
 async function togglePause() { if (!G) return; if (G.paused) await resumeGame(); else await pauseGame(); }
@@ -520,7 +540,52 @@ async function fetchBalance(w) {
     return { ok: true, val: fmt(BigInt(by[1]), dec), sym };
   });
 }
-async function fetchWheel() { try { const r = await tfetch(CONFIG.API_URL); if (!r.ok) return { ok: false, status: 'HTTP_' + r.status }; const m = (await r.json()).measurement; if (!m) return { ok: false, status: 'NO_DATA' }; return { ok: true, dist: Number(m.distanceMm) / 1e6, status: String(m.coreStatus).slice(0, 18) } } catch { return { ok: false, status: 'OFFLINE' } } }
+async function fetchWheel() { try { const r = await tfetch(CONFIG.API_URL); if (!r.ok) return { ok: false, status: 'HTTP_' + r.status }; const m = (await r.json()).measurement; if (!m) return { ok: false, status: 'NO_DATA' }; return { ok: true, dist: Number(m.distanceMm) / 1e6, status: String(m.coreStatus).slice(0, 18), rpm: Number(m.rpmMilli || 0) / 1000, fresh: String(m.freshness || '') } } catch { return { ok: false, status: 'OFFLINE' } } }
+
+// ==========================================
+// 5b. LIVE MODE — RACE THE HAMSTER
+// The song's tempo follows the real hamster wheel (api.squeekchain.com/v1/status).
+// Resting hamster (RPM 0) = CALM 100 BPM. Running hamster = 100 + RPM, capped at 180.
+// At 70+ RPM ZOOMIES starts: all scores x2 while it lasts. Day follows the wheel
+// running, night follows it resting. If the wheel is offline the song uses a
+// 128 BPM fallback and says so — never fake live data.
+// ==========================================
+const ZOOMIES_RPM = 70;
+function liveBpm(rpm) { if (!Number.isFinite(rpm) || rpm <= 0) return 100; return Math.min(180, Math.round(100 + rpm)); }
+function liveIsDay(s) { return !!(s && s.ok && s.rpm > 0); }
+function liveSummary(s) {
+  if (!s || !s.ok) return 'WHEEL OFFLINE — NEXT SONG USES 128 BPM FALLBACK (NOT LIVE DATA)';
+  const bpm = liveBpm(s.rpm);
+  return `RPM ${Math.round(s.rpm)} • ${s.dist.toFixed(3)} KM • ${liveIsDay(s) ? 'DAY — HAMSTER RUNNING' : 'NIGHT — HAMSTER RESTING'} • SONG ${bpm} BPM${s.rpm >= ZOOMIES_RPM ? ' • ZOOMIES ×2' : ''}`;
+}
+function renderLiveBox() {
+  const box = $('liveBox'); if (!box) return;
+  box.classList.toggle('hidden', playMode !== 'live');
+  if (playMode !== 'live') return;
+  const ll = $('liveLine'); if (ll) ll.textContent = liveSnapshot ? liveSummary(liveSnapshot) : 'FETCHING WHEEL…';
+}
+async function refreshLive() {
+  const s = await fetchWheel();
+  liveSnapshot = s;
+  renderLiveBox();
+  if (G && !G.ended && G.mode === 'live') updateLiveHud();
+  return s;
+}
+function startLivePoll(ms) { stopLivePoll(); livePoll = setInterval(() => { refreshLive(); }, ms); }
+function stopLivePoll() { if (livePoll) { clearInterval(livePoll); livePoll = null; } }
+function updateLiveHud() {
+  const lh = $('liveHud'); if (!lh || !G || G.mode !== 'live') return;
+  const s = liveSnapshot;
+  liveZoomies = !!(s && s.ok && s.rpm >= ZOOMIES_RPM);
+  if (G.live && s && s.ok) { G.live.dist = s.dist; G.live.peakRpm = Math.max(G.live.peakRpm, s.rpm); if (liveZoomies) G.live.zoomiesEver = true; }
+  const day = liveIsDay(s);
+  document.body.classList.toggle('live-day', day);
+  document.body.classList.toggle('live-night', !day);
+  lh.classList.toggle('zoomies', liveZoomies);
+  lh.textContent = s && s.ok
+    ? `LIVE • RPM ${Math.round(s.rpm)} • ${s.dist.toFixed(3)} KM • ${day ? '☀️ DAY' : '🌙 NIGHT'}${liveZoomies ? ' • ZOOMIES ×2 SCORE' : ''}`
+    : 'LIVE: OFFLINE — FALLBACK 128 BPM (NOT LIVE DATA)';
+}
 
 function avatar(ctx, w, x0, y0, px, level) {
   level = level || 1;
@@ -653,7 +718,7 @@ function preview() {
   if (w && !isAddr(w)) { $('anthemInfo').textContent = 'INVALID ADDRESS'; $('walletInput').classList.add('invalid'); return; }
   $('walletInput').classList.remove('invalid');
   const a = playMode === 'free' ? makeAnthem(w) : makeAnthem(w, false, seedKeyFor(playMode)), b = loadBest(w);
-  const modeTag = playMode === 'free' ? '' : playMode === 'daily' ? ' // DAILY ' + todayStr() : ' // DUEL ' + String(challengeCode || '').slice(0, 12);
+  const modeTag = playMode === 'free' ? '' : playMode === 'daily' ? ' // DAILY ' + todayStr() : playMode === 'live' ? ' // LIVE ' + (liveSnapshot && liveSnapshot.ok ? 'RPM ' + Math.round(liveSnapshot.rpm) + ' • ' + a.bpm + ' BPM' : 'WHEEL OFFLINE • 128 BPM FALLBACK') : ' // DUEL ' + String(challengeCode || '').slice(0, 12);
   $('anthemInfo').textContent = `>> ANTHEM: ${a.key} ${a.scaleName} [${a.bpm} BPM] // NOTES: ${a.chart.length}${b ? ' // BEST: ' + b.score : ''}${modeTag}`;
   renderAvatarPreview(w); applyHue(a.hue);
 }
@@ -731,7 +796,9 @@ function renderMastery() {
 function setMode(m) {
   playMode = m;
   document.querySelectorAll('#modeRow .btn-diff').forEach(x => { const on = x.dataset.mode === m; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); });
-  renderDailyBox(); preview();
+  renderDailyBox(); renderLiveBox(); preview();
+  if (m === 'live') { refreshLive(); startLivePoll(10000); say('LIVE ACTIVE — THE SONG TEMPO FOLLOWS THE REAL HAMSTER WHEEL. 70+ RPM = ZOOMIES ×2 SCORE.', 'yellow'); const lb = $('liveBox'); if (lb) lb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  else stopLivePoll();
   if (m === 'daily') { say('DAILY ACTIVE — ' + todayStr() + ' • TODAY\'S SONG IS THE SAME FOR EVERYONE (SAME GENRE/DIFF).', 'yellow'); const db = $('dailyBox'); if (db) db.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 }
 function duelLink() { if (!G || !G.seedKey) return null; const base = location.href.split('?')[0]; return `${base}?challenge=${encodeURIComponent(G.seedKey)}&genre=${G.genre}&diff=${G.diff}`; }
@@ -756,8 +823,10 @@ try {
   const qd = params.get('diff'); if (qd && DIFFICULTIES[qd]) { currentDiff = qd; document.querySelectorAll('#diffRow .btn-diff').forEach(x => { const on = x.dataset.diff === qd; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); }); }
   const qc = params.get('challenge'); if (qc) { challengeCode = qc; playMode = 'challenge'; }
   else if (params.get('daily') === '1') playMode = 'daily';
+  else if (params.get('live') === '1') playMode = 'live';
   if (playMode !== 'free') document.querySelectorAll('#modeRow .btn-diff').forEach(x => { const on = x.dataset.mode === playMode || (playMode === 'challenge' && x.dataset.mode === 'free'); x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); });
   if (quality === 'hemat') setQuality('hemat'); else setQuality('ultra');
 } catch (_) {}
-renderDailyBox(); renderMastery();
+renderDailyBox(); renderLiveBox(); renderMastery();
+if (playMode === 'live') { refreshLive(); startLivePoll(10000); }
 preview();
