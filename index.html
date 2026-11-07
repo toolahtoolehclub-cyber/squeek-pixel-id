@@ -32,7 +32,7 @@
     <header class="neo-head">
         <div>
             <h1 id="mainTitle">SQUEEKCHAIN</h1>
-            <h2>PIXEL ID // v32 NEO</h2>
+            <h2>PIXEL ID // v33 NEO+</h2>
         </div>
         <button class="btn-icon" id="settingsBtn" type="button" aria-label="Settings" title="Settings">⚙️</button>
     </header>
@@ -120,14 +120,6 @@
             <p class="msg" id="message" role="status" aria-live="polite">SYSTEM READY.</p>
             <p class="msg" id="glStatus" role="status">WEBGL: CHECKING... • QLTY: ULTRA • AUDIO: NOT TESTED YET</p>
 
-            <div id="cardArea" class="hidden stack">
-                <!-- v26 FIX #4: the card does NOT spin. Canvas in a plain wrapper, 400x600 readable. -->
-                <div class="canvas-wrapper"><canvas id="card-canvas" aria-label="ID Card Squeek Citizen"></canvas></div>
-                <div class="row">
-                    <button class="btn-primary" type="button" id="dlBtn" data-i18n="download">[ DOWNLOAD ]</button>
-                    <button class="btn-secondary" type="button" id="shareBtn" data-i18n="share">[ SHARE ]</button>
-                </div>
-            </div>
             </div>
 
             <div class="tab-panel hidden" id="tab-daily" role="tabpanel" aria-label="Daily">
@@ -215,38 +207,6 @@
             </div>
             </div>
 
-            <div id="settingsBackdrop" class="hidden" aria-hidden="true"></div>
-            <section id="settingsSheet" class="hidden" role="dialog" aria-label="Settings">
-                <div class="sheet-head">
-                    <p data-i18n="settingsTitle">SETTINGS</p>
-                    <button class="btn-icon" id="settingsCloseBtn" type="button" aria-label="Close settings">✕</button>
-                </div>
-                <div class="sheet-body">
-                    <div class="sheet-row">
-                        <span data-i18n="langLabel">LANGUAGE</span>
-                        <button class="btn-icon" id="langBtn" type="button" aria-label="Switch language English / Bahasa Indonesia" title="Language: EN / ID">EN</button>
-                    </div>
-                    <div class="sheet-row">
-                        <span data-i18n="qualityLabel">GRAPHICS</span>
-                        <button class="btn-icon" id="qualityBtn" type="button" aria-label="Change graphics quality" title="Quality: ULTRA / ECO">QLTY: ULTRA</button>
-                    </div>
-                    <div class="sheet-row">
-                        <span data-i18n="soundLabel">SOUND</span>
-                        <button class="btn-icon" id="muteBtn" type="button" aria-label="Mute / unmute sound" aria-pressed="false" title="Mute (M)">🔊</button>
-                    </div>
-                    <div class="sheet-row">
-                        <label for="volSlider" data-i18n="volLabel">VOLUME</label>
-                        <input type="range" id="volSlider" min="0" max="100" value="80" aria-label="Volume" style="flex:1">
-                        <b id="volVal">80%</b>
-                    </div>
-                    <button class="btn-secondary" type="button" id="musicModeBtn">MUSIC: HYPE 128 BPM — TAP FOR CALM</button>
-                    <div class="row">
-                        <button class="btn-secondary" type="button" id="practiceBtn">PRACTICE: OFF</button>
-                        <button class="btn-secondary" type="button" id="obsBtn" data-i18n="obs">[ OBS OVERLAY LINK ]</button>
-                        <button class="btn-secondary" type="button" id="howBtn" data-i18n="howBtn">[ HOW TO PLAY ]</button>
-                    </div>
-                </div>
-            </section>
         </section>
 
         <section class="panel hidden" id="gamePanel" aria-label="Game rhythm">
@@ -255,6 +215,10 @@
                 <div class="stat"><b id="comboVal">0</b><span>COMBO</span></div>
                 <div class="stat"><b id="accVal">100%</b><span>ACC</span></div>
                 <div class="stat"><b id="bpmVal">120</b><span>BPM</span></div>
+            </div>
+            <div class="row">
+                <button class="btn-secondary" type="button" id="pauseBtn">[ PAUSE ]</button>
+                <button class="btn-danger" type="button" id="stopBtn">[ TERMINATE ]</button>
             </div>
             <div class="canvas-wrapper"><canvas id="game-canvas" tabindex="0" aria-label="Game area. Use the left, down, right arrow keys or A S D to hit the lanes."></canvas></div>
             <div id="precisionBox" aria-live="polite"><span><i data-i18n="lastHitLbl">LAST HIT</i> <b id="lastHit">-- ms</b></span><span><i data-i18n="avgHitLbl">AVG</i> <b id="avgHit">-- ms</b></span><span id="hitDir">—</span></div>
@@ -267,10 +231,6 @@
             <p class="msg hidden" id="liveHud">LIVE: —</p>
             <div id="vizBars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
             <p class="hint"><span data-i18n="hintTap">TAP LANE WHEN BLOCK HITS THE LINE.</span><br><span class="kbd-hint">KEYBOARD: ← ↓ → / A S D &nbsp;•&nbsp; P = PAUSE &nbsp;•&nbsp; M = MUTE</span></p>
-            <div class="row">
-                <button class="btn-secondary" type="button" id="pauseBtn">[ PAUSE ]</button>
-                <button class="btn-danger" type="button" id="stopBtn">[ TERMINATE ]</button>
-            </div>
         </section>
 
         <section class="panel hidden" id="resultPanel" aria-label="Game results">
@@ -292,7 +252,59 @@
             </div>
         </section>
     </main>
-    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v32 NEO • <span data-i18n="footerNote">UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia.</span><br>Daily: ?daily=1 • Live: ?live=1 • Race: ?race=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard • OBS: ?overlay=1</footer>
+        <div id="settingsBackdrop" class="hidden" aria-hidden="true"></div>
+        <section id="settingsSheet" class="hidden" role="dialog" aria-label="Settings">
+            <div class="sheet-head">
+                <p data-i18n="settingsTitle">SETTINGS</p>
+                <button class="btn-icon" id="settingsCloseBtn" type="button" aria-label="Close settings">✕</button>
+            </div>
+            <div class="sheet-body">
+                <div class="sheet-row">
+                    <span data-i18n="langLabel">LANGUAGE</span>
+                    <button class="btn-icon" id="langBtn" type="button" aria-label="Switch language English / Bahasa Indonesia" title="Language: EN / ID">EN</button>
+                </div>
+                <div class="sheet-row">
+                    <span data-i18n="qualityLabel">GRAPHICS</span>
+                    <button class="btn-icon" id="qualityBtn" type="button" aria-label="Change graphics quality" title="Quality: ULTRA / ECO">QLTY: ULTRA</button>
+                </div>
+                <div class="sheet-row">
+                    <span data-i18n="soundLabel">SOUND</span>
+                    <button class="btn-icon" id="muteBtn" type="button" aria-label="Mute / unmute sound" aria-pressed="false" title="Mute (M)">🔊</button>
+                </div>
+                <div class="sheet-row">
+                    <label for="volSlider" data-i18n="volLabel">VOLUME</label>
+                    <input type="range" id="volSlider" min="0" max="100" value="80" aria-label="Volume" style="flex:1">
+                    <b id="volVal">80%</b>
+                </div>
+                <button class="btn-secondary" type="button" id="musicModeBtn">MUSIC: HYPE 128 BPM — TAP FOR CALM</button>
+                <div class="row">
+                    <button class="btn-secondary" type="button" id="practiceBtn">PRACTICE: OFF</button>
+                    <button class="btn-secondary" type="button" id="obsBtn" data-i18n="obs">[ OBS OVERLAY LINK ]</button>
+                    <button class="btn-secondary" type="button" id="howBtn" data-i18n="howBtn">[ HOW TO PLAY ]</button>
+                </div>
+            </div>
+        </section>
+
+    <!-- v33: card overlay — the ID card and the result card open ON TOP of
+         whatever panel is showing (no more jumping back to the menu), with
+         close + minimize controls. -->
+    <div id="cardBackdrop" class="hidden" aria-hidden="true"></div>
+    <section id="cardOverlay" class="hidden" role="dialog" aria-label="Card">
+        <div class="card-head">
+            <p id="cardTitle">SQUEEK // CARD</p>
+            <div class="row">
+                <button class="btn-icon" id="cardMinBtn" type="button" aria-label="Minimize card">—</button>
+                <button class="btn-icon" id="cardCloseBtn" type="button" aria-label="Close card">✕</button>
+            </div>
+        </div>
+        <div class="canvas-wrapper"><canvas id="card-canvas" aria-label="Squeek card"></canvas></div>
+        <div class="row">
+            <button class="btn-primary" type="button" id="dlBtn" data-i18n="download">[ DOWNLOAD ]</button>
+            <button class="btn-secondary" type="button" id="shareBtn" data-i18n="share">[ SHARE ]</button>
+        </div>
+    </section>
+    <div id="cardBar" class="hidden"><button id="cardBarOpen" type="button"><span data-i18n="cardBarLbl">ID CARD — TAP TO OPEN</span></button><button id="cardBarClose" type="button" aria-label="Close card">✕</button></div>
+    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v33 NEO+ • <span data-i18n="footerNote">UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia.</span><br>Daily: ?daily=1 • Live: ?live=1 • Race: ?race=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard • OBS: ?overlay=1</footer>
 </div>
 
 <div id="overlayBox" class="hidden" aria-label="OBS overlay — live hamster status">

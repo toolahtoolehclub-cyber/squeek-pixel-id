@@ -1,4 +1,4 @@
-# Squeekchain v32 NEO
+# Squeekchain v33 NEO+
 
 A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only; optional wallet connect reads your address only, no signature, no transactions), play 3 or 4 lanes, earn XP, play the Daily Anthem, complete daily missions, generate your ID Card, race the real hamster in LIVE mode, and race Squeektoshi himself in RACE mode.
 
@@ -41,6 +41,7 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - **Past bosses** — the last 3 weekly bosses, from the same deterministic spec
 - **Richer OBS overlay** — now also shows the ZOOMIES state and Squeektoshi's current state
 - **NEO redesign (v32)** — the arcade cabinet is gone: one slim header (wordmark + a single settings gear), a settings sheet (language, graphics, sound, volume, music, practice, OBS, how-to), five text-only tabs, hairline borders, glass panels, generous spacing. The menu is calmer and the header can no longer overflow on phones. Same tabs as v31: PLAY (wallet, genre, difficulty, mode, latency row, PLAY), DAILY (tutorial, Weekly Boss, Daily Champions, Mastery, While You Were Away), LIVE (Wheel Call, Round History), LEAGUE (Duel League, Achievements), ME (PRECISION calibration, unlocks). Last tab is remembered per browser; all game data (XP, streaks, missions, rounds, champions) still lives in the same `localStorage` keys as before, so nothing is lost
+- **NEO+ upgrade (v33)** — card overlay (ID card and result card open on top of any panel, with close + minimize, no more jumping back to the menu), redesigned cards (gradient frame, compact layout, no empty void, no creator line on the cards), settings work during play (the sheet lives outside the menu now; opening it pauses the game), auto-scroll to the game and the result on start/finish, pause buttons above the canvas, ACC as an integer (no more "58..."), in-canvas effects (shockwave rings, bigger hit particles, lane judgement text, miss glitch, beat-pulse background, gold hit line in FEVER), 10 song scales (was 5) with 4–5 per genre
 - **Live Squeekchain API** — the ID Card shows the live hamster-wheel status and distance from `api.squeekchain.com/v1/status`, plus your Sepolia token balance (read-only)
 
 ## Files
@@ -56,6 +57,7 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - `AUDIT-v32-NEO.md` — notes on the v31 → v32 NEO redesign (minimal futuristic theme, settings sheet, full EN/ID, low-lag performance mode)
 - `AUDIT-v32.1-FIX.md` — P0 fix: MSG/RLBL/I18N moved to the top of script.js (initGL ran before MSG existed, killed the whole script, splash never closed)
 - `AUDIT-v32.2-FIX.md` — small fixes from the v32.1 smoke test: stale LIVE banner when switching back to FREE, latency value wrapping onto two lines
+- `AUDIT-v33-NEO+.md` — notes on the v32.2 → v33 NEO+ upgrade (card overlay + redesigned cards, settings during play, auto-scroll, in-canvas effects, 10 song scales)
 
 ## Notes
 

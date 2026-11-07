@@ -69,6 +69,7 @@ const MSG = {
     modeRace: 'RACE ACTIVE — BEAT THE LIVE HAMSTER. YOUR HITS MOVE YOU FORWARD, THE WHEEL MOVES SQUEEKTOSHI.',
     modeDaily: 'DAILY ACTIVE — {date} • TODAY: {genre} / {diff} — SAME SONG FOR EVERYONE.',
     modeFree: 'FREE MODE — YOUR OWN ANTHEM, ANY GENRE, ANY DIFFICULTY.',
+    cardTitleId: 'SQUEEK CITIZEN // ID CARD', cardTitleResult: 'SQUEEK // RESULT CARD',
     calibDone: 'CALIBRATION DONE — OFFSET {off} ms.',
     calibFail: 'CALIBRATION FAILED — NOT ENOUGH GOOD TAPS.',
     calibNeedSound: 'UNMUTE FIRST — CALIBRATION NEEDS SOUND.',
@@ -184,6 +185,7 @@ const MSG = {
     modeRace: 'MODE BALAPAN AKTIF — KALAHKAN HAMSTER ASLI. PUKULANMU MEMAJUKANMU, RODA MENGGERAKKAN SQUEEKTOSHI.',
     modeDaily: 'LAGU HARIAN AKTIF — {date} • HARI INI: {genre} / {diff} — LAGU YANG SAMA UNTUK SEMUA ORANG.',
     modeFree: 'MODE FREE — LAGUMU SENDIRI, GENRE DAN KESULITAN BEBAS.',
+    cardTitleId: 'SQUEEK CITIZEN // KARTU ID', cardTitleResult: 'SQUEEK // KARTU HASIL',
     calibDone: 'KALIBRASI SELESAI — OFFSET {off} ms.',
     calibFail: 'KALIBRASI GAGAL — KETUKAN BAGUS KURANG.',
     calibNeedSound: 'NYALAKAN SUARA DULU — KALIBRASI BUTUH SUARA.',
@@ -314,7 +316,8 @@ const I18N = {
     download: '[ DOWNLOAD ]', share: '[ SHARE ]', feverTag: '🔥 FEVER ×1.5 — COMBO 30+', youLbl: 'YOU',
     leagueEmpty: 'No duels yet — send a Duel Link after a song, and when a friend plays it, their result lands here.',
     champsEmpty: 'No champions yet — your best score of each day lands here.',
-    roundHistEmpty: 'No finished rounds recorded yet — keep this page open and rounds settle here.' },
+    roundHistEmpty: 'No finished rounds recorded yet — keep this page open and rounds settle here.',
+    cardBarLbl: 'ID CARD — TAP TO OPEN' },
   id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR YANG SELESAI', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI',
     warn: '⚠️ Hanya alamat 0x. JANGAN PERNAH memasukkan seed phrase / private key di sini, di mana pun.',
     splashSub: 'PILIH MUSIK PEMBUKA', splashNote: 'Browser memblokir suara sebelum ketukan pertamamu — musik mulai saat kamu pertama kali mengetuk, bukan sebelumnya.',
@@ -332,7 +335,8 @@ const I18N = {
     download: '[ UNDUH ]', share: '[ BAGIKAN ]', feverTag: '🔥 FEVER ×1.5 — KOMBO 30+', youLbl: 'KAMU',
     leagueEmpty: 'Belum ada duel — kirim Duel Link setelah satu lagu, dan saat teman memainkannya, hasilnya muncul di sini.',
     champsEmpty: 'Belum ada juara — skor terbaikmu setiap hari muncul di sini.',
-    roundHistEmpty: 'Belum ada ronde selesai yang tercatat — biarkan halaman ini terbuka dan ronde akan tercatat di sini.' },
+    roundHistEmpty: 'Belum ada ronde selesai yang tercatat — biarkan halaman ini terbuka dan ronde akan tercatat di sini.',
+    cardBarLbl: 'KARTU ID — KETUK UNTUK BUKA' },
 };
 let lang = loadJSON('sqk29:lang', 'en');
 
@@ -556,7 +560,7 @@ class CircuitBreaker {
 const rpcBreaker = new CircuitBreaker(3, 10000);
 const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0x810239d271e80a86023f4f315943acbd65b59281', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } }; // BARS 32 (Lagu lebih panjang)
 const DIFFICULTIES = { easy: { speed: 350, density: 0.4, chord: 0.0 }, normal: { speed: 480, density: 0.7, chord: 0.1 }, hard: { speed: 600, density: 0.9, chord: 0.25 } };
-const GENRES = { cyber: { scales: ['Phrygian', 'Harmonic Minor', 'Minor Pentatonic'], bpm: 120 }, synth: { scales: ['Dorian', 'Major Pentatonic'], bpm: 100 }, chip: { scales: ['Major Pentatonic', 'Dorian'], bpm: 140 }, void: { scales: ['Phrygian', 'Harmonic Minor'], bpm: 150 } }; // v28: VOID genre (LV5 unlock) — dark, fast
+const GENRES = { cyber: { scales: ['Phrygian', 'Harmonic Minor', 'Minor Pentatonic', 'Aeolian', 'Blues'], bpm: 120 }, synth: { scales: ['Dorian', 'Major Pentatonic', 'Lydian', 'Major'], bpm: 100 }, chip: { scales: ['Major Pentatonic', 'Dorian', 'Mixolydian', 'Blues'], bpm: 140 }, void: { scales: ['Phrygian', 'Harmonic Minor', 'Aeolian', 'Blues'], bpm: 150 } }; // v33: 10 scales, 4-5 per genre (was 5 total) — songs stop feeling the same
 let currentDiff = 'easy', currentGenre = 'cyber';
 
 function bindToggle(rowId, attr, cb, guard) { document.querySelectorAll(`#${rowId} .btn-diff`).forEach(b => b.addEventListener('click', () => { if (guard && !guard(b.dataset[attr])) return; document.querySelectorAll(`#${rowId} .btn-diff`).forEach(x => { x.classList.remove('active'); x.setAttribute('aria-pressed', 'false'); }); b.classList.add('active'); b.setAttribute('aria-pressed', 'true'); cb(b.dataset[attr]); })); }
@@ -570,7 +574,7 @@ function cyrb53(str, seed = 0) { let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ s
 function rng(seed) { let a = seed >>> 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 } }
 const seedOf = w => cyrb53((w || 'GUEST').toLowerCase());
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const SCALES = { 'Minor Pentatonic': [0, 3, 5, 7, 10], 'Dorian': [0, 2, 3, 5, 7, 9, 10], 'Phrygian': [0, 1, 3, 5, 7, 8, 10], 'Major Pentatonic': [0, 2, 4, 7, 9], 'Harmonic Minor': [0, 2, 3, 5, 7, 8, 11] };
+const SCALES = { 'Minor Pentatonic': [0, 3, 5, 7, 10], 'Dorian': [0, 2, 3, 5, 7, 9, 10], 'Phrygian': [0, 1, 3, 5, 7, 8, 10], 'Major Pentatonic': [0, 2, 4, 7, 9], 'Harmonic Minor': [0, 2, 3, 5, 7, 8, 11], 'Lydian': [0, 2, 4, 6, 7, 9, 11], 'Mixolydian': [0, 2, 4, 5, 7, 9, 10], 'Aeolian': [0, 2, 3, 5, 7, 8, 10], 'Blues': [0, 3, 5, 6, 7, 10], 'Major': [0, 2, 4, 5, 7, 9, 11] }; // v33: 10 scales (was 5)
 
 function makeAnthem(wallet, randomize = false, seedOverride = null, lanes = 3, mirror = false) {
   let seed = seedOverride ? cyrb53(seedOverride) : seedOf(wallet);
@@ -747,10 +751,12 @@ async function play() {
   glSeed = w ? Math.abs(cyrb53(w) % 1000) / 100 : Math.random() * 10;
   glShockwave = 1.0; // Shockwave saat mulai
 
-  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, fever: false, practice: practiceMode, live: (playMode === 'live' || playMode === 'race') ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null, race: playMode === 'race' ? { startDistKm: liveStart && liveStart.ok ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), playerDist: 0, roundKey: roundKeyFor(new Date()), goldenNote: null } : null, boss: playMode === 'boss' };
+  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), glitchT: 0, ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, fever: false, practice: practiceMode, live: (playMode === 'live' || playMode === 'race') ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null, race: playMode === 'race' ? { startDistKm: liveStart && liveStart.ok ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), playerDist: 0, roundKey: roundKeyFor(new Date()), goldenNote: null } : null, boss: playMode === 'boss' };
+  try { const cg = cx.createLinearGradient(0, 0, 0, GH); cg.addColorStop(0, 'hsl(' + (anthem ? anthem.hue : 180) + ', 65%, 9%)'); cg.addColorStop(1, '#050505'); G.bgGrad = cg; } catch (_) {} // v33: hue-tinted canvas background (WebGL is paused while playing)
   if (playMode === 'challenge' && (challengeLanes === 4 || challengeMirror)) say(msgf('duelUnlock', { mods: (challengeLanes === 4 ? '4 LANES ' : '') + (challengeMirror ? 'MIRROR ' : '') }), 'yellow');
   floatTexts = [];
   show('gamePanel'); document.body.classList.add('playing'); pauseGL(); closeSettings(); // v32: freeze decorations + WebGL while playing (lag fix)
+  $('gamePanel').scrollIntoView({ behavior: 'auto', block: 'start' }); // v33: no more manual scroll to find the score + lanes
   setText('bpmVal', anthem.bpm); setText('gameAudioStatus', msgf('gameAudioTpl', { bpm: anthem.bpm, state: ac ? ac.state : '-', practice: practiceMode ? msg('practiceTag2') : '' })); hud();
   stopMenuPoll(); // v29: the menu poll pauses while a game runs
   if (playMode === 'live') { const lh = $('liveHud'); if (lh) lh.classList.remove('hidden'); updateLiveHud(); startLivePoll(5000); }
@@ -782,7 +788,7 @@ function schedule() {
   }
 }
 
-function addFloatText(txt, color) { floatTexts.push({ txt, color, x: GW / 2, y: 250, life: 1.0 }); }
+function addFloatText(txt, color, x) { floatTexts.push({ txt, color, x: x === undefined ? GW / 2 : x, y: 250, life: 1.0 }); } // v33: judgement text pops at the hit lane, not always dead-center
 
 function judge(lane) {
   if (!G || G.ended || G.paused || !ac) return;
@@ -809,9 +815,13 @@ function judge(lane) {
   if (G.race && G.race.goldenNote === target) { G.score += 1000; G.race.playerDist += 5; G.race.goldenNote = null; addFloatText('GOLDEN NOTE! +1000', '#ffd700'); tone(mtof(target.midi + 12), ac.currentTime, 'square', .25, .3); }
   if (G.combo === 30) addFloatText('FEVER! x1.5', '#ffd700');
   tone(mtof(target.midi), ac.currentTime, 'sawtooth', k === 'perfect' ? .22 : .15, .22); // v26-musik: hit note sawtooth, lebih galak
-  if (k === 'perfect') { addFloatText('PERFECT!', '#00ff00'); juiceHit('perfect'); } else if (G.combo > 0 && G.combo % 10 === 0) addFloatText(`COMBO x${G.combo}!`, '#00ffff');
+  const jcol = k === 'perfect' ? '#00ff00' : k === 'great' ? '#00e5ff' : '#ffe14d';
+  addFloatText(k === 'perfect' ? 'PERFECT!' : k === 'great' ? 'GREAT!' : 'GOOD', jcol, lane * LW + LW / 2); // v33: every hit shows its judgement at the lane
+  if (k === 'perfect') juiceHit('perfect');
+  else if (G.combo > 0 && G.combo % 10 === 0) addFloatText(`COMBO x${G.combo}!`, '#00ffff');
   if (G.combo === 25 || G.combo === 50 || G.combo === 100) addFloatText(`COMBO x${G.combo}!!`, '#ffff00');
-  for (let i = 0; i < 8; i++) { const a = Math.random() * Math.PI * 2, s = 50 + Math.random() * 150; G.fx.push({ x: lane * LW + LW / 2, y: CONFIG.HIT_Y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 50, life: .4, c: k === 'perfect' ? '#00ff00' : '#ff00ff' }) }
+  for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 180; G.fx.push({ x: lane * LW + LW / 2, y: CONFIG.HIT_Y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60, life: .5, s: 6, c: k === 'perfect' ? '#00ff00' : k === 'great' ? '#00e5ff' : '#ffe14d' }) } // v33: 14 bigger particles (was 8 tiny ones)
+  G.fx.push({ type: 'ring', x: lane * LW + LW / 2, y: CONFIG.HIT_Y, r: 10, life: .35, c: k === 'perfect' ? '#00ff00' : '#00e5ff' }); // v33: shockwave ring, in-canvas (WebGL is paused while playing)
   hud();
 }
 
@@ -837,7 +847,7 @@ function loop(ts) {
   while (G.chartIdx < anthem.chart.length) {
     const n = anthem.chart[G.chartIdx];
     if (n.judged) { G.chartIdx++; continue; }
-    if (st - n.t > CONFIG.W.good) { n.judged = 'miss'; G.counts.miss++; G.combo = 0; G.fever = false; if (G.race && G.race.goldenNote === n) G.race.goldenNote = null; addFloatText('MISS', '#ff00ff'); hud(); glGlitch = 0.5; juiceHit('miss'); updatePrecision(0, 'miss'); try { if (navigator.vibrate) navigator.vibrate(30); } catch (_) {} G.chartIdx++; continue; }
+    if (st - n.t > CONFIG.W.good) { n.judged = 'miss'; G.counts.miss++; G.combo = 0; G.fever = false; if (G.race && G.race.goldenNote === n) G.race.goldenNote = null; addFloatText('MISS', '#ff00ff', n.lane * LW + LW / 2); hud(); glGlitch = 0.5; G.glitchT = 0.3; juiceHit('miss'); updatePrecision(0, 'miss'); try { if (navigator.vibrate) navigator.vibrate(30); } catch (_) {} G.chartIdx++; continue; }
     break;
   }
   if (st > anthem.duration + .8) return finish();
@@ -846,19 +856,21 @@ function loop(ts) {
 
 function draw(st, dt) {
   dt = dt || 1 / 60;
-  cx.clearRect(0, 0, GW, GH); cx.fillStyle = '#050505'; cx.fillRect(0, 0, GW, GH);
+  cx.clearRect(0, 0, GW, GH); cx.fillStyle = G.bgGrad || '#050505'; cx.fillRect(0, 0, GW, GH); // v33: hue-tinted background
   cx.save(); cx.beginPath(); cx.rect(0, 0, GW, GH); cx.clip();
   const spb = 60 / anthem.bpm, beat = ((st / spb) % 1 + 1) % 1, pulse = st > 0 ? Math.max(0, 1 - beat * 4) : 0;
   const lanes = G.lanes || LANES; // v28: 4-lane songs draw 4 lanes
-  for (let l = 0; l < lanes; l++) { const f = G.flash[l] || 0; cx.globalAlpha = .05 + f * .2; cx.fillStyle = '#00ffff'; cx.fillRect(l * LW + 2, 0, LW - 4, GH); cx.globalAlpha = 1; G.flash[l] = Math.max(0, f - dt * 5) }
+  if (pulse > 0) { cx.globalAlpha = pulse * .10; cx.fillStyle = '#00e5ff'; cx.fillRect(0, 0, GW, GH); cx.globalAlpha = 1; } // v33: beat pulse wash, in-canvas
+  for (let l = 0; l < lanes; l++) { const f = G.flash[l] || 0; cx.globalAlpha = .10 + f * .45; cx.fillStyle = '#00ffff'; cx.fillRect(l * LW + 2, 0, LW - 4, GH); cx.globalAlpha = 1; G.flash[l] = Math.max(0, f - dt * 5) } // v33: lane flash stronger (was .05 + f*.2)
   cx.strokeStyle = '#333'; cx.lineWidth = 2; for (let l = 1; l < lanes; l++) { cx.beginPath(); cx.moveTo(l * LW, 0); cx.lineTo(l * LW, GH); cx.stroke() }
   cx.strokeStyle = 'rgba(255,255,255,0.1)'; cx.lineWidth = 1; for (let b = Math.ceil(st / spb); b < st / spb + GH / CONFIG.SPEED / spb + 1; b++) { const y = CONFIG.HIT_Y - (b * spb - st) * CONFIG.SPEED; cx.beginPath(); cx.moveTo(0, y); cx.lineTo(GW, y); cx.stroke() }
-  cx.globalAlpha = .2 + pulse * .3; cx.fillStyle = '#00ff00'; cx.fillRect(0, CONFIG.HIT_Y - 15, GW, 30); cx.globalAlpha = 1; cx.fillRect(0, CONFIG.HIT_Y - 2, GW, 4);
+  cx.globalAlpha = .2 + pulse * .3; cx.fillStyle = G.fever ? '#ffd700' : '#00ff00'; cx.fillRect(0, CONFIG.HIT_Y - 15, GW, 30); cx.globalAlpha = 1; cx.fillRect(0, CONFIG.HIT_Y - 2, GW, 4); // v33: hit line turns gold in FEVER
   for (const n of anthem.chart) { const y = CONFIG.HIT_Y - (n.t - st) * CONFIG.SPEED; if (y < -30) break; if (y > GH + 30 || (n.judged && n.judged !== 'miss')) continue; const x = n.lane * LW + LW / 2; const golden = G.race && G.race.goldenNote === n; cx.fillStyle = golden ? '#ffd700' : n.judged === 'miss' ? '#ff00ff' : ['#ff00ff', '#00ffff', '#ffff00', '#ff8800'][n.lane]; cx.fillRect(Math.round(x - 35), Math.round(y - 12), 70, 24); if (golden) { cx.strokeStyle = '#ffffff'; cx.lineWidth = 2; cx.strokeRect(Math.round(x - 35), Math.round(y - 12), 70, 24); } }
   cx.restore();
-  for (let i = G.fx.length - 1; i >= 0; i--) { const p = G.fx[i]; p.life -= dt; if (p.life <= 0) { G.fx.splice(i, 1); continue } p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 400 * dt; cx.globalAlpha = Math.max(0, p.life * 1.5); cx.fillStyle = p.c; cx.fillRect(p.x | 0, p.y | 0, 4, 4) }
+  if (G.glitchT > 0) { G.glitchT -= dt; cx.globalAlpha = Math.min(.45, G.glitchT * 1.5); cx.fillStyle = '#ff00ff'; cx.fillRect(0, Math.random() * GH * .4, GW, 4); cx.fillStyle = '#00ffff'; cx.fillRect(0, GH - Math.random() * GH * .4, GW, 4); cx.globalAlpha = 1; } // v33: miss glitch, in-canvas
+  for (let i = G.fx.length - 1; i >= 0; i--) { const p = G.fx[i]; p.life -= dt; if (p.life <= 0) { G.fx.splice(i, 1); continue } if (p.type === 'ring') { p.r += 320 * dt; cx.globalAlpha = Math.max(0, p.life * 2.5); cx.strokeStyle = p.c; cx.lineWidth = 3; cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, Math.PI * 2); cx.stroke(); continue } p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 400 * dt; cx.globalAlpha = Math.max(0, p.life * 1.5); cx.fillStyle = p.c; const s = p.s || 4; cx.fillRect((p.x - s / 2) | 0, (p.y - s / 2) | 0, s, s) } // v33: shockwave rings + bigger particles
   cx.globalAlpha = 1; cx.textAlign = 'center';
-  for (let i = floatTexts.length - 1; i >= 0; i--) { const t = floatTexts[i]; t.life -= dt * 1.5; t.y -= dt * 50; if (t.life <= 0) { floatTexts.splice(i, 1); continue } cx.globalAlpha = Math.min(1, t.life); cx.fillStyle = t.color; cx.font = '16px "Press Start 2P"'; cx.fillText(t.txt, t.x, t.y) }
+  for (let i = floatTexts.length - 1; i >= 0; i--) { const t = floatTexts[i]; t.life -= dt * 1.5; t.y -= dt * 50; if (t.life <= 0) { floatTexts.splice(i, 1); continue } cx.globalAlpha = Math.min(1, t.life); cx.fillStyle = t.color; cx.font = '18px "Press Start 2P"'; cx.fillText(t.txt, t.x, t.y) }
   cx.globalAlpha = 1;
   if (st < 0) { cx.fillStyle = '#ffff00'; cx.font = '32px "Press Start 2P"'; cx.fillText(Math.ceil(-st), GW / 2, GH / 2) }
   if (G.paused) { cx.fillStyle = 'rgba(0,0,0,.75)'; cx.fillRect(0, 0, GW, GH); cx.fillStyle = '#fff'; cx.font = '16px "Press Start 2P"'; cx.fillText('SYSTEM PAUSED', GW / 2, GH / 2) }
@@ -867,7 +879,7 @@ function draw(st, dt) {
 
 function accuracy() { const c = G.counts, tot = c.perfect + c.great + c.good + c.miss; return tot ? (c.perfect * 300 + c.great * 200 + c.good * 100) / (tot * 300) * 100 : 100 }
 const grade = (a, miss) => a >= 95 && miss === 0 ? 'SS' : a >= 95 ? 'S' : a >= 88 ? 'A' : a >= 75 ? 'B' : a >= 60 ? 'C' : 'D';
-function hud() { $('scoreVal').textContent = G.score; $('comboVal').textContent = G.combo; $('accVal').textContent = accuracy().toFixed(1) + '%'; const ft = $('feverTag'); if (ft) ft.classList.toggle('hidden', !(G && G.fever)); }
+function hud() { $('scoreVal').textContent = G.score; $('comboVal').textContent = G.combo; $('accVal').textContent = Math.round(accuracy()) + '%'; const ft = $('feverTag'); if (ft) ft.classList.toggle('hidden', !(G && G.fever)); } // v33: ACC as an integer — "58.1%" was truncated to "58..." on phones
 
 function finish() {
   G.ended = true; clearInterval(sched); cancelAnimationFrame(raf); stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night');
@@ -938,6 +950,7 @@ function finish() {
   const rbm = $('rivalBackMsg'); // v30: after answering a duel, tell the player how the challenger sees their score
   if (rbm) { if (wasDuelResponse) { rbm.classList.remove('hidden'); rbm.textContent = msg('rivalBack'); } else rbm.classList.add('hidden'); }
   show('resultPanel');
+  $('resultPanel').scrollIntoView({ behavior: 'auto', block: 'start' }); // v33: the grade is at the top of the screen, not below the fold
   playResultJingle(g);
   playIntroMusic(); // Kembalikan intro setelah selesai
   startMenuPoll();
@@ -1062,6 +1075,37 @@ function avatar(ctx, w, x0, y0, px, level) {
   if (crown) { ctx.fillStyle = '#ffff00'; ctx.fillRect(x0 + 4 * px, y0 + 0 * px, 8 * px, px); ctx.fillRect(x0 + 4 * px, y0 + 0 * px, px, 2 * px); ctx.fillRect(x0 + 7 * px, y0 + 0 * px, px, 2 * px); ctx.fillRect(x0 + 10 * px, y0 + 0 * px, px, 2 * px); }
 }
 
+// --- v33: card overlay — the ID card and the result card open ON TOP of
+// whatever panel is showing (no more jumping back to the menu), with close
+// and minimize controls. Closing returns to the panel underneath, untouched.
+function openCard(title) { if (title) setText('cardTitle', title); const o = $('cardOverlay'), b = $('cardBackdrop'), bar = $('cardBar'); if (o) o.classList.remove('hidden'); if (b) b.classList.remove('hidden'); if (bar) bar.classList.add('hidden'); }
+function closeCard() { const o = $('cardOverlay'), b = $('cardBackdrop'), bar = $('cardBar'); if (o) o.classList.add('hidden'); if (b) b.classList.add('hidden'); if (bar) bar.classList.add('hidden'); }
+function minimizeCard() { const o = $('cardOverlay'), b = $('cardBackdrop'), bar = $('cardBar'); if (o) o.classList.add('hidden'); if (b) b.classList.add('hidden'); if (bar) bar.classList.remove('hidden'); }
+bindClick('cardCloseBtn', closeCard);
+bindClick('cardBackdrop', closeCard);
+bindClick('cardMinBtn', minimizeCard);
+bindClick('cardBarOpen', () => openCard());
+bindClick('cardBarClose', closeCard);
+
+// --- v33: shared card frame — gradient hairline border, corner ticks,
+// gradient header band. Both cards use it so the ID card and the result
+// card look like one family instead of two different eras.
+function cardFrame(ctx, CW, CH, title, right) {
+  const bg = ctx.createLinearGradient(0, 0, 0, CH); bg.addColorStop(0, '#0a161a'); bg.addColorStop(1, '#050607');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, CW, CH);
+  const edge = ctx.createLinearGradient(0, 0, CW, 0); edge.addColorStop(0, '#00e5ff'); edge.addColorStop(1, '#00ff88');
+  ctx.strokeStyle = edge; ctx.lineWidth = 3; ctx.strokeRect(2, 2, CW - 4, CH - 4);
+  ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 3;
+  const T = 16, o = 8; // corner ticks
+  [[o, o, 1, 1], [CW - o, o, -1, 1], [o, CH - o, 1, -1], [CW - o, CH - o, -1, -1]].forEach(([x, y, sx, sy]) => { ctx.beginPath(); ctx.moveTo(x + T * sx, y); ctx.lineTo(x, y); ctx.lineTo(x, y + T * sy); ctx.stroke(); });
+  const band = ctx.createLinearGradient(0, 0, CW, 0); band.addColorStop(0, '#00e5ff'); band.addColorStop(1, '#00ff88');
+  ctx.fillStyle = band; ctx.fillRect(2, 2, CW - 4, 44);
+  ctx.textAlign = 'left'; ctx.fillStyle = '#000'; ctx.font = 'bold 15px "Space Mono"';
+  ctx.fillText(title, 16, 30);
+  if (right) { ctx.textAlign = 'right'; ctx.fillText(right, CW - 16, 30); }
+  ctx.textAlign = 'left';
+}
+
 async function generateCard() {
   const w = $('walletInput').value.trim();
   if (!isAddr(w)) { $('walletInput').classList.add('invalid'); return say(msg('cardWallet'), 'pink'); }
@@ -1074,41 +1118,39 @@ async function generateCard() {
   catch (e) { bal = { ok: false, status: e.message === 'CIRCUIT_OPEN' ? 'RPC_BLOCKED' : 'FETCH_ERROR' }; wheel = { ok: false, status: 'OFFLINE' }; }
 
   const an = (lastAnthem && G && G.wallet && G.wallet.toLowerCase() === w.toLowerCase()) ? lastAnthem : makeAnthem(w);
-  const b = loadBest(w), c = $('card-canvas'), ctx = c.getContext('2d'), CW = 400, CH = 600;
+  const b = loadBest(w), c = $('card-canvas'), ctx = c.getContext('2d'), CW = 400, CH = 560;
   fitCanvas(c, ctx, CW, CH, 3);
+  const lv = levelFor(totalXP(w)), xp = totalXP(w);
+  cardFrame(ctx, CW, CH, 'SQUEEK CITIZEN // ID CARD', 'LV ' + lv);
 
-  ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, CW, CH);
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6; ctx.strokeRect(3, 3, CW - 6, CH - 6);
-  ctx.fillStyle = '#00ff00'; ctx.fillRect(3, 3, CW - 6, 40);
-  ctx.textAlign = 'left'; ctx.fillStyle = '#000'; ctx.font = 'bold 16px "Space Mono"';
-  ctx.fillText('SQUEEK CITIZEN // ID CARD', 15, 26);
+  // Avatar in a framed badge — no more floating in a void.
+  ctx.strokeStyle = 'rgba(0,229,255,.6)'; ctx.lineWidth = 2; ctx.strokeRect(CW / 2 - 72, 58, 144, 144);
+  avatar(ctx, w, CW / 2 - 64, 66, 8, lv);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#9aa5a8'; ctx.font = '11px "Space Mono"';
+  ctx.fillText('LV ' + lv + '  •  ' + xp + ' XP', CW / 2, 216);
+  ctx.textAlign = 'left';
 
-  // 3D Avatar draw
-  avatar(ctx, w, CW / 2 - 64, 60, 8, levelFor(totalXP(w)));
-
-  const row = (l, v, x, y, col) => { ctx.fillStyle = '#888'; ctx.font = '12px "Space Mono"'; ctx.fillText(l, x, y); ctx.fillStyle = col; ctx.font = 'bold 16px "Space Mono"'; ctx.fillText(v, x, y + 20); };
-
-  row('WALLET:', w.slice(0, 10) + '...' + w.slice(-8), 25, 220, '#00ffff');
-  ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(25, 260); ctx.lineTo(CW - 25, 260); ctx.stroke();
-  row('ANTHEM:', `${an.key} ${an.scaleName}`, 25, 290, '#ff00ff');
-  row('TEMPO:', `${an.bpm} BPM`, 220, 290, '#ff00ff');
-  row('BEST SCORE:', b ? String(b.score) : 'NONE', 25, 340, '#ffff00');
-  row('GRADE:', b ? b.grade : '--', 220, 340, '#ffff00');
-  ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(25, 380); ctx.lineTo(CW - 25, 380); ctx.stroke();
-  row('TOKEN (SEPOLIA):', bal.ok ? `${bal.val} ${bal.sym}` : `[ ${bal.status} ]`, 25, 410, bal.ok ? '#00ff00' : '#ff00ff');
-  row('WHEEL STATUS:', wheel.status, 25, 460, wheel.ok ? '#00ff00' : '#ff00ff');
-  row('DISTANCE:', wheel.ok ? wheel.dist.toFixed(3) + ' KM' : '-', 220, 460, '#00ff00');
+  const row = (l, v, x, y, col) => { ctx.fillStyle = '#7d8a8d'; ctx.font = '10px "Space Mono"'; ctx.fillText(l, x, y); ctx.fillStyle = col; ctx.font = 'bold 14px "Space Mono"'; ctx.fillText(String(v).slice(0, 30), x, y + 19); };
+  const hair = y => { ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(24, y); ctx.lineTo(CW - 24, y); ctx.stroke(); };
+  row('WALLET', w.slice(0, 10) + '...' + w.slice(-8), 24, 244, '#00e5ff');
+  hair(268);
+  row('ANTHEM', `${an.key} ${an.scaleName}`, 24, 292, '#ff5ce1');
+  row('TEMPO', `${an.bpm} BPM`, 224, 292, '#ff5ce1');
+  row('BEST SCORE', b ? String(b.score) : 'NONE', 24, 336, '#ffe14d');
+  row('GRADE', b ? b.grade : '--', 224, 336, '#ffe14d');
+  hair(360);
+  row('TOKEN (SEPOLIA)', bal.ok ? `${bal.val} ${bal.sym}` : `[ ${bal.status} ]`, 24, 384, bal.ok ? '#00ff88' : '#ff5ce1');
+  row('WHEEL', wheel.status, 24, 428, wheel.ok ? '#00ff88' : '#ff5ce1');
+  row('DISTANCE', wheel.ok ? wheel.dist.toFixed(3) + ' KM' : '-', 224, 428, '#00ff88');
   const achCard = loadJSON('sqk29:ach:' + walletKey(w), []);
-  row('ACHIEVEMENTS:', achCard.length ? achCard.length + '/10 — ' + achCard.slice(0, 4).join(', ') : '0/10 — PLAY TO UNLOCK', 25, 510, '#ffff00');
+  row('ACHIEVEMENTS', achCard.length ? achCard.length + '/10 — ' + achCard.slice(0, 2).join(', ') : '0/10 — PLAY TO UNLOCK', 24, 472, '#ffe14d');
 
-  ctx.fillStyle = '#fff'; ctx.font = '10px "Space Mono"'; ctx.textAlign = 'center';
-  ctx.fillStyle = '#00ffff'; ctx.font = 'bold 11px "Space Mono"'; ctx.textAlign = 'center';
-  ctx.fillText('CREATOR: pancigoreng', CW / 2, CH - 32);
-  ctx.fillStyle = '#fff'; ctx.font = '10px "Space Mono"'; ctx.textAlign = 'center';
-  ctx.fillText(`UNOFFICIAL DATA // ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC`, CW / 2, CH - 15);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#5c6669'; ctx.font = '9px "Space Mono"';
+  ctx.fillText('squeekpixel.web.id  •  UNOFFICIAL DATA // ' + new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC', CW / 2, CH - 16);
+  ctx.textAlign = 'left';
 
-  $('cardArea').classList.remove('hidden'); if (btn) btn.disabled = false; say(msg('cardDone'), 'green');
-  c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (btn) btn.disabled = false; say(msg('cardDone'), 'green');
+  openCard(msg('cardTitleId')); // v33: the card opens on top — no jump back to the menu
 }
 
 const cardBlob = () => new Promise(r => { try { $('card-canvas').toBlob(r, 'image/png'); } catch { r(null); } });
@@ -1227,10 +1269,12 @@ bindClick('stopBtn', stop); bindClick('againBtn', play);
 bindClick('pauseBtn', togglePause); bindClick('muteBtn', toggleMute);
 bindClick('qualityBtn', () => setQuality(quality === 'ultra' ? 'hemat' : 'ultra'));
 bindClick('homeBtn', () => show('mainPanel'));
-bindClick('toCardBtn', () => { setTab('play'); show('mainPanel'); generateCard() }); // v31: the card lives in the PLAY tab
+bindClick('toCardBtn', () => { generateCard(); }); // v33: generateCard opens the overlay itself — no panel jump
 // v32 NEO: settings sheet + PLAY-tab latency shortcut
-function closeSettings() { const s = $('settingsSheet'), b = $('settingsBackdrop'); if (s) s.classList.add('hidden'); if (b) b.classList.add('hidden'); }
-bindClick('settingsBtn', () => { const s = $('settingsSheet'), b = $('settingsBackdrop'); if (s) s.classList.remove('hidden'); if (b) b.classList.remove('hidden'); });
+let pausedBySettings = false; // v33: opening settings mid-song pauses; closing resumes only if we paused it
+function openSettings() { const s = $('settingsSheet'), b = $('settingsBackdrop'); if (s) s.classList.remove('hidden'); if (b) b.classList.remove('hidden'); if (G && !G.ended && !G.paused) { pausedBySettings = true; pauseGame(); } }
+function closeSettings() { const s = $('settingsSheet'), b = $('settingsBackdrop'); if (s) s.classList.add('hidden'); if (b) b.classList.add('hidden'); if (pausedBySettings) { pausedBySettings = false; resumeGame(); } }
+bindClick('settingsBtn', openSettings);
 bindClick('settingsCloseBtn', closeSettings);
 bindClick('settingsBackdrop', closeSettings);
 bindClick('latCalibBtn', () => { startCalibration(); });
@@ -1753,25 +1797,48 @@ function stopMenuPoll() { if (menuPoll) { clearInterval(menuPoll); menuPoll = nu
 function drawResultCard() {
   const c = $('card-canvas'); if (!c) return false;
   const ctx = c.getContext('2d'); if (!ctx) return false;
-  const CW = 400, CH = 600;
+  const CW = 400, CH = 560;
   fitCanvas(c, ctx, CW, CH, 3);
   const g = $('gradeVal') ? $('gradeVal').textContent : '—';
   const kv = $('resultKv') ? $('resultKv').innerText : '';
-  ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, CW, CH);
-  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 6; ctx.strokeRect(3, 3, CW - 6, CH - 6);
-  ctx.fillStyle = '#00ff00'; ctx.fillRect(3, 3, CW - 6, 40);
-  ctx.textAlign = 'left'; ctx.fillStyle = '#000'; ctx.font = 'bold 16px "Space Mono"';
-  ctx.fillText('SQUEEK // RESULT CARD', 15, 26);
-  ctx.textAlign = 'center'; ctx.fillStyle = '#ffff00'; ctx.font = '64px "Press Start 2P"';
-  ctx.fillText(g, CW / 2, 140);
-  ctx.fillStyle = '#fff'; ctx.font = '13px "Space Mono"'; ctx.textAlign = 'left';
   const parts = kv.split('\n').filter(Boolean);
-  let y = 190;
-  for (let i = 0; i + 1 < parts.length && y <= 520; i += 2) { ctx.fillText((parts[i] + ' ' + parts[i + 1]).slice(0, 44), 25, y); y += 24; }
-  ctx.fillStyle = '#00ffff'; ctx.font = 'bold 11px "Space Mono"'; ctx.textAlign = 'center';
-  ctx.fillText('CREATOR: pancigoreng', CW / 2, CH - 32);
-  ctx.fillStyle = '#fff'; ctx.font = '10px "Space Mono"';
-  ctx.fillText('squeekpixel.web.id', CW / 2, CH - 15);
+  const val = i => (i + 1 < parts.length ? parts[i + 1] : '—');
+  cardFrame(ctx, CW, CH, 'SQUEEK // RESULT CARD', G ? G.mode.toUpperCase() : '');
+
+  // Grade — big, glowing, the thing you brag about.
+  const gcol = g.startsWith('S') ? '#00ff88' : g === 'A' ? '#00e5ff' : g === 'B' ? '#ffe14d' : '#ff5ce1';
+  ctx.textAlign = 'center'; ctx.font = '72px "Press Start 2P"';
+  ctx.globalAlpha = .3; ctx.fillStyle = gcol; ctx.fillText(g, CW / 2 + 3, 133);
+  ctx.globalAlpha = 1; ctx.fillStyle = gcol; ctx.fillText(g, CW / 2, 130);
+
+  // Score, accuracy, max combo.
+  ctx.fillStyle = '#7d8a8d'; ctx.font = '10px "Space Mono"'; ctx.fillText('SCORE', CW / 2, 168);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 30px "Space Mono"'; ctx.fillText(val(0), CW / 2, 202);
+  ctx.font = '10px "Space Mono"'; ctx.fillStyle = '#7d8a8d';
+  ctx.fillText('ACCURACY', CW / 2 - 90, 232); ctx.fillText('MAX COMBO', CW / 2 + 90, 232);
+  ctx.font = 'bold 16px "Space Mono"'; ctx.fillStyle = '#fff';
+  ctx.fillText(val(2), CW / 2 - 90, 254); ctx.fillText(val(4), CW / 2 + 90, 254);
+
+  // Judgement breakdown — four mini-columns, no more a wall of text.
+  ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(24, 274); ctx.lineTo(CW - 24, 274); ctx.stroke();
+  const pg = (val(6) || '0/0').split('/'), gm = (val(8) || '0/0').split('/');
+  const cols = [['PERFECT', pg[0] || '0', '#00ff88'], ['GREAT', pg[1] || '0', '#00e5ff'], ['GOOD', gm[0] || '0', '#ffe14d'], ['MISS', gm[1] || '0', '#ff5ce1']];
+  cols.forEach(([lbl, n, col], i) => { const x = 60 + i * 93; ctx.fillStyle = '#7d8a8d'; ctx.font = '9px "Space Mono"'; ctx.fillText(lbl, x, 296); ctx.fillStyle = col; ctx.font = 'bold 18px "Space Mono"'; ctx.fillText(n, x, 320); });
+
+  // Details — label left, value right, every line filled, no void.
+  ctx.strokeStyle = 'rgba(255,255,255,.14)';
+  ctx.beginPath(); ctx.moveTo(24, 340); ctx.lineTo(CW - 24, 340); ctx.stroke();
+  ctx.font = '12px "Space Mono"';
+  let y = 366;
+  const detail = (l, v) => { ctx.textAlign = 'left'; ctx.fillStyle = '#7d8a8d'; ctx.fillText(l, 24, y); ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.fillText(String(v).slice(0, 34), CW - 24, y); y += 26; };
+  detail(parts[10] || 'ANTHEM', val(10));
+  detail(parts[12] || 'SETUP', val(12));
+  for (let i = 14; i + 1 < parts.length && y <= 500; i += 2) detail(parts[i], parts[i + 1]);
+
+  ctx.textAlign = 'center'; ctx.fillStyle = '#5c6669'; ctx.font = '9px "Space Mono"';
+  ctx.fillText('squeekpixel.web.id', CW / 2, CH - 16);
+  ctx.textAlign = 'left';
   return true;
 }
 
@@ -1798,7 +1865,7 @@ function renderTutorial() {
   const el = $('tutorialSteps'); if (el) el.innerHTML = TUT[lang].map(s => `<p class="msg">${escHtml(s)}</p>`).join('');
   const b = $('tutorialBox'); if (b) b.classList.toggle('hidden', !!loadJSON('sqk30:tutSeen', 0));
 }
-function showTutorial() { setTab('daily'); renderTutorial(); const b = $('tutorialBox'); if (b) b.classList.remove('hidden'); } // v31: the tutorial lives in the DAILY tab
+function showTutorial() { if (G && !G.ended) { closeSettings(); return; } setTab('daily'); renderTutorial(); const b = $('tutorialBox'); if (b) b.classList.remove('hidden'); } // v33: the tutorial lives in the menu — opening it mid-song would abandon the song
 function hideTutorial() { saveJSON('sqk30:tutSeen', 1); const b = $('tutorialBox'); if (b) b.classList.add('hidden'); }
 function buildShareText() {
   const g = $('gradeVal') ? $('gradeVal').textContent : '—';
@@ -1823,7 +1890,7 @@ bindClick('practiceBtn', () => { practiceMode = !practiceMode; saveJSON('sqk29:p
 bindClick('obsBtn', copyObsLink);
 bindClick('langBtn', () => applyLang(lang === 'en' ? 'id' : 'en'));
 bindClick('diaryNoteBtn', addDiaryNote);
-bindClick('resultCardBtn', () => { if (!drawResultCard()) return say(msg('cardFail'), 'pink'); const ca = $('cardArea'); if (ca) ca.classList.remove('hidden'); setTab('play'); show('mainPanel'); say(msg('cardReady'), 'green'); if (ca) ca.scrollIntoView({ behavior: 'smooth', block: 'center' }); }); // v31: the card lives in the PLAY tab
+bindClick('resultCardBtn', () => { if (!drawResultCard()) return say(msg('cardFail'), 'pink'); say(msg('cardReady'), 'green'); openCard(msg('cardTitleResult')); }); // v33: the result card opens on top of the result panel
 
 try {
   const params = new URLSearchParams(location.search);

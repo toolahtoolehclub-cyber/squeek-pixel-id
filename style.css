@@ -526,3 +526,24 @@ body.playing #gamePanel.shake { animation: shake .3s !important; }
 
 /* v32.2 FIX: the latency value must not wrap onto two lines ("LATENSI: 0" / "ms"). */
 #latVal { white-space: nowrap; }
+
+/* ==========================================
+   v33 NEO+ — card overlay, settings anywhere, stat fit
+   ========================================== */
+/* Card overlay: floats above whatever panel is showing. The card canvas
+   keeps its 400x600 artboard; the overlay frame is the NEO glass + a
+   cyan-to-green gradient hairline, not the old white box. */
+#cardBackdrop, #settingsBackdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .72); z-index: 40; }
+#cardOverlay { position: fixed; z-index: 41; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow-y: auto; background: rgba(8, 10, 12, .97); border: 1px solid rgba(255, 255, 255, .14); border-radius: 20px; padding: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, .7), 0 0 0 1px rgba(0, 229, 255, .25); }
+#cardOverlay .canvas-wrapper { border: 1px solid rgba(0, 229, 255, .35); border-radius: 14px; box-shadow: none; margin-bottom: 12px; }
+#cardOverlay .canvas-wrapper canvas { border-radius: 14px; }
+.card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.card-head p { margin: 0; font-size: 11px; letter-spacing: .18em; color: var(--cyan); }
+.card-head .row { display: flex; gap: 8px; }
+/* Minimized card bar: a slim strip at the bottom of the screen. */
+#cardBar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 41; display: flex; align-items: center; gap: 6px; width: min(440px, calc(100vw - 24px)); background: rgba(8, 10, 12, .95); border: 1px solid rgba(0, 229, 255, .4); border-radius: 999px; padding: 6px 8px 6px 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, .6); }
+#cardBarOpen { flex: 1; background: none; border: none; color: var(--cyan); font: inherit; font-size: 11px; letter-spacing: .14em; text-align: left; padding: 8px 0; cursor: pointer; }
+#cardBarClose { flex: none; }
+/* v33: stat values never truncate on phones — ACC is an integer now and the
+   value font shrinks a step at phone widths. */
+@media (max-width: 480px) { .stat b { font-size: 13px; white-space: nowrap; } .stat { padding: 8px 4px; } }
