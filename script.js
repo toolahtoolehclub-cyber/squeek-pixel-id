@@ -2181,6 +2181,7 @@ function setTab(name) {
     if (b) { b.classList.toggle('active', t === name); b.setAttribute('aria-selected', String(t === name)); }
   });
   saveJSON('sqk31:tab', name);
+  if (name === 'live') refreshLive(); // v36: the CHAIN panel + Wheel Call fetch immediately when the LIVE tab opens, instead of staring at "FETCHING…" until the 30s menu poll (smoke test 2026-11-07 saw ~8s)
 }
 document.querySelectorAll('#tabBar [data-tab]').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 setTab(loadJSON('sqk31:tab', 'play'));
