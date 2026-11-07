@@ -1305,6 +1305,12 @@ function cardFrame(ctx, CW, CH, title, right) {
   ctx.textAlign = 'left';
 }
 
+// v35.2: the ANTHEM value shares its row with TEMPO (column at x=224), so a long
+// anthem name must shrink instead of colliding — 14px fits <=22 chars, 10px fits
+// any value (row() slices to 30 chars; 30 x 6.0px = 180px < the 200px column).
+// Longest real name: "Sunny Major Pentatonic" (22) -> card value 28 chars.
+function anthemSize(v) { return String(v).length > 22 ? 10 : 14; }
+
 async function generateCard() {
   const w = $('walletInput').value.trim();
   if (!isAddr(w)) { $('walletInput').classList.add('invalid'); say(msg('cardWallet'), 'pink'); const em = $('cardErrMsg'); if (em && !$('resultPanel').classList.contains('hidden')) { em.textContent = msg('cardWallet'); em.classList.remove('hidden'); } return; } // v33.1: say() writes to #message in the menu — invisible from the result panel, so the error must also show there
@@ -1331,11 +1337,12 @@ async function generateCard() {
   ctx.fillText('LV ' + lv + '  •  ' + xp + ' XP', CW / 2, 216);
   ctx.textAlign = 'left';
 
-  const row = (l, v, x, y, col) => { ctx.fillStyle = '#7d8a8d'; ctx.font = '10px "Space Mono"'; ctx.fillText(l, x, y); ctx.fillStyle = col; ctx.font = 'bold 14px "Space Mono"'; ctx.fillText(String(v).slice(0, 30), x, y + 19); };
+  const row = (l, v, x, y, col, fs) => { ctx.fillStyle = '#7d8a8d'; ctx.font = '10px "Space Mono"'; ctx.fillText(l, x, y); ctx.fillStyle = col; ctx.font = 'bold ' + (fs || 14) + 'px "Space Mono"'; ctx.fillText(String(v).slice(0, 30), x, y + 19); };
   const hair = y => { ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(24, y); ctx.lineTo(CW - 24, y); ctx.stroke(); };
   row('WALLET', w.slice(0, 10) + '...' + w.slice(-8), 24, 244, '#00e5ff');
   hair(268);
-  row('ANTHEM', `"${an.name}" • ${an.key}`, 24, 292, '#ff5ce1'); // v33.2: name + key only (26 chars) — key + scale + name was 43 chars and got sliced off the card
+  const anVal = `"${an.name}" • ${an.key}`;
+  row('ANTHEM', anVal, 24, 292, '#ff5ce1', anthemSize(anVal)); // v35.2: long names shrink to 10px instead of colliding with TEMPO (phone screenshot 2026-11-07: "Blues Minor Pentatonic" ran into "114 BPM")
   row('TEMPO', `${an.bpm} BPM`, 224, 292, '#ff5ce1');
   row('BEST SCORE', b ? String(b.score) : 'NONE', 24, 336, '#ffe14d');
   row('GRADE', b ? b.grade : '--', 224, 336, '#ffe14d');

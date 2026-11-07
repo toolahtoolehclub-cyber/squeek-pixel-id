@@ -1,4 +1,4 @@
-// v35.1 tests — run: node TEST-v34-neo.js  (cwd = the v35.1 folder)
+// v35.2 tests — run: node TEST-v34-neo.js  (cwd = the v35.2 folder)
 const fs = require('fs');
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
@@ -36,14 +36,14 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v35.1', (html.match(/v35.1/g) || []).length >= 2);
-t('browser tab title is v35.1', html.includes('<title>SQUEEKCHAIN // v35.1</title>'));
-t('no BNB/Binance anywhere (v35.1)', !/BNB|Binance/i.test(html + css + js + readme));
-t('SQK token is the current deployment (v35.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
-// --- v35.1 CHAIN panel + frontier-aware Round History ---
-['chainBox', 'chainLines'].forEach(id => t('v35.1 chain id present once: ' + id, (html.match(new RegExp('id="' + id + '"', 'g')) || []).length === 1));
+t('html says v35.2', (html.match(/v35.2/g) || []).length >= 2);
+t('browser tab title is v35.2', html.includes('<title>SQUEEKCHAIN // v35.2</title>'));
+t('no BNB/Binance anywhere (v35.2)', !/BNB|Binance/i.test(html + css + js + readme));
+t('SQK token is the current deployment (v35.2)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
+// --- v35.2 CHAIN panel + frontier-aware Round History ---
+['chainBox', 'chainLines'].forEach(id => t('v35.2 chain id present once: ' + id, (html.match(new RegExp('id="' + id + '"', 'g')) || []).length === 1));
 t('chain box uses i18n title', html.includes('data-i18n="chainTitle"') && html.includes('data-i18n="chainLoading"'));
-['CORE_URL', 'ECONOMY_URL', 'GENESIS_TS', 'fetchChain', 'refreshChain', 'renderChainBox', 'roundIdForKey', 'roundSettled', 'estWork', 'estBlocks'].forEach(s => t('v35.1 js has ' + s, js.includes(s)));
+['CORE_URL', 'ECONOMY_URL', 'GENESIS_TS', 'fetchChain', 'refreshChain', 'renderChainBox', 'roundIdForKey', 'roundSettled', 'estWork', 'estBlocks'].forEach(s => t('v35.2 js has ' + s, js.includes(s)));
 t('chain urls are the public API', js.includes("CORE_URL: 'https://api.squeekchain.com/v1/core'") && js.includes("ECONOMY_URL: 'https://api.squeekchain.com/v1/economy/state'"));
 t('genesis ts matches docs', js.includes('GENESIS_TS = 1793735400'));
 t('chain unknown never zero', js.includes("chainUnknown") && js.includes("'UNAVAILABLE'"));
@@ -65,7 +65,7 @@ const eb = new Function(ewLine + '\n' + ebLine + '\nreturn { estWork, estBlocks 
 t('estWork(35) = 350', eb.estWork(35) === 350);
 t('estBlocks(35, 8238) = 4.2', eb.estBlocks(35, 8238) === 4.2);
 t('estBlocks needs a difficulty', eb.estBlocks(35, 0) === null);
-// --- v35.1 MY SQUEEK on the ID Card ---
+// --- v35.2 MY SQUEEK on the ID Card ---
 t('fetchAccount defined', js.includes('async function fetchAccount(w)'));
 t('account url is the public API', js.includes("https://api.squeekchain.com/v1/accounts/' + w.toLowerCase()"));
 t('card fetches account with wheel + balance', js.includes('[wheel, bal, acct] = await Promise.all([fetchWheel(), fetchBalance(w), fetchAccount(w)])'));
@@ -83,14 +83,14 @@ t('fmtSqk scales power 1e21 -> 1,000', fsq('1000000000000000000000') === '1,000'
 t('fmtSqk claimable -> 25,260.72', fsq('25260722452361385112852') === '25,260.72');
 t('fmtSqk zero -> 0', fsq('0') === '0');
 t('fmtSqk bad input -> ?', fsq('nope') === '?');
-// --- v35.1 Squeek art on the ID Card ---
-['fetchSqueekImage', 'loadSqueekImage', 'fixSvgSize', 'squeekImgCache'].forEach(s => t('v35.1 js has ' + s, js.includes(s)));
+// --- v35.2 Squeek art on the ID Card ---
+['fetchSqueekImage', 'loadSqueekImage', 'fixSvgSize', 'squeekImgCache'].forEach(s => t('v35.2 js has ' + s, js.includes(s)));
 t('squeek image url is the public API', js.includes("https://api.squeekchain.com/v1/squeeks/' + id"));
 t('card draws the Squeek image', js.includes('drawImage(sqkImg, 26, 510, 72, 72)'));
 t('card frames the image', js.includes('strokeRect(24, 508, 76, 76)'));
 t('card has a dashed placeholder', js.includes('setLineDash([4, 4])'));
 t('image fetch is time-boxed', js.includes('setTimeout(() => res(null), 4000)') && js.includes('setTimeout(() => r(null), 5000)'));
-t('card is 400x680 (v35.1)', js.includes('CW = 400, CH = 680;'));
+t('card is 400x680 (v35.2)', js.includes('CW = 400, CH = 680;'));
 // fixSvgSize: run it on real-shape samples
 const fssSrc = js.slice(js.indexOf('function fixSvgSize'), js.indexOf('function loadSqueekImage'));
 const fss = new Function(fssSrc + '; return fixSvgSize;')();
@@ -103,6 +103,18 @@ const sizedSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="1568" height="1
 const sizedUri = 'data:image/svg+xml;base64,' + Buffer.from(sizedSvg).toString('base64');
 t('fixSvgSize leaves sized SVGs alone', fss(sizedUri) === sizedUri);
 t('fixSvgSize passes bad input through', fss('not-a-uri') === 'not-a-uri' && fss(null) === null);
+// --- v35.2 ANTHEM no longer collides with TEMPO ---
+t('anthemSize defined', js.includes('function anthemSize(v)'));
+t('row() takes an optional font size', js.includes("const row = (l, v, x, y, col, fs) =>"));
+t('ANTHEM row uses anthemSize', js.includes("row('ANTHEM', anVal, 24, 292, '#ff5ce1', anthemSize(anVal))"));
+// anthemSize: run it — first case is the exact value from the user's phone screenshot
+const asSrc = js.slice(js.indexOf('function anthemSize'), js.indexOf('async function generateCard'));
+const asz = new Function(asSrc + '; return anthemSize;')();
+t('anthemSize shrinks the screenshot value', asz('"Blues Minor Pentatonic" • A') === 10);
+t('anthemSize shrinks the longest name', asz('"Sunny Major Pentatonic" • C') === 10);
+t('anthemSize keeps short names at 14', asz('"Neon Dorian" • C') === 14);
+t('anthemSize boundary is 22 chars', asz('x'.repeat(22)) === 14 && asz('x'.repeat(23)) === 10);
+t('worst case fits the 200px column', 30 * 10 * 0.6 < 200 && 22 * 14 * 0.6 < 200);
 t('Genesis meta present', html.includes('<meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">'));
 t('README proof last line', readme.trimEnd().split('\n').pop().trim() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 // --- 4. CSS: NEO layer present ---
@@ -178,7 +190,7 @@ t('play scrolls to the game', js.includes("$('gamePanel').scrollIntoView"));
 t('finish scrolls to the result', js.includes("$('resultPanel').scrollIntoView"));
 t('shared cardFrame helper', js.includes('function cardFrame('));
 t('no CREATOR line on the cards', !js.includes('CREATOR: pancigoreng'));
-t('id card 400x680, result card 400x560 (v35.1)', js.includes('CW = 400, CH = 680;') && (js.match(/CW = 400, CH = 560/g) || []).length === 1);
+t('id card 400x680, result card 400x560 (v35.2)', js.includes('CW = 400, CH = 680;') && (js.match(/CW = 400, CH = 560/g) || []).length === 1);
 t('overlay open/close/minimize wired', js.includes("bindClick('cardCloseBtn'") && js.includes("bindClick('cardMinBtn'") && js.includes("bindClick('cardBarOpen'"));
 t('ID card opens the overlay', js.includes("openCard(msg('cardTitleId'))"));
 t('result card opens the overlay', js.includes("openCard(msg('cardTitleResult'))"));
@@ -197,7 +209,7 @@ t('result card reads the score from G (count-up safe)', js.includes('G.score !==
 t('audio template has a {run} word (v33.2)', js.includes("gameAudioTpl: 'AUDIO: {run}"));
 t('audio run word passed in play/pause/resume', js.includes("run: msg('audioRunning')") && js.includes("run: msg('audioPaused')"));
 t('anthem kv row is name + key only (v33.2)', js.includes('<b>"${anthem.name}" • ${anthem.key}</b>'));
-t('ID card anthem row is name + key only (v33.2)', js.includes("row('ANTHEM', `\"${an.name}\" • ${an.key}`"));
+t('ID card anthem row is name + key only, adaptive size (v35.2)', js.includes('const anVal = `"${an.name}" • ${an.key}`;') && js.includes("row('ANTHEM', anVal, 24, 292, '#ff5ce1', anthemSize(anVal))"));
 t('card detail slice is 40 (v33.2)', js.includes('.slice(0, 40)'));
 t('no 34-char card slice left', !js.includes('.slice(0, 34)'));
 
