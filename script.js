@@ -1194,6 +1194,13 @@ function renderAchievements() {
 
 // --- Duel League (local rivals; the score travels inside the duel link) ---
 let pendingRival = null; // set from ?from=&score= when a duel link is opened
+// v29.2 SECURITY: a duel link is a URL anyone can craft — the rival name in
+// ?from= is only accepted in the exact shape the game itself writes
+// (0xXXXX...XXXX or GUEST). Anything else becomes GUEST, so a crafted link
+// cannot smuggle markup into the league table. renderLeague escapes the name
+// as a second layer, so even an old stored entry cannot execute markup.
+function validRivalName(s) { return /^0x[a-fA-F0-9]{4}\.\.\.[a-fA-F0-9]{4}$/.test(s) || s === 'GUEST' ? s : 'GUEST'; }
+function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function recordLeagueResult(rival, myScore) {
   const w = currentWallet();
   const key = 'sqk29:league:' + walletKey(w);
@@ -1207,7 +1214,7 @@ function renderLeague() {
   const list = loadJSON('sqk29:league:' + walletKey(currentWallet()), []);
   if (!list.length) { el.innerHTML = '<p class="msg">No duels yet — send a Duel Link after a song, and when a friend plays it, their result lands here.</p>'; return; }
   const sorted = list.slice().sort((a, b) => b.myScore - a.myScore).slice(0, 8);
-  el.innerHTML = sorted.map(r => `<div class="league-row${r.win ? ' win' : ' lose'}">YOU ${r.myScore} vs ${r.rival} ${r.rivalScore} — ${r.win ? 'WIN ✓' : 'LOSE'} • ${r.date}</div>`).join('');
+  el.innerHTML = sorted.map(r => `<div class="league-row${r.win ? ' win' : ' lose'}">YOU ${r.myScore} vs ${escHtml(r.rival)} ${r.rivalScore} — ${r.win ? 'WIN ✓' : 'LOSE'} • ${r.date}</div>`).join('');
 }
 
 // --- LIVE RACE HUD ---
@@ -1410,7 +1417,7 @@ try {
   if (qw && isAddr(qw) && walletEl) walletEl.value = qw;
   const qg = params.get('genre'); if (qg && GENRES[qg]) { currentGenre = qg; document.querySelectorAll('#genreRow .btn-diff').forEach(x => { const on = x.dataset.genre === qg; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); }); }
   const qd = params.get('diff'); if (qd && DIFFICULTIES[qd]) { currentDiff = qd; document.querySelectorAll('#diffRow .btn-diff').forEach(x => { const on = x.dataset.diff === qd; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); }); }
-  const qc = params.get('challenge'); if (qc) { challengeCode = qc; playMode = 'challenge'; const qf = params.get('from'), qs = params.get('score'); if (qf && qs && !isNaN(+qs)) pendingRival = { from: qf, score: +qs }; } // v29: duel links carry the challenger's score for the league
+  const qc = params.get('challenge'); if (qc) { challengeCode = qc; playMode = 'challenge'; const qf = params.get('from'), qs = params.get('score'); if (qf && qs && !isNaN(+qs)) pendingRival = { from: validRivalName(qf), score: +qs }; } // v29: duel links carry the challenger's score for the league
   else if (params.get('daily') === '1') playMode = 'daily';
   else if (params.get('live') === '1') playMode = 'live';
   else if (params.get('race') === '1') playMode = 'race';
