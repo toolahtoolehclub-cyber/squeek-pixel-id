@@ -30,7 +30,7 @@ body {
 body.no-gl #bg-gl { display: none; }
 body.no-gl { background: radial-gradient(circle at 20% 20%, rgba(0,255,0,.18), transparent 55%), radial-gradient(circle at 80% 80%, rgba(255,0,255,.18), transparent 55%), #000; }
 
-#ui-layer { width: 100%; max-width: 420px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 10; display: flex; flex-direction: column; gap: 20px; }
+#ui-layer { width: 100%; max-width: 460px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 10; display: flex; flex-direction: column; gap: 20px; }
 
 header { text-align: center; margin-bottom: 10px; }
 .header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; text-align: left; }
@@ -249,3 +249,60 @@ input[type=range] { accent-color: var(--green); height: 28px; }
 body.overlay { background: transparent; }
 body.overlay #ui-layer, body.overlay #bg-gl, body.overlay #bg-anim, body.overlay #crt, body.overlay #musicSplash { display: none !important; }
 body.overlay { animation: none; background-image: none; }
+
+/* ============ v31 ARCADE: the menu is now an arcade cabinet ============ */
+/* Marquee: the lit sign on top of the cabinet. Bulbs chase in two phases. */
+.marquee { border: 4px solid #fff; box-shadow: 6px 6px 0 var(--pink), 0 0 24px rgba(255, 0, 255, .45); background: #0a0a0a; padding: 10px 10px 12px 10px; text-align: center; }
+.marquee .header-row { margin: 6px 0; }
+.marquee h1 { font-size: 26px; }
+.marquee h2 { color: var(--yellow); }
+.bulbs { display: flex; justify-content: space-between; gap: 4px; padding: 0 4px; }
+.bulbs i { width: 10px; height: 10px; border-radius: 50%; background: var(--yellow); box-shadow: 0 0 8px var(--yellow); animation: bulbChase 1s steps(2) infinite; }
+.bulbs i:nth-child(even) { background: var(--green); box-shadow: 0 0 8px var(--green); animation-delay: .5s; }
+@keyframes bulbChase { 0%, 49% { opacity: 1; } 50%, 100% { opacity: .25; } }
+
+/* Cabinet bezel: the menu panel gets a double frame like an arcade screen. */
+#mainPanel { outline: 4px solid var(--green); outline-offset: 6px; background: #050505; box-shadow: 6px 6px 0 var(--pink), 0 0 30px rgba(0, 255, 0, .25), inset 0 0 40px rgba(0, 0, 0, .9); }
+
+/* Tab bar: the cabinet's menu buttons. One row of 5 chunky arcade buttons. */
+#tabBar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
+.btn-arcade { padding: 13px 2px; font-family: 'Press Start 2P', monospace; font-size: 9px; letter-spacing: 0; border: 3px solid #fff; background: #111; color: #fff; box-shadow: 0 5px 0 #333; text-transform: uppercase; }
+.btn-arcade:active { transform: translateY(4px); box-shadow: 0 1px 0 #333; }
+.tab-btn[data-tab="play"] { border-color: var(--green); }
+.tab-btn[data-tab="daily"] { border-color: var(--yellow); }
+.tab-btn[data-tab="live"] { border-color: var(--pink); }
+.tab-btn[data-tab="league"] { border-color: var(--cyan); }
+.tab-btn[data-tab="me"] { border-color: #ff8800; }
+.tab-btn.active[data-tab="play"] { background: var(--green); color: #000; box-shadow: 0 5px 0 #005500, 0 0 14px rgba(0, 255, 0, .7); }
+.tab-btn.active[data-tab="daily"] { background: var(--yellow); color: #000; box-shadow: 0 5px 0 #555500, 0 0 14px rgba(255, 255, 0, .7); }
+.tab-btn.active[data-tab="live"] { background: var(--pink); color: #000; box-shadow: 0 5px 0 #550055, 0 0 14px rgba(255, 0, 255, .7); }
+.tab-btn.active[data-tab="league"] { background: var(--cyan); color: #000; box-shadow: 0 5px 0 #005555, 0 0 14px rgba(0, 255, 255, .7); }
+.tab-btn.active[data-tab="me"] { background: #ff8800; color: #000; box-shadow: 0 5px 0 #552200, 0 0 14px rgba(255, 136, 0, .7); }
+.tab-panel { display: flex; flex-direction: column; gap: 15px; }
+.tab-panel.hidden { display: none !important; }
+
+/* START button: the big arcade attract-mode button. */
+.btn-start { font-size: 18px; padding: 22px 15px; animation: startPulse 1.6s ease-in-out infinite; }
+@keyframes startPulse { 0%, 100% { box-shadow: 6px 6px 0 #333, 0 0 0 rgba(0, 255, 0, 0); } 50% { box-shadow: 6px 6px 0 #333, 0 0 26px rgba(0, 255, 0, .8); } }
+
+/* Side art: only on wide screens — the cabinet's side panels. */
+.cab-side { display: none; }
+@media (min-width: 1000px) {
+    .cab-side { display: flex; flex-direction: column; align-items: center; gap: 18px; position: fixed; top: 50%; transform: translateY(-50%); z-index: 5; pointer-events: none; }
+    .cab-side.left { left: 28px; }
+    .cab-side.right { right: 28px; }
+    .cab-ham { font-size: 84px; line-height: 1; filter: drop-shadow(0 0 18px rgba(0, 255, 0, .8)); animation: hamBob 2.4s ease-in-out infinite alternate; }
+    @keyframes hamBob { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+    .cab-vert { writing-mode: vertical-rl; font-family: 'Press Start 2P', monospace; font-size: 16px; letter-spacing: 6px; color: var(--green); text-shadow: 2px 2px 0 var(--pink), 0 0 14px rgba(0, 255, 0, .6); }
+    .cab-side.right .cab-vert { color: var(--cyan); text-shadow: 2px 2px 0 var(--pink), 0 0 14px rgba(0, 255, 255, .6); }
+    .cab-stars { font-size: 12px; color: var(--yellow); letter-spacing: 4px; }
+}
+
+/* Coin slot footer + splash coin line. */
+.footer { background: #111; border: 2px solid #ffd700; box-shadow: 4px 4px 0 #333; padding: 12px 10px; color: #aaa; }
+.splash-coin { font-size: 12px; color: var(--yellow); letter-spacing: 2px; font-weight: bold; margin: 0 0 16px 0; animation: startPulse 1.6s ease-in-out infinite; }
+
+/* Desktop: the cabinet gets room to breathe; tabs stay one row. */
+@media (min-width: 900px) { #ui-layer { max-width: 520px; } .marquee h1 { font-size: 30px; } }
+@media (max-width: 360px) { .marquee h1 { font-size: 20px; } .btn-arcade { font-size: 8px; padding: 12px 1px; } #tabBar { gap: 5px; } }
+@media (prefers-reduced-motion: reduce) { .bulbs i, .btn-start, .splash-coin, .cab-ham { animation: none !important; } }

@@ -1,4 +1,4 @@
-# Squeekchain v30 TOTAL
+# Squeekchain v31 ARCADE
 
 A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only; optional wallet connect reads your address only, no signature, no transactions), play 3 or 4 lanes, earn XP, play the Daily Anthem, complete daily missions, generate your ID Card, race the real hamster in LIVE mode, and race Squeektoshi himself in RACE mode.
 
@@ -40,6 +40,7 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - **While You Were Away, upgraded** — the summary now also lists the wheel rounds that settled since your last visit
 - **Past bosses** — the last 3 weekly bosses, from the same deterministic spec
 - **Richer OBS overlay** — now also shows the ZOOMIES state and Squeektoshi's current state
+- **Arcade Cabinet redesign (v31)** — the menu is now an arcade machine: a neon marquee with chasing light bulbs, the menu inside a double-frame bezel, chunky 3D arcade buttons, a pulsing START button, a coin-slot footer (INSERT COIN • 1 PLAYER), and pixel side art on screens 1000px and wider. The long single-column scroll is gone — the menu is now 5 tabs: PLAY (wallet, genre, difficulty, mode, PLAY), DAILY (tutorial, Weekly Boss, Daily Champions, Mastery, While You Were Away), LIVE (Wheel Call, Round History), LEAGUE (Duel League, Achievements), ME (PRECISION calibration, unlocks). Last tab is remembered per browser; all game data (XP, streaks, missions, rounds, champions) still lives in the same `localStorage` keys as before, so nothing is lost
 - **Live Squeekchain API** — the ID Card shows the live hamster-wheel status and distance from `api.squeekchain.com/v1/status`, plus your Sepolia token balance (read-only)
 
 ## Files
@@ -52,6 +53,7 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - `AUDIT-v28-FIX.md` — notes on the v27 → v28 P0 fixes (PRECISION, Daily, LV5–LV8 unlocks)
 - `AUDIT-v29-MEGA.md` — notes on the v28 → v29 MEGA upgrades (P1–P4 + Weekly Boss, Fever, Streak Freeze, Practice) and the restored XP bonuses
 - `AUDIT-v30-TOTAL.md` — notes on the v29 → v30 TOTAL upgrade (round history, daily champions, share-to-X, full EN/ID, tutorial, volume, haptics, achievement XP, away-rounds, past bosses, richer OBS) and the v29.2 live verification
+- `AUDIT-v31-ARCADE.md` — notes on the v30 → v31 ARCADE redesign (arcade cabinet marquee + bezel + tabs + chunky buttons + side art + coin-slot footer)
 
 ## Notes
 

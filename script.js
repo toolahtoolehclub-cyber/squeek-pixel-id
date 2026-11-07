@@ -928,7 +928,7 @@ bindClick('stopBtn', stop); bindClick('againBtn', play);
 bindClick('pauseBtn', togglePause); bindClick('muteBtn', toggleMute);
 bindClick('qualityBtn', () => setQuality(quality === 'ultra' ? 'hemat' : 'ultra'));
 bindClick('homeBtn', () => show('mainPanel'));
-bindClick('toCardBtn', () => { show('mainPanel'); generateCard() });
+bindClick('toCardBtn', () => { setTab('play'); show('mainPanel'); generateCard() }); // v31: the card lives in the PLAY tab
 
 function renderDailyBox() {
   const box = $('dailyBox'); if (!box) return;
@@ -1597,7 +1597,7 @@ function renderTutorial() {
   const el = $('tutorialSteps'); if (el) el.innerHTML = TUT[lang].map(s => `<p class="msg">${escHtml(s)}</p>`).join('');
   const b = $('tutorialBox'); if (b) b.classList.toggle('hidden', !!loadJSON('sqk30:tutSeen', 0));
 }
-function showTutorial() { renderTutorial(); const b = $('tutorialBox'); if (b) b.classList.remove('hidden'); }
+function showTutorial() { setTab('daily'); renderTutorial(); const b = $('tutorialBox'); if (b) b.classList.remove('hidden'); } // v31: the tutorial lives in the DAILY tab
 function hideTutorial() { saveJSON('sqk30:tutSeen', 1); const b = $('tutorialBox'); if (b) b.classList.add('hidden'); }
 function buildShareText() {
   const g = $('gradeVal') ? $('gradeVal').textContent : '—';
@@ -1622,7 +1622,7 @@ bindClick('practiceBtn', () => { practiceMode = !practiceMode; saveJSON('sqk29:p
 bindClick('obsBtn', copyObsLink);
 bindClick('langBtn', () => applyLang(lang === 'en' ? 'id' : 'en'));
 bindClick('diaryNoteBtn', addDiaryNote);
-bindClick('resultCardBtn', () => { if (!drawResultCard()) return say(msg('cardFail'), 'pink'); const ca = $('cardArea'); if (ca) ca.classList.remove('hidden'); show('mainPanel'); say(msg('cardReady'), 'green'); if (ca) ca.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+bindClick('resultCardBtn', () => { if (!drawResultCard()) return say(msg('cardFail'), 'pink'); const ca = $('cardArea'); if (ca) ca.classList.remove('hidden'); setTab('play'); show('mainPanel'); say(msg('cardReady'), 'green'); if (ca) ca.scrollIntoView({ behavior: 'smooth', block: 'center' }); }); // v31: the card lives in the PLAY tab
 
 try {
   const params = new URLSearchParams(location.search);
@@ -1647,4 +1647,21 @@ applyLang(lang); renderPredict(); renderRaceBox(); renderBossBox(); renderLeague
 const vs = $('volSlider'); if (vs) { vs.value = vol; applyVol(); vs.addEventListener('input', () => { vol = +vs.value; saveJSON('sqk30:vol', vol); applyVol(); }); } // v30: volume slider
 if (overlayMode) { document.body.classList.add('overlay'); const ob = $('overlayBox'); if (ob) ob.classList.remove('hidden'); hideMusicSplash(); refreshLive(); startLivePoll(5000); }
 else startMenuPoll();
+
+// --- v31 ARCADE: tab navigation (menu sections inside the cabinet) ---
+// The long single-column menu is gone: PLAY / DAILY / LIVE / LEAGUE / ME.
+// Tab buttons live inside #mainPanel, so they hide with the menu during play.
+// Last tab is remembered per browser (sqk31:tab); game data keys stay sqk30.
+const TABS = ['play', 'daily', 'live', 'league', 'me'];
+function setTab(name) {
+  if (TABS.indexOf(name) < 0) name = 'play';
+  TABS.forEach(t => {
+    const p = $('tab-' + t); if (p) p.classList.toggle('hidden', t !== name);
+    const b = document.querySelector('#tabBar [data-tab="' + t + '"]');
+    if (b) { b.classList.toggle('active', t === name); b.setAttribute('aria-selected', String(t === name)); }
+  });
+  saveJSON('sqk31:tab', name);
+}
+document.querySelectorAll('#tabBar [data-tab]').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+setTab(loadJSON('sqk31:tab', 'play'));
 preview();
