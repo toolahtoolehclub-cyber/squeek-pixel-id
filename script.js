@@ -320,7 +320,7 @@ async function initAudio() {
   if (!ac) {
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) throw new Error('Audio unsupported');
     ac = new AC({ latencyHint: 'interactive' });
-    master = ac.createGain(); master.gain.value = muted ? 0 : .4;
+    master = ac.createGain(); master.gain.value = muted ? 0 : (vol / 100) * 0.4; // v30: volume slider (vol is a `let` declared below; initAudio only runs after user interaction, so it is initialized by then)
     analyser = ac.createAnalyser(); analyser.fftSize = 64; audioDataArray = new Uint8Array(analyser.frequencyBinCount);
     const comp = ac.createDynamicsCompressor(); master.connect(comp); comp.connect(analyser); analyser.connect(ac.destination);
     noiseBuf = ac.createBuffer(1, ac.sampleRate * .3, ac.sampleRate); const d = noiseBuf.getChannelData(0);
@@ -377,11 +377,15 @@ function stopIntroMusic() {
 
 function toggleMute() { 
     muted = !muted; 
-    if (master) master.gain.value = muted ? 0 : .4; 
+    applyVol(); // v30: mute now goes through the volume slider value instead of a fixed 0.4
     const b = $('muteBtn'); if (b) { b.textContent = muted ? '🔇' : '🔊'; b.setAttribute('aria-pressed', String(muted)); } 
     if (!muted && !G) playIntroMusic(); else if (muted) stopIntroMusic(); // v26: unmute di tengah game JANGAN nyalakan intro di atas lagu
     return muted; 
 }
+
+// --- v30 TOTAL: volume slider (0–100, persisted; master gain = vol% of 0.4) ---
+let vol = loadJSON('sqk30:vol', 80);
+function applyVol() { if (master) master.gain.value = muted ? 0 : (vol / 100) * 0.4; const v = $('volVal'); if (v) v.textContent = vol + '%'; const s = $('volSlider'); if (s && +s.value !== vol) s.value = vol; }
 
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 function env(g, t, a, p, d) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(p, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + d) }
@@ -420,7 +424,7 @@ function saveBest(w, rec) { try { localStorage.setItem('sqk20:' + (w || 'GUEST')
 const songTime = () => ac ? ac.currentTime - G.start : 0;
 
 async function play() {
-  if (G && !G.ended) return say('GAME ALREADY RUNNING.', 'cyan');
+  if (G && !G.ended) return say(msg('gameRunning'), 'cyan');
   const w = $('walletInput').value.trim();
   if (w && !isAddr(w)) { $('walletInput').classList.add('invalid'); return say('INVALID WALLET ADDRESS.', 'pink'); }
   $('walletInput').classList.remove('invalid');
@@ -502,6 +506,7 @@ function judge(lane) {
   G.fever = G.combo >= 30; // v29 FEVER: combo 30+ = x1.5 score until the combo breaks
   const mult = Math.min(2, 1 + Math.floor(G.combo / 10) * .1) * (liveZoomies ? 2 : 1) * (G.fever ? 1.5 : 1); // v27 LIVE: ZOOMIES (70+ RPM) doubles all scores while it lasts
   G.score += Math.round({ perfect: 300, great: 200, good: 100 }[k] * mult);
+  try { if (navigator.vibrate) navigator.vibrate(k === 'perfect' ? 12 : 6); } catch (_) {} // v30: haptic on mobile hits
   // v29 RACE: every hit moves you forward; a GOLDEN NOTE pays +1000 pts and +5 m.
   if (G.race) G.race.playerDist += { perfect: 1.0, great: 0.7, good: 0.4 }[k];
   if (G.race && G.race.goldenNote === target) { G.score += 1000; G.race.playerDist += 5; G.race.goldenNote = null; addFloatText('GOLDEN NOTE! +1000', '#ffd700'); tone(mtof(target.midi + 12), ac.currentTime, 'square', .25, .3); }
@@ -535,7 +540,7 @@ function loop(ts) {
   while (G.chartIdx < anthem.chart.length) {
     const n = anthem.chart[G.chartIdx];
     if (n.judged) { G.chartIdx++; continue; }
-    if (st - n.t > CONFIG.W.good) { n.judged = 'miss'; G.counts.miss++; G.combo = 0; G.fever = false; if (G.race && G.race.goldenNote === n) G.race.goldenNote = null; addFloatText('MISS', '#ff00ff'); hud(); glGlitch = 0.5; juiceHit('miss'); updatePrecision(0, 'miss'); G.chartIdx++; continue; }
+    if (st - n.t > CONFIG.W.good) { n.judged = 'miss'; G.counts.miss++; G.combo = 0; G.fever = false; if (G.race && G.race.goldenNote === n) G.race.goldenNote = null; addFloatText('MISS', '#ff00ff'); hud(); glGlitch = 0.5; juiceHit('miss'); updatePrecision(0, 'miss'); try { if (navigator.vibrate) navigator.vibrate(30); } catch (_) {} G.chartIdx++; continue; }
     break;
   }
   if (st > anthem.duration + .8) return finish();
@@ -608,28 +613,33 @@ function finish() {
       else if (st.last === twoDaysAgoStr() && freezes > 0) { saveJSON(fk, freezes - 1); st.count = st.count + 1; freezeUsed = true; } // v29: a freeze saves a streak after exactly one missed day
       else st.count = 1;
       st.last = todayStr(); saveJSON(sk, st);
-      streakTxt = ` • STREAK ${st.count} DAYS` + (freezeUsed ? ' (STREAK FREEZE USED)' : '');
+      streakTxt = msgf('streakDays', { n: st.count }) + (freezeUsed ? msg('freezeUsed') : '');
     }
   }
   const xpEl = $('xpMsg');
   const newUnlocks = [];
   for (let l = lvBefore + 1; l <= lvAfter; l++) if (UNLOCKS[l]) newUnlocks.push(UNLOCKS[l].text);
-  const levelUpTxt = lvAfter > lvBefore ? ' — LEVEL UP! ' + (newUnlocks.length ? 'UNLOCKED: ' + newUnlocks.join(' • ') : 'AVATAR EVOLVED') : '';
-  if (xpEl) xpEl.textContent = G.practice ? 'PRACTICE RUN — NO XP • NO STREAK • NOT RECORDED.' : `+${xpGain} XP • LV ${lvBefore} -> LV ${lvAfter}${levelUpTxt} • TOTAL ${xpAfter} XP${streakTxt}`;
+  const levelUpTxt = lvAfter > lvBefore ? msg('levelUp') + (newUnlocks.length ? msg('unlocked') + newUnlocks.join(' • ') : msg('avatarEvolved')) : '';
+  if (xpEl) xpEl.textContent = G.practice ? msg('practiceRun') : `+${xpGain} XP • LV ${lvBefore} -> LV ${lvAfter}${levelUpTxt} • TOTAL ${xpAfter} XP${streakTxt}`;
   const mr = $('missionResult');
   if (mr) mr.innerHTML = missions.map(m => `<div class="mission${doneBefore.concat(newlyDone).includes(m.id) ? ' done' : ''}">${m.text}</div>`).join('');
   renderDailyBox(); renderMastery(); renderAvatarPreview(G.wallet); renderUnlocks();
+  const wasDuelResponse = G.mode === 'challenge' && !!pendingRival; // v30: captured before pendingRival is cleared below
   if (!G.practice) {
     recordDiary({ at: Date.now(), song: `${G.genre.toUpperCase()} / ${G.diff.toUpperCase()} • ${anthem.key} ${anthem.scaleName}`, score: G.score, grade: g, mode: G.mode });
+    recordChampion({ score: G.score, grade: g, mode: G.mode }); // v30: daily champion (best score of the day)
     if (G.race) saveJSON('sqk29:lastRace:' + walletKey(G.wallet), { at: Date.now(), you: +G.race.playerDist.toFixed(1), opp: +oppDist.toFixed(1), win: raceWin });
     if (G.mode === 'challenge' && pendingRival) { recordLeagueResult(pendingRival, G.score); pendingRival = null; }
-    checkAchievements({ res, raceWin, mode: G.mode, genre: G.genre, mirror: G.mirror, zoomiesEver: G.live ? G.live.zoomiesEver : false, level: lvAfter, streak: loadJSON('sqk24:streak:' + walletKey(G.wallet), { count: 0 }).count });
+    const achAdded = checkAchievements({ res, raceWin, mode: G.mode, genre: G.genre, mirror: G.mirror, zoomiesEver: G.live ? G.live.zoomiesEver : false, level: lvAfter, streak: loadJSON('sqk24:streak:' + walletKey(G.wallet), { count: 0 }).count });
+    if (achAdded.length && xpEl) xpEl.textContent += ' • +' + (achAdded.length * 25) + ' XP (ACHIEVEMENTS)'; // v30: achievement XP is awarded inside checkAchievements — keep the XP line honest
   }
-  renderRaceBox(); renderLeague(); renderAchievements(); renderPredict(); renderBossBox(); renderDiaryList();
+  renderRaceBox(); renderLeague(); renderAchievements(); renderPredict(); renderBossBox(); renderDiaryList(); renderChamps();
   $('gradeVal').textContent = g; $('gradeVal').style.color = g.startsWith('S') ? 'var(--green)' : g === 'A' ? 'var(--cyan)' : 'var(--pink)';
   const c = G.counts;
-  $('resultKv').innerHTML = `<span>SCORE</span><b>${G.score}</b><span>ACCURACY</span><b>${a.toFixed(2)}%</b><span>MAX COMBO</span><b>${G.maxCombo}</b><span>PERFECT/GREAT</span><b>${c.perfect}/${c.great}</b><span>GOOD/MISS</span><b>${c.good}/${c.miss}</b><span>ANTHEM</span><b>${anthem.key} ${anthem.scaleName}</b><span>SETUP</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? ' • TRY CALIBRATION' : ''}${G.practice ? ' • PRACTICE' : ''}</b>` + (G.live ? `<span>LIVE WHEEL</span><b>${G.live.offline ? 'OFFLINE (128 BPM FALLBACK)' : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '') + (G.race ? `<span>RACE</span><b>YOU ${G.race.playerDist.toFixed(0)} m vs SQUEEKTOSHI ${oppDist.toFixed(0)} m — ${raceWin ? 'YOU WIN! +50 XP' : 'SQUEEKTOSHI WINS'}${G.race.offline ? ' (WHEEL OFFLINE)' : ''}</b>` : '') + (G.boss ? `<span>WEEKLY BOSS</span><b>DEFEATED ✓ +100 XP</b>` : '');
-  $('bestMsg').textContent = isNew ? 'NEW HIGH SCORE!' : `BEST: ${prev.score} (${prev.grade})`;
+  $('resultKv').innerHTML = `<span>${rl('score')}</span><b>${G.score}</b><span>${rl('acc')}</span><b>${a.toFixed(2)}%</b><span>${rl('combo')}</span><b>${G.maxCombo}</b><span>${rl('pg')}</span><b>${c.perfect}/${c.great}</b><span>${rl('gm')}</span><b>${c.good}/${c.miss}</b><span>${rl('anthem')}</span><b>${anthem.key} ${anthem.scaleName}</b><span>${rl('setup')}</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? rl('tryCalib') : ''}${G.practice ? rl('practiceTag') : ''}</b>` + (G.live ? `<span>${rl('live')}</span><b>${G.live.offline ? rl('offline') : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '') + (G.race ? `<span>${rl('race')}</span><b>YOU ${G.race.playerDist.toFixed(0)} m vs SQUEEKTOSHI ${oppDist.toFixed(0)} m — ${raceWin ? rl('raceWin') : rl('raceLose')}${G.race.offline ? ' (' + rl('offline') + ')' : ''}</b>` : '') + (G.boss ? `<span>${rl('boss')}</span><b>${rl('bossDefeated')}</b>` : '');
+  $('bestMsg').textContent = isNew ? msg('newHigh') : msgf('bestIs', { score: prev.score, grade: prev.grade });
+  const rbm = $('rivalBackMsg'); // v30: after answering a duel, tell the player how the challenger sees their score
+  if (rbm) { if (wasDuelResponse) { rbm.classList.remove('hidden'); rbm.textContent = msg('rivalBack'); } else rbm.classList.add('hidden'); }
   show('resultPanel');
   playResultJingle(g);
   playIntroMusic(); // Kembalikan intro setelah selesai
@@ -704,10 +714,14 @@ function renderLiveBox() {
   if (playMode !== 'live') return;
   const ll = $('liveLine'); if (ll) ll.textContent = liveSnapshot ? liveSummary(liveSnapshot) : 'FETCHING WHEEL…';
 }
+let lastSeenRound = null; // v30: the round the page is currently watching, so a round ending mid-session is finalized immediately
 async function refreshLive() {
   const s = await fetchWheel();
   liveSnapshot = s;
   if (s.ok) recordRpmSample(s.rpm); // v29: feed the prediction settler
+  const cur = currentRoundKey();
+  if (lastSeenRound && cur !== lastSeenRound) finalizeRound(lastSeenRound); // v30: round history, live
+  lastSeenRound = cur;
   settlePredictions(); // v29: resolve predictions whose round has ended
   renderLiveBox();
   renderPredict(); renderRaceBox(); updateOverlay(); // v29
@@ -752,9 +766,9 @@ function avatar(ctx, w, x0, y0, px, level) {
 
 async function generateCard() {
   const w = $('walletInput').value.trim();
-  if (!isAddr(w)) { $('walletInput').classList.add('invalid'); return say('VALID WALLET REQUIRED FOR ID CARD.', 'pink'); }
+  if (!isAddr(w)) { $('walletInput').classList.add('invalid'); return say(msg('cardWallet'), 'pink'); }
   $('walletInput').classList.remove('invalid');
-  const btn = $('genBtn'); if (btn) btn.disabled = true; say('FETCHING ON-CHAIN DATA...', 'cyan');
+  const btn = $('genBtn'); if (btn) btn.disabled = true; say(msg('cardFetching'), 'cyan');
   try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2000))]); } catch (_) {}
 
   let wheel, bal;
@@ -795,7 +809,7 @@ async function generateCard() {
   ctx.fillStyle = '#fff'; ctx.font = '10px "Space Mono"'; ctx.textAlign = 'center';
   ctx.fillText(`UNOFFICIAL DATA // ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC`, CW / 2, CH - 15);
 
-  $('cardArea').classList.remove('hidden'); if (btn) btn.disabled = false; say('ID CARD GENERATED.', 'green');
+  $('cardArea').classList.remove('hidden'); if (btn) btn.disabled = false; say(msg('cardDone'), 'green');
   c.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
@@ -978,9 +992,9 @@ function renderOffsetLine() {
 let calib = null, calibTimer = null;
 function startCalibration() {
   if (calib) { cancelCalibration('CALIBRATION CANCELLED.'); return; }
-  if (muted) return say('UNMUTE FIRST — CALIBRATION NEEDS SOUND.', 'pink');
+  if (muted) return say(msg('calibNeedSound'), 'pink');
   initAudio().then(() => {
-    if (!ac || ac.state !== 'running') return say('AUDIO NOT RUNNING — TAP THE SCREEN ONCE, THEN CALIBRATE.', 'pink');
+    if (!ac || ac.state !== 'running') return say(msg('calibNoAudio'), 'pink');
     stopIntroMusic();
     const t0 = ac.currentTime + 1.0, beats = [];
     for (let i = 0; i < 8; i++) beats.push(t0 + i * 0.6);
@@ -1000,7 +1014,7 @@ function startCalibration() {
       }
       if (calib.next >= calib.beats.length && now > calib.beats[calib.beats.length - 1] + 0.6) finishCalibration();
     }, 40);
-  }).catch(() => say('AUDIO FAILED — CALIBRATION NEEDS SOUND.', 'pink'));
+  }).catch(() => say(msg('calibAudioFail'), 'pink'));
 }
 function calibTap() {
   if (!calib || !ac) return;
@@ -1022,13 +1036,13 @@ function finishCalibration() {
   if (pm) pm.classList.add('hidden');
   if (taps.length < 4) {
     if (cm) { cm.classList.remove('hidden'); cm.textContent = `ONLY ${taps.length} GOOD TAPS — NEED AT LEAST 4. TRY AGAIN, TAP RIGHT ON THE BEAT.`; }
-    say('CALIBRATION FAILED — NOT ENOUGH GOOD TAPS.', 'pink');
+    say(msg('calibFail'), 'pink');
   } else {
     const med = taps[Math.floor(taps.length / 2)].err;
     setOffsetMs(med);
     const avg = Math.round(taps.reduce((s, t) => s + t.err, 0) / taps.length);
     if (cm) { cm.classList.remove('hidden'); cm.textContent = `CALIBRATED: OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms (MEDIAN OF ${taps.length} TAPS, AVG ${avg > 0 ? '+' : ''}${avg} ms — ${offsetMs > 0 ? 'YOU TAP LATE ON AVERAGE' : offsetMs < 0 ? 'YOU TAP EARLY ON AVERAGE' : 'YOUR TIMING IS SPOT ON'}).`; }
-    say('CALIBRATION DONE — OFFSET ' + (offsetMs > 0 ? '+' : '') + offsetMs + ' ms.', 'green');
+    say(msgf('calibDone', { off: (offsetMs > 0 ? '+' : '') + offsetMs }), 'green');
   }
   calib = null;
   if (!muted) playIntroMusic();
@@ -1048,20 +1062,20 @@ function setMode(m) {
   lockGenreDiffRows(m === 'daily'); // v28: in Daily the genre+diff are fixed by the date
   if (m === 'daily') applyDailySpec();
   renderDailyBox(); renderLiveBox(); renderRaceBox(); preview(); // v29.1: the race box must hide when leaving RACE mode (it stayed visible until the next poll)
-  if (m === 'live') { refreshLive(); startLivePoll(10000); say('LIVE ACTIVE — THE SONG TEMPO FOLLOWS THE REAL HAMSTER WHEEL. 70+ RPM = ZOOMIES ×2 SCORE.', 'yellow'); const lb = $('liveBox'); if (lb) lb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-  else if (m === 'race') { renderRaceBox(); refreshLive(); startLivePoll(10000); say('RACE ACTIVE — BEAT THE LIVE HAMSTER. YOUR HITS MOVE YOU FORWARD, THE WHEEL MOVES SQUEEKTOSHI.', 'yellow'); const rb = $('raceBox'); if (rb) rb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  if (m === 'live') { refreshLive(); startLivePoll(10000); say(msg('modeLive'), 'yellow'); const lb = $('liveBox'); if (lb) lb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  else if (m === 'race') { renderRaceBox(); refreshLive(); startLivePoll(10000); say(msg('modeRace'), 'yellow'); const rb = $('raceBox'); if (rb) rb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   else stopLivePoll();
-  if (m === 'daily') { const s = dailySpec(); say('DAILY ACTIVE — ' + todayStr() + ' • TODAY: ' + s.genre.toUpperCase() + ' / ' + s.diff.toUpperCase() + ' — SAME SONG FOR EVERYONE.', 'yellow'); const db = $('dailyBox'); if (db) db.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  if (m === 'daily') { const s = dailySpec(); say(msgf('modeDaily', { date: todayStr(), genre: s.genre.toUpperCase(), diff: s.diff.toUpperCase() }), 'yellow'); const db = $('dailyBox'); if (db) db.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 }
 function duelLink() { if (!G || !G.seedKey) return null; const base = location.href.split('?')[0]; const from = isAddr(G.wallet) ? G.wallet.slice(0, 6) + '...' + G.wallet.slice(-4) : 'GUEST'; return `${base}?challenge=${encodeURIComponent(G.seedKey)}&genre=${G.genre}&diff=${G.diff}${G.lanes === 4 ? '&lanes=4' : ''}${G.mirror ? '&mirror=1' : ''}&from=${encodeURIComponent(from)}&score=${G.score}`; }
 async function shareDuel() {
   // v26 FIX #6: feedback ditulis ke #duelMsg / #duelOut DI DALAM resultPanel — bukan ke #message di mainPanel yang tersembunyi
   const link = duelLink();
   const dm = $('duelMsg'), out = $('duelOut');
-  if (!link) { if (dm) dm.textContent = 'PLAY ONE SONG FIRST, THEN DUEL CAN BE SHARED.'; return; }
+  if (!link) { if (dm) dm.textContent = msg('duelNoSong'); return; }
   if (out) out.value = link;
-  try { await navigator.clipboard.writeText(link); if (dm) dm.textContent = 'DUEL LINK COPIED — SEND IT TO A FRIEND, THEY PLAY THE EXACT SAME SONG.'; }
-  catch (e) { if (dm) dm.textContent = 'CLIPBOARD BLOCKED — THE LINK IS IN THE BOX BELOW, COPY IT MANUALLY.'; }
+  try { await navigator.clipboard.writeText(link); if (dm) dm.textContent = msg('duelCopied'); }
+  catch (e) { if (dm) dm.textContent = msg('duelBlocked'); }
   if (out) { out.focus(); out.select(); }
 }
 document.querySelectorAll('#modeRow .btn-diff').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
@@ -1109,6 +1123,46 @@ function recordRpmSample(rpm) {
 }
 function roundAvg(key) { const arr = loadJSON('sqk29:samples:' + key, []); if (!arr.length) return null; return arr.reduce((s, v) => s + v, 0) / arr.length; }
 
+// --- v30 TOTAL: Round History (settled rounds, from recorded samples) ---
+// A round is finalized once: when the round ends while the page is open
+// (refreshLive), when its prediction settles, or at boot for rounds recorded
+// before the page was closed. A round with no samples is never invented.
+function loadRounds() { return loadJSON('sqk30:rounds', []); } // [{key, cls, avg, n}]
+function finalizeRound(key) {
+  const avg = roundAvg(key);
+  if (avg === null) return false;
+  const list = loadRounds();
+  if (list.some(r => r.key === key)) return false;
+  const arr = loadJSON('sqk29:samples:' + key, []);
+  list.push({ key, cls: roundClass(avg), avg: +avg.toFixed(1), n: arr.length });
+  saveJSON('sqk30:rounds', list.slice(-12));
+  return true;
+}
+function renderRoundHist() {
+  const el = $('roundHistList'); if (!el) return;
+  const list = loadRounds().slice().reverse();
+  if (!list.length) { el.innerHTML = '<p class="msg">No finished rounds recorded yet — keep this page open and rounds settle here.</p>'; return; }
+  el.innerHTML = list.map(r => `<div class="league-row">${r.key} — ${roundLabel(r.cls)} (AVG ${r.avg} RPM, ${r.n} SAMPLES)</div>`).join('');
+}
+
+// --- v30 TOTAL: Daily Champions (best score of each day, this wallet) ---
+function recordChampion(res) {
+  const w = currentWallet();
+  const key = 'sqk30:champs:' + walletKey(w);
+  const list = loadJSON(key, []);
+  const today = todayStr();
+  const entry = list.find(c => c.date === today);
+  if (!entry) list.push({ date: today, score: res.score, grade: res.grade, mode: res.mode });
+  else if (res.score > entry.score) { entry.score = res.score; entry.grade = res.grade; entry.mode = res.mode; }
+  saveJSON(key, list.slice(-7));
+}
+function renderChamps() {
+  const el = $('champList'); if (!el) return;
+  const list = loadJSON('sqk30:champs:' + walletKey(currentWallet()), []).slice().reverse();
+  if (!list.length) { el.innerHTML = '<p class="msg">No champions yet — your best score of each day lands here.</p>'; return; }
+  el.innerHTML = list.map(c => `<div class="league-row">${c.date} — ${c.score} PTS • ${c.grade} • ${c.mode.toUpperCase()}</div>`).join('');
+}
+
 // --- Wheel Call predictions (next 10-min round; settled from recorded samples) ---
 function predKey(w) { return 'sqk29:pred:' + walletKey(w); }
 function loadPreds(w) { return loadJSON(predKey(w), {}); } // {roundKey: {pick, resolved, correct, avg, actual, noData}}
@@ -1119,7 +1173,7 @@ function placePrediction(pick) {
   preds[rk] = { pick, resolved: false };
   saveJSON(predKey(w), preds);
   renderPredict();
-  say('WHEEL CALL SET: ' + roundLabel(pick) + ' FOR ROUND ' + rk + ' — GOOD LUCK.', 'yellow');
+  say(msgf('wheelCallSet', { label: roundLabel(pick), round: rk }), 'yellow');
 }
 function settlePredictions() {
   const w = currentWallet();
@@ -1131,6 +1185,7 @@ function settlePredictions() {
     if (p.resolved || rk >= now) continue; // zero-padded keys sort lexicographically
     const avg = roundAvg(rk);
     if (avg === null) { p.resolved = true; p.correct = false; p.noData = true; changed = true; continue; }
+    finalizeRound(rk); // v30: the round is settled — it now also joins the round history
     const actual = roundClass(avg);
     p.resolved = true; p.correct = p.pick === actual; p.avg = +avg.toFixed(1); p.actual = actual; changed = true;
     if (p.correct) { saveJSON('sqk24:xp:' + walletKey(w), totalXP(w) + 40); checkAchievements({}); }
@@ -1151,9 +1206,10 @@ function renderPredict() {
   const pr = $('predResult');
   if (pr) {
     const settled = Object.entries(preds).filter(([k, p]) => p.resolved).sort().slice(-1)[0];
-    if (settled) { const [k, p] = settled; pr.classList.remove('hidden'); pr.textContent = p.noData ? `ROUND ${k}: NO DATA — THE PAGE WAS CLOSED, NO XP LOST.` : `ROUND ${k}: ${roundLabel(p.actual)} (AVG ${p.avg} RPM) — YOUR CALL ${roundLabel(p.pick)} WAS ${p.correct ? 'CORRECT ✓ +40 XP' : 'WRONG'}.`; }
+    if (settled) { const [k, p] = settled; pr.classList.remove('hidden'); pr.textContent = p.noData ? msgf('predNoData', { round: k }) : msgf('predDone', { round: k, actual: roundLabel(p.actual), avg: p.avg, pick: roundLabel(p.pick), result: p.correct ? msg('predCorrect') : msg('predWrong') }); }
     else pr.classList.add('hidden');
   }
+  renderRoundHist(); // v30: the history box refreshes with every prediction render
 }
 
 // --- Achievements (10, named) ---
@@ -1182,7 +1238,7 @@ function checkAchievements(extra) {
   const have = loadJSON(key, []);
   const added = [];
   for (const a of ACHIEVEMENTS) { if (!have.includes(a.id) && a.check(ctx)) { have.push(a.id); added.push(a); } }
-  if (added.length) { saveJSON(key, have); say('🏆 ACHIEVEMENT UNLOCKED: ' + added.map(a => a.name).join(' • '), 'yellow'); }
+  if (added.length) { saveJSON(key, have); saveJSON('sqk24:xp:' + walletKey(w), totalXP(w) + added.length * 25); say(msg('achUnlock') + added.map(a => a.name).join(' • ') + msg('achXp'), 'yellow'); } // v30: an unlocked achievement now pays +25 XP each
   renderAchievements();
   return added;
 }
@@ -1269,20 +1325,27 @@ function isoWeekKey(d) {
   return t.getUTCFullYear() + '-W' + String(week).padStart(2, '0');
 }
 function weeklyKey() { return isoWeekKey(new Date()); }
-function weeklySpec() {
-  const wk = weeklyKey();
+function weeklySpecFor(wk) { // v30: the same deterministic spec, but for any week key — used for the past-bosses list
   const genres = ['cyber', 'synth', 'chip'];
   return { week: wk, genre: genres[cyrb53('BOSS-GENRE-' + wk) % genres.length], name: ['THE VOID HAMSTER', 'SQUEEKTOSHI PRIME', 'THE MIDNIGHT WHEEL', 'BARON VON SQUEEK'][cyrb53('BOSS-NAME-' + wk) % 4] };
 }
+function weeklySpec() { return weeklySpecFor(weeklyKey()); }
 function renderBossBox() {
   const el = $('bossLine'); if (!el) return;
   const bs = weeklySpec();
   el.textContent = `${bs.name} • ${bs.week} • ${bs.genre.toUpperCase()} / HARD • FINISH THE SONG TO DEFEAT IT (+100 XP).`;
+  const bh = $('bossHist'); // v30: the last 3 bosses, from the same deterministic spec
+  if (bh) {
+    const past = [];
+    const d = new Date();
+    for (let i = 1; i <= 3; i++) { const t = new Date(d); t.setDate(t.getDate() - 7 * i); const s = weeklySpecFor(isoWeekKey(t)); past.push(s.week + ' ' + s.name); }
+    bh.textContent = 'PAST BOSSES: ' + past.join(' • ') + '.';
+  }
 }
 function fightBoss() {
   playMode = 'boss';
   document.querySelectorAll('#modeRow .btn-diff').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-pressed', 'false'); });
-  say('WEEKLY BOSS: ' + weeklySpec().name + ' — HARD MODE. GOOD LUCK.', 'yellow');
+  say(msgf('bossFight', { name: weeklySpec().name }), 'yellow');
   play();
 }
 
@@ -1311,7 +1374,11 @@ function renderAway() {
   else {
     const lastDate = lastVisit ? new Date(lastVisit).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'a while ago';
     const streak = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 }).count;
-    al.textContent = `LAST VISIT ${lastDate} • STREAK ${streak} DAYS • BEST ${Math.max.apply(null, hist.map(h => h.score))} • NEW ACHIEVEMENTS SINCE THEN: ${newAch > 0 ? newAch : 'NONE'}.`;
+    // v30: what the hamster did while you were away — rounds settled since the
+    // last visit (only rounds this browser recorded; never invented).
+    const awayRounds = lastVisit ? loadRounds().filter(r => r.key > roundKeyFor(new Date(lastVisit))).slice(-3) : [];
+    const awayTxt = awayRounds.length ? ' • WHILE YOU WERE AWAY: ' + awayRounds.map(r => r.key.slice(11) + ' ' + roundLabel(r.cls) + ' (AVG ' + r.avg + ' RPM)').join(' • ') : ' • NO RECORDED WHEEL ROUNDS WHILE YOU WERE AWAY.';
+    al.textContent = `LAST VISIT ${lastDate} • STREAK ${streak} DAYS • BEST ${Math.max.apply(null, hist.map(h => h.score))} • NEW ACHIEVEMENTS SINCE THEN: ${newAch > 0 ? newAch : 'NONE'}.${awayTxt}`;
   }
   saveJSON('sqk29:achSeen:' + walletKey(w), ach.length);
   saveJSON('sqk29:lastVisit:' + walletKey(w), Date.now());
@@ -1323,18 +1390,118 @@ function addDiaryNote() {
   const w = currentWallet();
   const key = 'sqk29:diary:' + walletKey(w);
   const list = loadJSON(key, []);
-  if (!list.length) { say('PLAY A SONG FIRST — THE DIARY IS EMPTY.', 'pink'); return; }
+  if (!list.length) { say(msg('diaryFirst'), 'pink'); return; }
   list[list.length - 1].note = txt.slice(0, 120);
   saveJSON(key, list);
   inp.value = '';
   renderDiaryList();
-  say('NOTE SAVED TO YOUR LAST SONG.', 'green');
+  say(msg('diarySaved'), 'green');
 }
+
+// --- v30 TOTAL: dynamic game messages, EN + ID ---
+// Static menu labels stay in I18N (below); the messages the game speaks
+// (say() calls, result rows, XP line) live here so both languages are real.
+// msgf() fills {placeholders}. The test asserts every key exists in both langs.
+const MSG = {
+  en: {
+    wheelCallSet: 'WHEEL CALL SET: {label} FOR ROUND {round} — GOOD LUCK.',
+    predNoData: 'ROUND {round}: NO DATA — THE PAGE WAS CLOSED, NO XP LOST.',
+    predDone: 'ROUND {round}: {actual} (AVG {avg} RPM) — YOUR CALL {pick} WAS {result}.',
+    predCorrect: 'CORRECT ✓ +40 XP',
+    predWrong: 'WRONG',
+    achUnlock: '🏆 ACHIEVEMENT UNLOCKED: ',
+    achXp: ' (+25 XP EACH)',
+    bossFight: 'WEEKLY BOSS: {name} — HARD MODE. GOOD LUCK.',
+    practiceOn: 'PRACTICE ON — 60% TEMPO, NO XP, NO STREAK.',
+    practiceOff: 'PRACTICE OFF.',
+    modeLive: 'LIVE ACTIVE — THE SONG TEMPO FOLLOWS THE REAL HAMSTER WHEEL. 70+ RPM = ZOOMIES ×2 SCORE.',
+    modeRace: 'RACE ACTIVE — BEAT THE LIVE HAMSTER. YOUR HITS MOVE YOU FORWARD, THE WHEEL MOVES SQUEEKTOSHI.',
+    modeDaily: 'DAILY ACTIVE — {date} • TODAY: {genre} / {diff} — SAME SONG FOR EVERYONE.',
+    calibDone: 'CALIBRATION DONE — OFFSET {off} ms.',
+    calibFail: 'CALIBRATION FAILED — NOT ENOUGH GOOD TAPS.',
+    calibNeedSound: 'UNMUTE FIRST — CALIBRATION NEEDS SOUND.',
+    calibNoAudio: 'AUDIO NOT RUNNING — TAP THE SCREEN ONCE, THEN CALIBRATE.',
+    calibAudioFail: 'AUDIO FAILED — CALIBRATION NEEDS SOUND.',
+    obsCopied: 'OBS OVERLAY LINK COPIED — ADD IT AS A BROWSER SOURCE IN OBS (1920×1080, TRANSPARENT).',
+    obsBlocked: 'CLIPBOARD BLOCKED — THE LINK IS: {url}',
+    diaryFirst: 'PLAY A SONG FIRST — THE DIARY IS EMPTY.',
+    diarySaved: 'NOTE SAVED TO YOUR LAST SONG.',
+    cardFail: 'RESULT CARD FAILED — PLAY A SONG FIRST.',
+    cardReady: 'RESULT CARD READY — DOWNLOAD OR SHARE IT BELOW.',
+    cardWallet: 'VALID WALLET REQUIRED FOR ID CARD.',
+    cardFetching: 'FETCHING ON-CHAIN DATA...',
+    cardDone: 'ID CARD GENERATED.',
+    levelUp: ' — LEVEL UP! ',
+    unlocked: 'UNLOCKED: ',
+    avatarEvolved: 'AVATAR EVOLVED',
+    streakDays: ' • STREAK {n} DAYS',
+    freezeUsed: ' (STREAK FREEZE USED)',
+    practiceRun: 'PRACTICE RUN — NO XP • NO STREAK • NOT RECORDED.',
+    newHigh: 'NEW HIGH SCORE!',
+    bestIs: 'BEST: {score} ({grade})',
+    rivalBack: 'YOU ANSWERED A DUEL — SEND YOUR OWN DUEL LINK BACK (BUTTON ABOVE) SO THE CHALLENGER SEES YOUR SCORE IN THEIR LEAGUE.',
+    duelNoSong: 'PLAY ONE SONG FIRST, THEN DUEL CAN BE SHARED.',
+    duelCopied: 'DUEL LINK COPIED — SEND IT TO A FRIEND, THEY PLAY THE EXACT SAME SONG.',
+    duelBlocked: 'CLIPBOARD BLOCKED — THE LINK IS IN THE BOX BELOW, COPY IT MANUALLY.',
+    gameRunning: 'GAME ALREADY RUNNING.',
+  },
+  id: {
+    wheelCallSet: 'TEBAKAN DIPASANG: {label} UNTUK RONDE {round} — SEMOGA BERUNTUNG.',
+    predNoData: 'RONDE {round}: TIDAK ADA DATA — HALAMAN DITUTUP, TIDAK ADA XP HILANG.',
+    predDone: 'RONDE {round}: {actual} (RATA-RATA {avg} RPM) — TEBAKANMU {pick} {result}.',
+    predCorrect: 'BENAR ✓ +40 XP',
+    predWrong: 'SALAH',
+    achUnlock: '🏆 PENCAPAIAN TERBUKA: ',
+    achXp: ' (+25 XP MASING-MASING)',
+    bossFight: 'BOSS MINGGUAN: {name} — MODE SULIT. SEMOGA BERUNTUNG.',
+    practiceOn: 'LATIHAN AKTIF — TEMPO 60%, TANPA XP, TANPA STREAK.',
+    practiceOff: 'LATIHAN MATI.',
+    modeLive: 'MODE LIVE AKTIF — TEMPO LAGU MENGIKUTI RODA HAMSTER ASLI. 70+ RPM = ZOOMIES ×2 SKOR.',
+    modeRace: 'MODE BALAPAN AKTIF — KALAHKAN HAMSTER ASLI. PUKULANMU MEMAJUKANMU, RODA MENGGERAKKAN SQUEEKTOSHI.',
+    modeDaily: 'LAGU HARIAN AKTIF — {date} • HARI INI: {genre} / {diff} — LAGU YANG SAMA UNTUK SEMUA ORANG.',
+    calibDone: 'KALIBRASI SELESAI — OFFSET {off} ms.',
+    calibFail: 'KALIBRASI GAGAL — KETUKAN BAGUS KURANG.',
+    calibNeedSound: 'NYALAKAN SUARA DULU — KALIBRASI BUTUH SUARA.',
+    calibNoAudio: 'AUDIO BELUM JALAN — KETUK LAYAR SEKALI, LALU KALIBRASI.',
+    calibAudioFail: 'AUDIO GAGAL — KALIBRASI BUTUH SUARA.',
+    obsCopied: 'TAUTAN OVERLAY OBS DISALIN — TAMBAHKAN SEBAGAI BROWSER SOURCE DI OBS (1920×1080, TRANSPARAN).',
+    obsBlocked: 'CLIPBOARD DIBLOKIR — TAUTANNYA: {url}',
+    diaryFirst: 'MAIN LAGU DULU — DIARINYA MASIH KOSONG.',
+    diarySaved: 'CATATAN TERSIMPAN DI LAGU TERAKHIRMU.',
+    cardFail: 'KARTU HASIL GAGAL — MAIN LAGU DULU.',
+    cardReady: 'KARTU HASIL SIAP — UNDUH ATAU BAGIKAN DI BAWAH.',
+    cardWallet: 'BUTUH WALLET YANG VALID UNTUK ID CARD.',
+    cardFetching: 'MENGAMBIL DATA ON-CHAIN...',
+    cardDone: 'ID CARD DIBUAT.',
+    levelUp: ' — NAIK LEVEL! ',
+    unlocked: 'TERBUKA: ',
+    avatarEvolved: 'AVATAR BEREVOLUSI',
+    streakDays: ' • STREAK {n} HARI',
+    freezeUsed: ' (STREAK FREEZE TERPAKAI)',
+    practiceRun: 'LATIHAN — TANPA XP • TANPA STREAK • TIDAK DICATAT.',
+    newHigh: 'SKOR TERTINGGI BARU!',
+    bestIs: 'TERBAIK: {score} ({grade})',
+    rivalBack: 'KAMU MENJAWAB DUEL — KIRIM DUEL LINK-MU KEMBALI (TOMBOL DI ATAS) SUPAYA PENANTANG MELIHAT SKORMU DI LIGANYA.',
+    duelNoSong: 'MAIN SATU LAGU DULU, BARU BISA BAGIKAN DUEL.',
+    duelCopied: 'DUEL LINK DISALIN — KIRIM KE TEMAN, MEREKA MEMAINKAN LAGU YANG SAMA PERSIS.',
+    duelBlocked: 'CLIPBOARD DIBLOKIR — TAUTAN ADA DI KOTAK DI BAWAH, SALIN MANUAL.',
+    gameRunning: 'GAME SUDAH BERJALAN.',
+  }
+};
+function msg(k) { const d = MSG[lang] || MSG.en; return d[k] !== undefined ? d[k] : (MSG.en[k] !== undefined ? MSG.en[k] : k); }
+function msgf(k, vars) { let s = msg(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; }
+
+// --- v30 TOTAL: result-panel row labels, EN + ID ---
+const RLBL = {
+  en: { score: 'SCORE', acc: 'ACCURACY', combo: 'MAX COMBO', pg: 'PERFECT/GREAT', gm: 'GOOD/MISS', anthem: 'ANTHEM', setup: 'SETUP', live: 'LIVE WHEEL', race: 'RACE', boss: 'WEEKLY BOSS', offline: 'OFFLINE (128 BPM FALLBACK)', raceWin: 'YOU WIN! +50 XP', raceLose: 'SQUEEKTOSHI WINS', bossDefeated: 'DEFEATED ✓ +100 XP', tryCalib: ' • TRY CALIBRATION', practiceTag: ' • PRACTICE' },
+  id: { score: 'SKOR', acc: 'AKURASI', combo: 'KOMBO MAKSIMAL', pg: 'PERFECT/GREAT', gm: 'GOOD/MISS', anthem: 'LAGU', setup: 'PENGATURAN', live: 'RODA LIVE', race: 'BALAPAN', boss: 'BOSS MINGGUAN', offline: 'OFFLINE (128 BPM CADANGAN)', raceWin: 'KAMU MENANG! +50 XP', raceLose: 'SQUEEKTOSHI MENANG', bossDefeated: 'KALAH ✓ +100 XP', tryCalib: ' • COBA KALIBRASI', practiceTag: ' • LATIHAN' },
+};
+function rl(k) { const d = RLBL[lang] || RLBL.en; return d[k] !== undefined ? d[k] : RLBL.en[k]; }
 
 // --- EN/ID toggle (menu labels only; dynamic game messages stay English) ---
 const I18N = {
-  en: { wallet: 'WALLET ADDRESS', connect: '[ CONNECT WALLET ]', genre: '// GENRE', diff: '// DIFFICULTY', options: '// OPTIONS', mode: '// MODE', play: 'INITIALIZE RHYTHM', card: 'GENERATE ID CARD', retry: 'RETRY', resultCard: '[ SHARE RESULT CARD ]', obs: '[ OBS OVERLAY LINK ]', wheelcall: 'WHEEL CALL — PREDICT THE NEXT ROUND', boss: 'WEEKLY BOSS', bossFight: '[ FIGHT WEEKLY BOSS ]', league: 'DUEL LEAGUE — LOCAL RIVALS', ach: 'ACHIEVEMENTS', away: 'WHILE YOU WERE AWAY', addNote: '[ ADD NOTE ]' },
-  id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]' },
+  en: { wallet: 'WALLET ADDRESS', connect: '[ CONNECT WALLET ]', genre: '// GENRE', diff: '// DIFFICULTY', options: '// OPTIONS', mode: '// MODE', play: 'INITIALIZE RHYTHM', card: 'GENERATE ID CARD', retry: 'RETRY', resultCard: '[ SHARE RESULT CARD ]', obs: '[ OBS OVERLAY LINK ]', wheelcall: 'WHEEL CALL — PREDICT THE NEXT ROUND', boss: 'WEEKLY BOSS', bossFight: '[ FIGHT WEEKLY BOSS ]', league: 'DUEL LEAGUE — LOCAL RIVALS', ach: 'ACHIEVEMENTS', away: 'WHILE YOU WERE AWAY', addNote: '[ ADD NOTE ]', howto: 'HOW TO PLAY', gotIt: '[ GOT IT — LET\'S PLAY ]', howBtn: '[ HOW TO PLAY ]', roundhist: 'ROUND HISTORY — LAST 12 SETTLED ROUNDS', champs: 'DAILY CHAMPIONS — YOUR BEST SCORE EACH DAY' },
+  id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR YANG SELESAI', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI' },
 };
 let lang = loadJSON('sqk29:lang', 'en');
 function applyLang(l) {
@@ -1343,6 +1510,7 @@ function applyLang(l) {
   const dict = I18N[lang];
   document.querySelectorAll('[data-i18n]').forEach(el => { const k = el.dataset.i18n; if (dict[k]) el.textContent = dict[k]; });
   const lb = $('langBtn'); if (lb) lb.textContent = lang.toUpperCase();
+  renderPredict(); renderBossBox(); renderRaceBox(); renderLeague(); renderChamps(); renderRoundHist(); renderTutorial(); // v30: dynamic lines re-render in the new language (renderAway is once-per-load by design)
 }
 
 // --- OBS overlay (?overlay=1): minimal live widget, transparent background ---
@@ -1350,8 +1518,8 @@ const overlayMode = new URLSearchParams(location.search).get('overlay') === '1';
 function overlayUrl() { return location.href.split('?')[0] + '?overlay=1'; }
 async function copyObsLink() {
   const url = overlayUrl();
-  try { await navigator.clipboard.writeText(url); say('OBS OVERLAY LINK COPIED — ADD IT AS A BROWSER SOURCE IN OBS (1920×1080, TRANSPARENT).', 'green'); }
-  catch (e) { say('CLIPBOARD BLOCKED — THE LINK IS: ' + url, 'pink'); }
+  try { await navigator.clipboard.writeText(url); say(msg('obsCopied'), 'green'); }
+  catch (e) { say(msgf('obsBlocked', { url }), 'pink'); }
 }
 function updateOverlay() {
   const ob = $('overlayBox'); if (!ob || ob.classList.contains('hidden')) return;
@@ -1362,6 +1530,8 @@ function updateOverlay() {
   const avg = roundAvg(cur);
   const cls = avg !== null ? roundClass(avg) : (s && s.ok ? roundClass(s.rpm) : null);
   setText('overlayRound', `ROUND ${cur} • ${cls ? roundLabel(cls) : '—'} • NEXT IN ${fmtCountdown(nextRoundInMs(new Date()))}`);
+  setText('overlayZoom', liveZoomies ? '🔥 ZOOMIES ×2 — SCORE DOUBLED' : (s && s.ok && s.rpm >= 5 ? '🏃 JOG — NORMAL SCORE' : s && s.ok ? '😴 NAP — NORMAL SCORE' : 'ZOOMIES —'));
+  setText('overlayPet', s && s.ok ? (s.rpm > 0 ? `🐹 SQUEEKTOSHI RUNNING — ${Math.round(s.rpm)} RPM` : '😴 SQUEEKTOSHI NAPPING (0 RPM)') : '❓ WHEEL OFFLINE — SQUEEKTOSHI HIDING');
   setText('overlaySong', lastAnthem ? `SONG ${lastAnthem.key} ${lastAnthem.scaleName} • ${lastAnthem.bpm} BPM` : 'SONG —');
 }
 
@@ -1400,16 +1570,55 @@ function drawResultCard() {
   return true;
 }
 
+// --- v30 TOTAL: Tutorial (first visit) + Share result to X ---
+const TUT = {
+  en: [
+    '1. ENTER YOUR WALLET (or play as GUEST) — your anthem is generated from it.',
+    '2. PICK A GENRE, DIFFICULTY AND MODE — FREE, DAILY, LIVE or RACE.',
+    '3. TAP THE LANES WHEN A BLOCK HITS THE LINE. Keyboard: ← ↓ → or A S D.',
+    '4. DAILY ANTHEM + MISSIONS + XP build your streak and level up your avatar.',
+    '5. LIVE and RACE follow the REAL hamster wheel — 70+ RPM is ZOOMIES (scores ×2).',
+    '6. After a song, send a DUEL LINK to a friend — their result lands in your Duel League.',
+  ],
+  id: [
+    '1. MASUKKAN WALLET (atau main sebagai GUEST) — lagumu dibuat dari alamat itu.',
+    '2. PILIH GENRE, KESULITAN DAN MODE — FREE, DAILY, LIVE atau RACE.',
+    '3. KETUK JALUR SAAT BLOK MENYENTUH GARIS. Keyboard: ← ↓ → atau A S D.',
+    '4. LAGU HARIAN + MISI + XP membangun streak dan menaikkan level avatarmu.',
+    '5. LIVE dan RACE mengikuti RODA HAMSTER ASLI — 70+ RPM adalah ZOOMIES (skor ×2).',
+    '6. Setelah lagu, kirim DUEL LINK ke teman — hasil mereka masuk ke Liga Duelmu.',
+  ],
+};
+function renderTutorial() {
+  const el = $('tutorialSteps'); if (el) el.innerHTML = TUT[lang].map(s => `<p class="msg">${escHtml(s)}</p>`).join('');
+  const b = $('tutorialBox'); if (b) b.classList.toggle('hidden', !!loadJSON('sqk30:tutSeen', 0));
+}
+function showTutorial() { renderTutorial(); const b = $('tutorialBox'); if (b) b.classList.remove('hidden'); }
+function hideTutorial() { saveJSON('sqk30:tutSeen', 1); const b = $('tutorialBox'); if (b) b.classList.add('hidden'); }
+function buildShareText() {
+  const g = $('gradeVal') ? $('gradeVal').textContent : '—';
+  const score = G ? G.score : 0;
+  const mode = G ? G.mode.toUpperCase() : 'SQUEEKCHAIN';
+  return `I scored ${score} PTS (${g}) on Squeekchain Pixel ID — ${mode} mode. Race the hamster: https://squeekpixel.web.id/`;
+}
+function shareToX() {
+  const url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(buildShareText());
+  window.open(url, '_blank', 'noopener');
+}
+
 // --- v29 wiring ---
+bindClick('shareXBtn', shareToX); // v30: one-tap share of the result to X
+bindClick('tutorialCloseBtn', hideTutorial); // v30
+bindClick('howBtn', showTutorial); // v30: re-open the tutorial
 bindClick('predNapBtn', () => placePrediction('nap'));
 bindClick('predJogBtn', () => placePrediction('jog'));
 bindClick('predZoomiesBtn', () => placePrediction('zoomies'));
 bindClick('bossBtn', fightBoss);
-bindClick('practiceBtn', () => { practiceMode = !practiceMode; saveJSON('sqk29:practice', practiceMode); renderPracticeBtn(); say(practiceMode ? 'PRACTICE ON — 60% TEMPO, NO XP, NO STREAK.' : 'PRACTICE OFF.', 'cyan'); });
+bindClick('practiceBtn', () => { practiceMode = !practiceMode; saveJSON('sqk29:practice', practiceMode); renderPracticeBtn(); say(practiceMode ? msg('practiceOn') : msg('practiceOff'), 'cyan'); });
 bindClick('obsBtn', copyObsLink);
 bindClick('langBtn', () => applyLang(lang === 'en' ? 'id' : 'en'));
 bindClick('diaryNoteBtn', addDiaryNote);
-bindClick('resultCardBtn', () => { if (!drawResultCard()) return say('RESULT CARD FAILED — PLAY A SONG FIRST.', 'pink'); const ca = $('cardArea'); if (ca) ca.classList.remove('hidden'); show('mainPanel'); say('RESULT CARD READY — DOWNLOAD OR SHARE IT BELOW.', 'green'); if (ca) ca.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+bindClick('resultCardBtn', () => { if (!drawResultCard()) return say(msg('cardFail'), 'pink'); const ca = $('cardArea'); if (ca) ca.classList.remove('hidden'); show('mainPanel'); say(msg('cardReady'), 'green'); if (ca) ca.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
 
 try {
   const params = new URLSearchParams(location.search);
@@ -1429,7 +1638,9 @@ try {
 if (playMode === 'daily') { applyDailySpec(); lockGenreDiffRows(true); }
 renderDailyBox(); renderLiveBox(); renderMastery(); renderOffsetLine(); renderUnlocks();
 if (playMode === 'live' || playMode === 'race') { refreshLive(); startLivePoll(10000); }
-applyLang(lang); renderPredict(); renderRaceBox(); renderBossBox(); renderLeague(); renderAchievements(); renderPracticeBtn(); settlePredictions(); renderAway();
+try { Object.keys(localStorage).filter(k => k.indexOf('sqk29:samples:') === 0).forEach(k => finalizeRound(k.slice('sqk29:samples:'.length))); } catch (_) {} // v30: rounds recorded while the page was closed join the history at boot
+applyLang(lang); renderPredict(); renderRaceBox(); renderBossBox(); renderLeague(); renderAchievements(); renderPracticeBtn(); renderChamps(); renderTutorial(); settlePredictions(); renderAway();
+const vs = $('volSlider'); if (vs) { vs.value = vol; applyVol(); vs.addEventListener('input', () => { vol = +vs.value; saveJSON('sqk30:vol', vol); applyVol(); }); } // v30: volume slider
 if (overlayMode) { document.body.classList.add('overlay'); const ob = $('overlayBox'); if (ob) ob.classList.remove('hidden'); hideMusicSplash(); refreshLive(); startLivePoll(5000); }
 else startMenuPoll();
 preview();

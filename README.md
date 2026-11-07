@@ -1,4 +1,4 @@
-# Squeekchain v29 MEGA
+# Squeekchain v30 TOTAL
 
 A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only; optional wallet connect reads your address only, no signature, no transactions), play 3 or 4 lanes, earn XP, play the Daily Anthem, complete daily missions, generate your ID Card, race the real hamster in LIVE mode, and race Squeektoshi himself in RACE mode.
 
@@ -28,6 +28,18 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - **EN/ID toggle** — menu labels in English or Bahasa Indonesia
 - **While You Were Away + diary** — last visit summary and a per-song diary with personal notes
 - **Shareable result card** — draw your result as a PNG card and download/share it
+- **Share result to X** — one tap opens an X post with your score, grade and mode
+- **Round History** — the last 12 settled 10-minute rounds (classification + average RPM), finalized live, at settle time, or at boot for rounds recorded while the page was closed
+- **Daily Champions** — your best score of each day (last 7 days)
+- **Send the result back** — after answering a duel, the result panel tells you to send your own Duel Link back so the challenger sees your score in their league
+- **Full EN/ID** — the game's spoken messages, the result-panel rows and the XP line are now in Bahasa Indonesia too (not just the menu labels)
+- **Tutorial** — a first-visit HOW TO PLAY panel (re-openable any time)
+- **Volume slider** — 0–100%, persisted; mute goes through it
+- **Haptic feedback** — short vibration on hits (stronger on PERFECT, longer on MISS) on phones
+- **Achievement XP** — unlocking an achievement now pays +25 XP each
+- **While You Were Away, upgraded** — the summary now also lists the wheel rounds that settled since your last visit
+- **Past bosses** — the last 3 weekly bosses, from the same deterministic spec
+- **Richer OBS overlay** — now also shows the ZOOMIES state and Squeektoshi's current state
 - **Live Squeekchain API** — the ID Card shows the live hamster-wheel status and distance from `api.squeekchain.com/v1/status`, plus your Sepolia token balance (read-only)
 
 ## Files
@@ -39,6 +51,7 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - `AUDIT-v27-LIVE.md` — notes on the v26 → v27 LIVE mode
 - `AUDIT-v28-FIX.md` — notes on the v27 → v28 P0 fixes (PRECISION, Daily, LV5–LV8 unlocks)
 - `AUDIT-v29-MEGA.md` — notes on the v28 → v29 MEGA upgrades (P1–P4 + Weekly Boss, Fever, Streak Freeze, Practice) and the restored XP bonuses
+- `AUDIT-v30-TOTAL.md` — notes on the v29 → v30 TOTAL upgrade (round history, daily champions, share-to-X, full EN/ID, tutorial, volume, haptics, achievement XP, away-rounds, past bosses, richer OBS) and the v29.2 live verification
 
 ## Notes
 

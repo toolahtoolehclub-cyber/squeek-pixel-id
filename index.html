@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="SQUEEKCHAIN v29 MEGA — Daily, XP, Missions, Duel, and LIVE mode: the song tempo follows the real hamster wheel. New in v29: LIVE RACE vs Squeektoshi, Golden Note on round change, Wheel Call predictions, named Achievements, Duel League, shareable result cards, OBS overlay mode, EN/ID toggle, While-You-Were-Away + diary, Weekly Boss, Fever combo, Streak Freeze, and Practice mode.">
+<meta name="description" content="SQUEEKCHAIN v30 TOTAL — Daily, XP, Missions, Duel, and LIVE mode: the song tempo follows the real hamster wheel. New in v30: round history, daily champions, share-to-X, full EN/ID messages, tutorial, volume slider, haptic feedback, achievement XP, hamster-while-away, past bosses, richer OBS overlay — plus everything from v29 (LIVE RACE, Wheel Call, Achievements, Duel League, OBS, Weekly Boss, Fever, Streak Freeze, Practice).">
 <meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect x='3' y='3' width='10' height='10' fill='%2300ff00'/%3E%3C/svg%3E">
-<title>SQUEEKCHAIN // v29 MEGA</title>
+<title>SQUEEKCHAIN // v30 TOTAL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
         <div class="header-row">
             <div>
                 <h1 id="mainTitle" class="flicker">SQUEEKCHAIN</h1>
-                <h2>PIXEL ID // v29 MEGA</h2>
+                <h2>PIXEL ID // v30 TOTAL</h2>
             </div>
             <button class="btn-icon" id="langBtn" type="button" aria-label="Switch language English / Bahasa Indonesia" title="Language: EN / ID">EN</button>
             <button class="btn-icon" id="qualityBtn" type="button" aria-label="Change graphics quality" title="Quality: ULTRA / ECO">QLTY: ULTRA</button>
@@ -57,6 +57,12 @@
                     <p id="avatarLabel">YOUR PIXEL SELF</p>
                     <p id="levelLabel">LV 1 • 0 XP</p>
                     <p id="anthemHash" class="hash"></p>
+                </div>
+
+                <div id="tutorialBox">
+                    <p class="predict-title" data-i18n="howto">HOW TO PLAY</p>
+                    <div id="tutorialSteps"></div>
+                    <button class="btn-secondary" type="button" id="tutorialCloseBtn" data-i18n="gotIt">[ GOT IT — LET'S PLAY ]</button>
                 </div>
 
                 <label id="genreLabel" data-i18n="genre">// GENRE</label>
@@ -116,9 +122,18 @@
                     <p id="predStatus" class="msg">Rounds are 10 minutes. NAP &lt; 5 RPM • JOG 5–69 RPM • ZOOMIES 70+ RPM. A correct call earns +40 XP.</p>
                     <p id="predResult" class="msg hidden"></p>
                 </div>
+                <div id="roundHistBox">
+                    <p class="predict-title" data-i18n="roundhist">ROUND HISTORY — LAST 12 SETTLED ROUNDS</p>
+                    <div id="roundHistList"><p class="msg">No finished rounds recorded yet — keep this page open and rounds settle here.</p></div>
+                </div>
+                <div id="champBox">
+                    <p class="league-title" data-i18n="champs">DAILY CHAMPIONS — YOUR BEST SCORE EACH DAY</p>
+                    <div id="champList"><p class="msg">No champions yet — your best score of each day lands here.</p></div>
+                </div>
                 <div id="bossBox">
                     <p class="boss-title" data-i18n="boss">WEEKLY BOSS</p>
                     <p id="bossLine">LOADING THIS WEEK'S BOSS…</p>
+                    <p id="bossHist" class="msg">PAST BOSSES: —</p>
                     <button class="btn-secondary" type="button" id="bossBtn" data-i18n="bossFight">[ FIGHT WEEKLY BOSS ]</button>
                 </div>
                 <div id="leagueBox">
@@ -158,8 +173,14 @@
                 </div>
                 <button class="btn-secondary" type="button" id="musicModeBtn">MUSIC: HYPE 128 BPM — TAP FOR CALM</button>
                 <div class="row">
+                    <label for="volSlider" style="align-self:center">VOLUME</label>
+                    <input type="range" id="volSlider" min="0" max="100" value="80" aria-label="Volume" style="flex:1">
+                    <b id="volVal">80%</b>
+                </div>
+                <div class="row">
                     <button class="btn-secondary" type="button" id="practiceBtn">PRACTICE: OFF</button>
                     <button class="btn-secondary" type="button" id="obsBtn" data-i18n="obs">[ OBS OVERLAY LINK ]</button>
+                    <button class="btn-secondary" type="button" id="howBtn" data-i18n="howBtn">[ HOW TO PLAY ]</button>
                 </div>
                 <button class="btn-primary" type="button" id="playBtn" data-i18n="play">INITIALIZE RHYTHM</button>
                 <button class="btn-secondary" type="button" id="genBtn" data-i18n="card">GENERATE ID CARD</button>
@@ -212,13 +233,15 @@
                 <button class="btn-secondary" type="button" id="toCardBtn" data-i18n="card">GENERATE CARD</button>
                 <button class="btn-secondary" type="button" id="resultCardBtn" data-i18n="resultCard">[ SHARE RESULT CARD ]</button>
                 <button class="btn-secondary" type="button" id="duelBtn">[ DUEL LINK ]</button>
+                <button class="btn-secondary" type="button" id="shareXBtn">[ SHARE RESULT TO X ]</button>
+                <p class="msg hidden" id="rivalBackMsg"></p>
                 <p class="msg" id="duelMsg">THE DUEL LINK WILL APPEAR HERE AFTER THE GAME ENDS.</p>
                 <textarea id="duelOut" readonly rows="2" placeholder="The duel link will appear here — copy it manually if the clipboard is blocked."></textarea>
                 <button class="btn-danger" type="button" id="homeBtn">EXIT TO MENU</button>
             </div>
         </section>
     </main>
-    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v29 MEGA — UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia. Daily: ?daily=1 • Live: ?live=1 • Race: ?race=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard • OBS: ?overlay=1</footer>
+    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v30 TOTAL — UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia. Daily: ?daily=1 • Live: ?live=1 • Race: ?race=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard • OBS: ?overlay=1</footer>
 </div>
 
 <div id="overlayBox" class="hidden" aria-label="OBS overlay — live hamster status">
@@ -226,6 +249,8 @@
     <p id="overlayRpm">RPM —</p>
     <p id="overlayDist">DIST — KM</p>
     <p id="overlayRound">ROUND —</p>
+    <p id="overlayZoom">ZOOMIES —</p>
+    <p id="overlayPet">🐹 —</p>
     <p id="overlaySong">SONG —</p>
 </div>
 

@@ -239,6 +239,13 @@ body.hemat #bg-anim { display: none; } /* HEMAT = diam, sesuai janji tombol QLTY
 #overlayBox.hidden { display: none !important; }
 #overlayBox p { margin: 0 0 14px 0; font-size: 16px; line-height: 1.6; }
 #overlayTitle { color: var(--green); font-size: 20px !important; }
+#overlayZoom { color: var(--yellow); }
+#overlayPet { color: var(--cyan); }
+
+/* v30 TOTAL: volume slider + tutorial box */
+input[type=range] { accent-color: var(--green); height: 28px; }
+#tutorialBox { border: 2px solid var(--yellow); padding: 10px; margin-bottom: 8px; }
+#tutorialBox .msg { text-align: left; }
 body.overlay { background: transparent; }
 body.overlay #ui-layer, body.overlay #bg-gl, body.overlay #bg-anim, body.overlay #crt, body.overlay #musicSplash { display: none !important; }
 body.overlay { animation: none; background-image: none; }
