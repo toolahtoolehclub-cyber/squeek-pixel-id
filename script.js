@@ -1121,6 +1121,42 @@ async function fetchAccount(w) {
       first: sorted[0] || null };
   } catch { return { ok: false, status: 'OFFLINE' }; }
 }
+// --- v35.1: the Squeek's own DotGrid art for the ID Card ---
+// /v1/squeeks/{id} returns metadata.imageDataUri — a base64 inline SVG (the
+// real on-chain art, ~74 KB for #8889, intrinsic 1568x1568). SVG data URIs
+// without width/height render as 0x0 in some browsers, so fixSvgSize injects
+// 512x512 when the root tag has none. Everything is fail-soft: a slow or
+// failed fetch draws the dashed placeholder, never breaks the card.
+let squeekImgCache = {};
+function fixSvgSize(dataUri) {
+  try {
+    const m = /^data:image\/svg\+xml;base64,(.+)$/.exec(dataUri || '');
+    if (!m) return dataUri;
+    let svg = atob(m[1]);
+    if (!/width\s*=/.test(svg)) svg = svg.replace(/<svg\b/i, '<svg width="512" height="512"');
+    return 'data:image/svg+xml;base64,' + btoa(svg);
+  } catch { return dataUri; }
+}
+function loadSqueekImage(id, dataUri) {
+  if (squeekImgCache[id]) return Promise.resolve(squeekImgCache[id]);
+  return new Promise(res => {
+    const img = new Image();
+    const to = setTimeout(() => res(null), 4000);
+    img.onload = () => { clearTimeout(to); squeekImgCache[id] = img; res(img); };
+    img.onerror = () => { clearTimeout(to); res(null); };
+    img.src = fixSvgSize(dataUri);
+  });
+}
+async function fetchSqueekImage(id) {
+  try {
+    const r = await tfetch('https://api.squeekchain.com/v1/squeeks/' + id);
+    if (!r.ok) return null;
+    const j = await r.json();
+    const uri = j && j.metadata && j.metadata.imageDataUri;
+    if (!uri) return null;
+    return await loadSqueekImage(id, uri);
+  } catch { return null; }
+}
 async function refreshChain(force) {
   const now = Date.now();
   if (!force && chainSnapshot && now - chainLastFetch < 60000) { renderChainBox(); return chainSnapshot; }
@@ -1279,9 +1315,11 @@ async function generateCard() {
   let wheel, bal, acct;
   try { [wheel, bal, acct] = await Promise.all([fetchWheel(), fetchBalance(w), fetchAccount(w)]); }
   catch (e) { bal = { ok: false, status: e.message === 'CIRCUIT_OPEN' ? 'RPC_BLOCKED' : 'FETCH_ERROR' }; wheel = { ok: false, status: 'OFFLINE' }; acct = { ok: false, status: 'FETCH_ERROR' }; }
+  let sqkImg = null;
+  if (acct && acct.ok && acct.first) { try { sqkImg = await Promise.race([fetchSqueekImage(acct.first.tokenId), new Promise(r => setTimeout(() => r(null), 5000))]); } catch { sqkImg = null; } }
 
   const an = (lastAnthem && G && G.wallet && G.wallet.toLowerCase() === w.toLowerCase()) ? lastAnthem : makeAnthem(w);
-  const b = loadBest(w), c = $('card-canvas'), ctx = c.getContext('2d'), CW = 400, CH = 648;
+  const b = loadBest(w), c = $('card-canvas'), ctx = c.getContext('2d'), CW = 400, CH = 680;
   fitCanvas(c, ctx, CW, CH, 3);
   const lv = levelFor(totalXP(w)), xp = totalXP(w);
   cardFrame(ctx, CW, CH, 'SQUEEK CITIZEN // ID CARD', 'LV ' + lv);
@@ -1308,23 +1346,36 @@ async function generateCard() {
   const achCard = loadJSON('sqk29:ach:' + walletKey(w), []);
   row('ACHIEVEMENTS', achCard.length ? achCard.length + '/10 — ' + achCard.slice(0, 2).join(', ') : '0/10 — PLAY TO UNLOCK', 24, 472, '#ffe14d');
   hair(496);
+  // v35.1: the Squeek's own DotGrid art, live from /v1/squeeks/{id}.
+  // A failed/slow fetch draws a dashed placeholder — the card never breaks for an image.
+  if (sqkImg) {
+    ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2; ctx.strokeRect(24, 508, 76, 76);
+    ctx.drawImage(sqkImg, 26, 510, 72, 72);
+  } else {
+    ctx.save();
+    ctx.strokeStyle = '#ff5ce1'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+    ctx.strokeRect(24, 508, 76, 76); ctx.setLineDash([]);
+    ctx.fillStyle = '#ff5ce1'; ctx.font = 'bold 20px "Space Mono"'; ctx.textAlign = 'center';
+    ctx.fillText('?', 62, 556); ctx.restore();
+  }
+  ctx.textAlign = 'left';
   // v35: MY SQUEEK — the player's Squeek, stake and claimable, live from /v1/accounts.
   // An empty account is shown honestly as NONE YET; a failed fetch as [ STATUS ], never 0.
   if (acct && acct.ok && acct.first) {
-    row('MY SQUEEK', '#' + acct.first.tokenId + ' • LV ' + acct.first.level + ' • POWER ' + Number(acct.first.basePower || 0).toLocaleString('en-US'), 24, 516, '#00e5ff');
-    row('NEXT MERGE', acct.first.mergeState === 'ready' ? 'READY NOW' : 'BLOCK ' + acct.first.nextMergeHeight, 224, 516, '#00e5ff');
-    row('STAKED SQK', acct.staked + ' SQK', 24, 560, '#00ff88');
-    row('CLAIMABLE', acct.claimable + ' SQK', 224, 560, '#00ff88');
+    row('MY SQUEEK', '#' + acct.first.tokenId + ' • LV ' + acct.first.level + ' • POWER ' + Number(acct.first.basePower || 0).toLocaleString('en-US'), 116, 516, '#00e5ff');
+    row('NEXT MERGE', acct.first.mergeState === 'ready' ? 'READY NOW' : 'BLOCK ' + acct.first.nextMergeHeight, 116, 560, '#00e5ff');
+    row('STAKED SQK', acct.staked + ' SQK', 24, 604, '#00ff88');
+    row('CLAIMABLE', acct.claimable + ' SQK', 224, 604, '#00ff88');
   } else if (acct && acct.ok) {
-    row('MY SQUEEK', 'NONE YET — NO SQUEEK FOUND', 24, 516, '#ff5ce1');
-    row('NEXT MERGE', '—', 224, 516, '#ff5ce1');
-    row('STAKED SQK', '0 SQK', 24, 560, '#00ff88');
-    row('CLAIMABLE', '0 SQK', 224, 560, '#00ff88');
+    row('MY SQUEEK', 'NONE YET — NO SQUEEK FOUND', 116, 516, '#ff5ce1');
+    row('NEXT MERGE', '—', 116, 560, '#ff5ce1');
+    row('STAKED SQK', '0 SQK', 24, 604, '#00ff88');
+    row('CLAIMABLE', '0 SQK', 224, 604, '#00ff88');
   } else {
-    row('MY SQUEEK', '[ ' + (acct ? acct.status : 'UNKNOWN') + ' ]', 24, 516, '#ff5ce1');
-    row('NEXT MERGE', '—', 224, 516, '#ff5ce1');
-    row('STAKED SQK', '[ ? ]', 24, 560, '#ff5ce1');
-    row('CLAIMABLE', '[ ? ]', 224, 560, '#ff5ce1');
+    row('MY SQUEEK', '[ ' + (acct ? acct.status : 'UNKNOWN') + ' ]', 116, 516, '#ff5ce1');
+    row('NEXT MERGE', '—', 116, 560, '#ff5ce1');
+    row('STAKED SQK', '[ ? ]', 24, 604, '#ff5ce1');
+    row('CLAIMABLE', '[ ? ]', 224, 604, '#ff5ce1');
   }
 
   ctx.textAlign = 'center'; ctx.fillStyle = '#5c6669'; ctx.font = '9px "Space Mono"';
