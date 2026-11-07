@@ -1,5 +1,9 @@
 'use strict';
-/* SQUEEKCHAIN v27 LIVE — basis v26 FIX + LIVE mode (song tempo follows the real hamster wheel).
+/* SQUEEKCHAIN v28 FIX — basis v27 LIVE + P0 fixes from the 72-screenshot competitor analysis:
+ * 1) PRECISION offset calibration (manual +/-5ms + auto-calibrate by tapping the beat);
+ * 2) Daily fully consistent (genre+diff derived from the date — one song for everyone);
+ * 3) LV5–LV8 unlocks that are real (VOID genre, 4 lanes, Mirror mode, Gold avatar).
+ * v27 LIVE — song tempo follows the real hamster wheel.
  * v26 FIX — basis v25 ULTIMATE + v24 RETENTION.
  * Perbaikan dari tes HP 2026-11-06 (AudioContext running, WebGL OK, clipboard OK):
  * #1 intro 50Hz sawtooth -> 220Hz triangle + stop race-safe; #4 avatar putar di dalam canvas, kartu tidak ikut muter;
@@ -33,6 +37,70 @@ function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); retu
 const XP_LEVELS = [0, 100, 250, 500, 900, 1500, 2500, 4000];
 function totalXP(w) { return loadJSON('sqk24:xp:' + walletKey(w), 0) | 0; }
 function levelFor(xp) { let lv = 1; for (let i = 0; i < XP_LEVELS.length; i++) if (xp >= XP_LEVELS[i]) lv = i + 1; return lv; }
+
+// v28 FIX — LV5–LV8 UNLOCKS (real, not labels): LV5 VOID genre, LV6 4 lanes,
+// LV7 Mirror mode, LV8 Gold avatar. LV1–LV4 already evolve the avatar
+// (glasses LV2, hat LV3, crown LV4).
+const UNLOCKS = {
+  5: { id: 'void', text: 'NEW GENRE: VOID' },
+  6: { id: 'lanes4', text: '4 LANES MODE' },
+  7: { id: 'mirror', text: 'MIRROR MODE' },
+  8: { id: 'gold', text: 'GOLD AVATAR' },
+};
+function unlocksForLevel(lv) { const out = []; for (let l = 5; l <= lv && l <= 8; l++) if (UNLOCKS[l]) out.push(UNLOCKS[l]); return out; }
+function playerLevel(w) { return levelFor(totalXP(w)); }
+
+// v28 FIX — PRECISION OFFSET (ms). Positive = the player taps late on average,
+// so the game judges the tap as if it came offsetMs earlier. Stored per
+// device (this browser), not per wallet — it is a property of the device.
+function offsetMsClamp(v) { return Math.max(-150, Math.min(150, Math.round(v / 5) * 5)); }
+function loadOffsetMs() { const v = loadJSON('sqk28:offsetMs', 0); return offsetMsClamp(typeof v === 'number' && Number.isFinite(v) ? v : 0); }
+let offsetMs = loadOffsetMs();
+function setOffsetMs(v) { offsetMs = offsetMsClamp(v); saveJSON('sqk28:offsetMs', offsetMs); renderOffsetLine(); }
+
+// v28 FIX — DAILY SPEC: the daily song is the same for EVERYONE, so the genre
+// and difficulty come from the date itself (not the player's selection). Only
+// the 3 base genres are used — VOID is a LV5 unlock and must never be the
+// daily song for a player who has not unlocked it.
+const DAILY_GENRES = ['cyber', 'synth', 'chip'];
+const DIFF_KEYS = ['easy', 'normal', 'hard'];
+function dailySpec(dateStr) {
+  const d = dateStr || todayStr();
+  return { genre: DAILY_GENRES[cyrb53('DAILY-GENRE-' + d) % DAILY_GENRES.length], diff: DIFF_KEYS[cyrb53('DAILY-DIFF-' + d) % DIFF_KEYS.length] };
+}
+function applyDailySpec(dateStr) {
+  const s = dailySpec(dateStr);
+  currentGenre = s.genre; currentDiff = s.diff;
+  syncGenreDiffButtons();
+  return s;
+}
+function syncGenreDiffButtons() {
+  document.querySelectorAll('#genreRow .btn-diff').forEach(x => { const on = x.dataset.genre === currentGenre; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); });
+  document.querySelectorAll('#diffRow .btn-diff').forEach(x => { const on = x.dataset.diff === currentDiff; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); });
+}
+function lockGenreDiffRows(locked) {
+  ['genreRow', 'diffRow'].forEach(r => {
+    const row = document.getElementById(r); if (!row) return;
+    row.classList.toggle('locked-row', locked);
+    row.querySelectorAll('.btn-diff').forEach(b => { b.disabled = locked; });
+  });
+}
+
+// v28 FIX — LANES & MIRROR (menu toggles, stored per browser).
+let lanes4Enabled = loadJSON('sqk28:lanes4', false) === true;
+let mirrorEnabled = loadJSON('sqk28:mirror', false) === true;
+let challengeLanes = 3, challengeMirror = false;
+function currentWallet() { const el = $('walletInput'); return el ? el.value.trim() : ''; }
+function lanesForSong() {
+  if (playMode === 'challenge') return challengeLanes;
+  if (playMode === 'daily') return 3; // canonical daily: same song for everyone
+  return (playerLevel(currentWallet()) >= 6 && lanes4Enabled) ? 4 : 3;
+}
+function mirrorForSong() {
+  if (playMode === 'challenge') return challengeMirror;
+  if (playMode === 'daily') return false;
+  return mirrorEnabled && playerLevel(currentWallet()) >= 7;
+}
 
 const MISSION_POOL = [
   { id: 'acc95', text: 'Accuracy >= 95%', check: r => r.acc >= 95 },
@@ -181,12 +249,15 @@ class CircuitBreaker {
 const rpcBreaker = new CircuitBreaker(3, 10000);
 const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0x810239d271e80a86023f4f315943acbd65b59281', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } }; // BARS 32 (Lagu lebih panjang)
 const DIFFICULTIES = { easy: { speed: 350, density: 0.4, chord: 0.0 }, normal: { speed: 480, density: 0.7, chord: 0.1 }, hard: { speed: 600, density: 0.9, chord: 0.25 } };
-const GENRES = { cyber: { scales: ['Phrygian', 'Harmonic Minor', 'Minor Pentatonic'], bpm: 120 }, synth: { scales: ['Dorian', 'Major Pentatonic'], bpm: 100 }, chip: { scales: ['Major Pentatonic', 'Dorian'], bpm: 140 } };
+const GENRES = { cyber: { scales: ['Phrygian', 'Harmonic Minor', 'Minor Pentatonic'], bpm: 120 }, synth: { scales: ['Dorian', 'Major Pentatonic'], bpm: 100 }, chip: { scales: ['Major Pentatonic', 'Dorian'], bpm: 140 }, void: { scales: ['Phrygian', 'Harmonic Minor'], bpm: 150 } }; // v28: VOID genre (LV5 unlock) — dark, fast
 let currentDiff = 'easy', currentGenre = 'cyber';
 
-function bindToggle(rowId, attr, cb) { document.querySelectorAll(`#${rowId} .btn-diff`).forEach(b => b.addEventListener('click', () => { document.querySelectorAll(`#${rowId} .btn-diff`).forEach(x => { x.classList.remove('active'); x.setAttribute('aria-pressed', 'false'); }); b.classList.add('active'); b.setAttribute('aria-pressed', 'true'); cb(b.dataset[attr]); })); }
+function bindToggle(rowId, attr, cb, guard) { document.querySelectorAll(`#${rowId} .btn-diff`).forEach(b => b.addEventListener('click', () => { if (guard && !guard(b.dataset[attr])) return; document.querySelectorAll(`#${rowId} .btn-diff`).forEach(x => { x.classList.remove('active'); x.setAttribute('aria-pressed', 'false'); }); b.classList.add('active'); b.setAttribute('aria-pressed', 'true'); cb(b.dataset[attr]); })); }
 bindToggle('diffRow', 'diff', v => { currentDiff = v; preview(); });
-bindToggle('genreRow', 'genre', v => { currentGenre = v; preview(); });
+bindToggle('genreRow', 'genre', v => { currentGenre = v; preview(); }, v => {
+  if (v === 'void' && playerLevel(currentWallet()) < 5) { say('🔒 VOID GENRE UNLOCKS AT LV5 — PLAY MORE SONGS TO EARN XP.', 'pink'); return false; }
+  return true;
+});
 
 function cyrb53(str, seed = 0) { let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed; for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677) } h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909); return 4294967296 * (2097151 & h2) + (h1 >>> 0) }
 function rng(seed) { let a = seed >>> 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 } }
@@ -194,9 +265,10 @@ const seedOf = w => cyrb53((w || 'GUEST').toLowerCase());
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const SCALES = { 'Minor Pentatonic': [0, 3, 5, 7, 10], 'Dorian': [0, 2, 3, 5, 7, 9, 10], 'Phrygian': [0, 1, 3, 5, 7, 8, 10], 'Major Pentatonic': [0, 2, 4, 7, 9], 'Harmonic Minor': [0, 2, 3, 5, 7, 8, 11] };
 
-function makeAnthem(wallet, randomize = false, seedOverride = null) {
+function makeAnthem(wallet, randomize = false, seedOverride = null, lanes = 3, mirror = false) {
   let seed = seedOverride ? cyrb53(seedOverride) : seedOf(wallet);
   if (randomize && !seedOverride) seed += Math.floor(Math.random() * 999999);
+  lanes = lanes === 4 ? 4 : 3; // v28: 4-lane mode (LV6)
   const r = rng(seed), genreInfo = GENRES[currentGenre];
   const scaleName = genreInfo.scales[Math.floor(r() * genreInfo.scales.length)];
   const scale = SCALES[scaleName], root = Math.floor(r() * 12);
@@ -216,14 +288,15 @@ function makeAnthem(wallet, randomize = false, seedOverride = null) {
       if (want && (t - lastT > 0.25)) {
         let deg = Math.floor(r() * span);
         const midi = 60 + root + scale[deg % scale.length] + 12 * Math.floor(deg / scale.length);
-        const lane = Math.min(2, Math.floor(deg / span * 3));
+        const lane = Math.min(lanes - 1, Math.floor(deg / span * lanes));
         chart.push({ t, lane, midi, judged: null }); lastT = t;
-        if (s % 4 === 0 && r() < diff.chord) chart.push({ t, lane: (lane + 1 + Math.floor(r() * 2)) % 3, midi: midi - 12, judged: null });
+        if (s % 4 === 0 && r() < diff.chord) chart.push({ t, lane: (lane + 1 + Math.floor(r() * 2)) % lanes, midi: midi - 12, judged: null });
       }
     }
   }
   chart.sort((a, b) => a.t - b.t);
-  return { bpm, step, scaleName, key: NOTE_NAMES[root], root, scale, chart, drums, duration: CONFIG.BARS * 16 * step, hue: Math.floor(r() * 360) };
+  if (mirror) chart.forEach(n => { n.lane = lanes - 1 - n.lane; }); // v28: Mirror mode (LV7) — flip the chart
+  return { bpm, step, scaleName, key: NOTE_NAMES[root], root, scale, chart, drums, duration: CONFIG.BARS * 16 * step, hue: Math.floor(r() * 360), lanes, mirror };
 }
 
 // ==========================================
@@ -326,7 +399,7 @@ window.addEventListener('load', () => { initAudio().then(() => { if (ac && ac.st
 // 4. GAME ENGINE
 // ==========================================
 const cv = $('game-canvas'), cx = cv.getContext('2d');
-const GW = 360, GH = 540, LANES = 3, LW = GW / LANES;
+const GW = 360, GH = 540, LANES = 3; let LW = GW / LANES; // v28: LW changes per song (4-lane mode)
 function fitCanvas(c, ctx, w, h, scale) { const d = scale || Math.min(2, window.devicePixelRatio || 1); c.width = Math.floor(w * d); c.height = Math.floor(h * d); c.style.width = '100%'; c.style.height = 'auto'; c.style.aspectRatio = `${w}/${h}`; ctx.setTransform(d, 0, 0, d, 0, 0); }
 fitCanvas(cv, cx, GW, GH);
 
@@ -351,11 +424,16 @@ async function play() {
     if (!liveStart.ok) say('WHEEL OFFLINE — LIVE MODE USES 128 BPM FALLBACK (NOT LIVE DATA).', 'pink');
   }
   const seedKey = seedKeyFor(playMode);
-  anthem = makeAnthem(w, false, seedKey); lastAnthem = anthem; hitOffsets = []; CONFIG.SPEED = DIFFICULTIES[currentDiff].speed; applyHue(anthem.hue);
+  if (playMode === 'daily') applyDailySpec(); // v28: daily genre+diff come from the date, not the selection
+  const lanes = lanesForSong(), mirror = mirrorForSong();
+  anthem = makeAnthem(w, false, seedKey, lanes, mirror); lastAnthem = anthem; hitOffsets = []; CONFIG.SPEED = DIFFICULTIES[currentDiff].speed; applyHue(anthem.hue);
+  LW = GW / lanes; // v28: 4-lane mode widens the highway per lane
+  const kh = document.querySelector('.kbd-hint'); if (kh) kh.textContent = lanes === 4 ? 'KEYBOARD: ← ↓ ↑ → / A S D F  •  P = PAUSE  •  M = MUTE' : 'KEYBOARD: ← ↓ → / A S D  •  P = PAUSE  •  M = MUTE';
   glSeed = w ? Math.abs(cyrb53(w) % 1000) / 100 : Math.random() * 10;
   glShockwave = 1.0; // Shockwave saat mulai
 
-  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: [0, 0, 0], ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, live: playMode === 'live' ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null };
+  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, live: playMode === 'live' ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null };
+  if (playMode === 'challenge' && (challengeLanes === 4 || challengeMirror)) say('DUEL UNLOCK: ' + (challengeLanes === 4 ? '4 LANES ' : '') + (challengeMirror ? 'MIRROR ' : '') + '— TRY IT IN THIS SONG.', 'yellow');
   floatTexts = [];
   show('gamePanel'); setText('bpmVal', anthem.bpm); setText('gameAudioStatus', 'AUDIO: RUNNING • ' + anthem.bpm + ' BPM • AC: ' + (ac ? ac.state : '-')); hud();
   if (playMode === 'live') { const lh = $('liveHud'); if (lh) lh.classList.remove('hidden'); updateLiveHud(); startLivePoll(5000); }
@@ -390,7 +468,9 @@ function addFloatText(txt, color) { floatTexts.push({ txt, color, x: GW / 2, y: 
 
 function judge(lane) {
   if (!G || G.ended || G.paused || !ac) return;
-  const st = songTime(); let target = null, bd = Infinity;
+  if (lane < 0 || lane >= G.lanes) return; // v28: lane 3 only exists in 4-lane songs
+  const st = songTime() - offsetMs / 1000; // v28: PRECISION offset — judge the tap as if it came offsetMs earlier
+  let target = null, bd = Infinity;
   for (const n of anthem.chart) {
     if (n.judged || n.lane !== lane) continue;
     if (n.t - st > CONFIG.W.good + 0.05) break;
@@ -399,7 +479,7 @@ function judge(lane) {
   G.flash[lane] = 1;
   glShockwave = 0.5; // Shockwave kecil tiap tap
   if (!target || bd > CONFIG.W.good) return;
-  updatePrecision((target.t - st) * 1000, 'hit');
+  updatePrecision((st - target.t) * 1000, 'hit'); // v28: positive = player tapped LATE (matches the LATE/EARLY label)
   const k = bd <= CONFIG.W.perfect ? 'perfect' : bd <= CONFIG.W.great ? 'great' : 'good';
   target.judged = k; G.counts[k]++; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
   const mult = Math.min(2, 1 + Math.floor(G.combo / 10) * .1) * (liveZoomies ? 2 : 1); // v27 LIVE: ZOOMIES (70+ RPM) doubles all scores while it lasts
@@ -436,11 +516,12 @@ function draw(st, dt) {
   cx.clearRect(0, 0, GW, GH); cx.fillStyle = '#050505'; cx.fillRect(0, 0, GW, GH);
   cx.save(); cx.beginPath(); cx.rect(0, 0, GW, GH); cx.clip();
   const spb = 60 / anthem.bpm, beat = ((st / spb) % 1 + 1) % 1, pulse = st > 0 ? Math.max(0, 1 - beat * 4) : 0;
-  for (let l = 0; l < LANES; l++) { const f = G.flash[l]; cx.globalAlpha = .05 + f * .2; cx.fillStyle = '#00ffff'; cx.fillRect(l * LW + 2, 0, LW - 4, GH); cx.globalAlpha = 1; G.flash[l] = Math.max(0, f - dt * 5) }
-  cx.strokeStyle = '#333'; cx.lineWidth = 2; for (let l = 1; l < LANES; l++) { cx.beginPath(); cx.moveTo(l * LW, 0); cx.lineTo(l * LW, GH); cx.stroke() }
+  const lanes = G.lanes || LANES; // v28: 4-lane songs draw 4 lanes
+  for (let l = 0; l < lanes; l++) { const f = G.flash[l] || 0; cx.globalAlpha = .05 + f * .2; cx.fillStyle = '#00ffff'; cx.fillRect(l * LW + 2, 0, LW - 4, GH); cx.globalAlpha = 1; G.flash[l] = Math.max(0, f - dt * 5) }
+  cx.strokeStyle = '#333'; cx.lineWidth = 2; for (let l = 1; l < lanes; l++) { cx.beginPath(); cx.moveTo(l * LW, 0); cx.lineTo(l * LW, GH); cx.stroke() }
   cx.strokeStyle = 'rgba(255,255,255,0.1)'; cx.lineWidth = 1; for (let b = Math.ceil(st / spb); b < st / spb + GH / CONFIG.SPEED / spb + 1; b++) { const y = CONFIG.HIT_Y - (b * spb - st) * CONFIG.SPEED; cx.beginPath(); cx.moveTo(0, y); cx.lineTo(GW, y); cx.stroke() }
   cx.globalAlpha = .2 + pulse * .3; cx.fillStyle = '#00ff00'; cx.fillRect(0, CONFIG.HIT_Y - 15, GW, 30); cx.globalAlpha = 1; cx.fillRect(0, CONFIG.HIT_Y - 2, GW, 4);
-  for (const n of anthem.chart) { const y = CONFIG.HIT_Y - (n.t - st) * CONFIG.SPEED; if (y < -30) break; if (y > GH + 30 || (n.judged && n.judged !== 'miss')) continue; const x = n.lane * LW + LW / 2; cx.fillStyle = n.judged === 'miss' ? '#ff00ff' : ['#ff00ff', '#00ffff', '#ffff00'][n.lane]; cx.fillRect(Math.round(x - 35), Math.round(y - 12), 70, 24) }
+  for (const n of anthem.chart) { const y = CONFIG.HIT_Y - (n.t - st) * CONFIG.SPEED; if (y < -30) break; if (y > GH + 30 || (n.judged && n.judged !== 'miss')) continue; const x = n.lane * LW + LW / 2; cx.fillStyle = n.judged === 'miss' ? '#ff00ff' : ['#ff00ff', '#00ffff', '#ffff00', '#ff8800'][n.lane]; cx.fillRect(Math.round(x - 35), Math.round(y - 12), 70, 24) }
   cx.restore();
   for (let i = G.fx.length - 1; i >= 0; i--) { const p = G.fx[i]; p.life -= dt; if (p.life <= 0) { G.fx.splice(i, 1); continue } p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 400 * dt; cx.globalAlpha = Math.max(0, p.life * 1.5); cx.fillStyle = p.c; cx.fillRect(p.x | 0, p.y | 0, 4, 4) }
   cx.globalAlpha = 1; cx.textAlign = 'center';
@@ -484,13 +565,16 @@ function finish() {
     streakTxt = ` • STREAK ${st.count} DAYS`;
   }
   const xpEl = $('xpMsg');
-  if (xpEl) xpEl.textContent = `+${xpGain} XP • LV ${lvBefore} -> LV ${lvAfter}${lvAfter > lvBefore ? ' — LEVEL UP! AVATAR EVOLVED' : ''} • TOTAL ${xpAfter} XP${streakTxt}`;
+  const newUnlocks = [];
+  for (let l = lvBefore + 1; l <= lvAfter; l++) if (UNLOCKS[l]) newUnlocks.push(UNLOCKS[l].text);
+  const levelUpTxt = lvAfter > lvBefore ? ' — LEVEL UP! ' + (newUnlocks.length ? 'UNLOCKED: ' + newUnlocks.join(' • ') : 'AVATAR EVOLVED') : '';
+  if (xpEl) xpEl.textContent = `+${xpGain} XP • LV ${lvBefore} -> LV ${lvAfter}${levelUpTxt} • TOTAL ${xpAfter} XP${streakTxt}`;
   const mr = $('missionResult');
   if (mr) mr.innerHTML = missions.map(m => `<div class="mission${doneBefore.concat(newlyDone).includes(m.id) ? ' done' : ''}">${m.text}</div>`).join('');
-  renderDailyBox(); renderMastery(); renderAvatarPreview(G.wallet);
+  renderDailyBox(); renderMastery(); renderAvatarPreview(G.wallet); renderUnlocks();
   $('gradeVal').textContent = g; $('gradeVal').style.color = g.startsWith('S') ? 'var(--green)' : g === 'A' ? 'var(--cyan)' : 'var(--pink)';
   const c = G.counts;
-  $('resultKv').innerHTML = `<span>SCORE</span><b>${G.score}</b><span>ACCURACY</span><b>${a.toFixed(2)}%</b><span>MAX COMBO</span><b>${G.maxCombo}</b><span>PERFECT/GREAT</span><b>${c.perfect}/${c.great}</b><span>GOOD/MISS</span><b>${c.good}/${c.miss}</b><span>ANTHEM</span><b>${anthem.key} ${anthem.scaleName}</b>` + (G.live ? `<span>LIVE WHEEL</span><b>${G.live.offline ? 'OFFLINE (128 BPM FALLBACK)' : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '');
+  $('resultKv').innerHTML = `<span>SCORE</span><b>${G.score}</b><span>ACCURACY</span><b>${a.toFixed(2)}%</b><span>MAX COMBO</span><b>${G.maxCombo}</b><span>PERFECT/GREAT</span><b>${c.perfect}/${c.great}</b><span>GOOD/MISS</span><b>${c.good}/${c.miss}</b><span>ANTHEM</span><b>${anthem.key} ${anthem.scaleName}</b><span>SETUP</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? ' • TRY CALIBRATION' : ''}</b>` + (G.live ? `<span>LIVE WHEEL</span><b>${G.live.offline ? 'OFFLINE (128 BPM FALLBACK)' : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '');
   $('bestMsg').textContent = isNew ? 'NEW HIGH SCORE!' : `BEST: ${prev.score} (${prev.grade})`;
   show('resultPanel');
   playResultJingle(g);
@@ -509,15 +593,16 @@ async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText
 async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', '[ PAUSE ]'); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
 async function togglePause() { if (!G) return; if (G.paused) await resumeGame(); else await pauseGame(); }
 
-const KEY_LANES = { ArrowLeft: 0, a: 0, A: 0, '1': 0, ArrowDown: 1, s: 1, S: 1, '2': 1, ArrowRight: 2, d: 2, D: 2, '3': 2 };
+const KEY_LANES = { ArrowLeft: 0, a: 0, A: 0, '1': 0, ArrowDown: 1, s: 1, S: 1, '2': 1, ArrowRight: 2, d: 2, D: 2, '3': 2, ArrowUp: 3, f: 3, F: 3, '4': 3 }; // v28: lane 3 (4th) = ↑ / F — only active in 4-lane songs (judge() guards the lane)
 document.addEventListener('keydown', (e) => {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  if (e.key === ' ' && calib) { e.preventDefault(); calibTap(); return; } // v28: Space taps during calibration
   if (KEY_LANES[e.key] !== undefined) { e.preventDefault(); judge(KEY_LANES[e.key]); return; }
   if (e.key === 'p' || e.key === 'P') { togglePause(); }
   if (e.key === 'm' || e.key === 'M') { toggleMute(); }
   if (e.key === ' ' && G && !G.ended) { e.preventDefault(); judge(1); }
 });
-cv.addEventListener('pointerdown', e => { e.preventDefault(); if (G && G.paused) { resumeGame(); return } const r = cv.getBoundingClientRect(); judge(Math.min(LANES - 1, Math.max(0, Math.floor((e.clientX - r.left) / r.width * LANES)))); }, { passive: false });
+cv.addEventListener('pointerdown', e => { e.preventDefault(); if (G && G.paused) { resumeGame(); return } const r = cv.getBoundingClientRect(); const lanes = G ? G.lanes : LANES; judge(Math.min(lanes - 1, Math.max(0, Math.floor((e.clientX - r.left) / r.width * lanes)))); }, { passive: false });
 document.addEventListener('visibilitychange', () => { if (document.hidden && G && !G.ended && !G.paused) { pauseGame(); } });
 
 // ==========================================
@@ -595,7 +680,8 @@ function updateLiveHud() {
 function avatar(ctx, w, x0, y0, px, level) {
   level = level || 1;
   const r = rng(seedOf(w) ^ 0x5eed), hue = Math.floor(r() * 360);
-  const fur = `hsl(${hue},80%,62%)`, dark = `hsl(${hue},70%,32%)`, acc = `hsl(${(hue + 180) % 360},90%,60%)`;
+  let fur = `hsl(${hue},80%,62%)`, dark = `hsl(${hue},70%,32%)`, acc = `hsl(${(hue + 180) % 360},90%,60%)`;
+  if (level >= 8) { fur = 'hsl(45,90%,60%)'; dark = 'hsl(45,70%,32%)'; acc = 'hsl(48,100%,68%)'; } // v28: LV8 GOLD avatar
   const grid = []; for (let y = 0; y < 16; y++) { grid[y] = []; for (let x = 0; x < 8; x++) { const dx = (x - 7.5) / 6.5, dy = (y - 9) / 6.5; grid[y][x] = dx * dx + dy * dy <= 1 ? (r() < .22 ? 2 : 1) : 0 } }
   for (let y = 1; y < 5; y++) for (let x = 2; x < 5; x++) if (x - 2 <= y - 1) grid[y][x] = (y > 2 && x === 3) ? 3 : 2;
   const eyeY = 8 + Math.floor(r() * 2), glasses = level >= 2 || r() < .25, hat = level >= 3 || r() < .3, crown = level >= 4;
@@ -689,7 +775,8 @@ function renderAvatarPreview(w) {
   const lv = levelFor(totalXP(w));
   avatar(ctx, w, 0, 0, 8, lv);
   const ll = $('levelLabel');
-  if (ll) { const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 }); ll.textContent = `LV ${lv} • ${totalXP(w)} XP${st.count ? ' • STREAK ' + st.count + ' DAYS' : ''}`; }
+  if (ll) { const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 }); ll.textContent = `LV ${lv} • ${totalXP(w)} XP${st.count ? ' • STREAK ' + st.count + ' DAYS' : ''}${lv >= 8 ? ' • GOLD' : ''}`; }
+  wrap.classList.toggle('gold', lv >= 8); // v28: LV8 gold frame
   wrap.classList.remove('hidden');
   startPreviewSpin(w); // v26 FIX #4: putaran di DALAM canvas (scaleX = cos), kotaknya diam, teks tidak gepeng
   const h = $('anthemHash');
@@ -722,10 +809,12 @@ function preview() {
   const w = $('walletInput').value.trim();
   if (w && !isAddr(w)) { $('anthemInfo').textContent = 'INVALID ADDRESS'; $('walletInput').classList.add('invalid'); return; }
   $('walletInput').classList.remove('invalid');
-  const a = playMode === 'free' ? makeAnthem(w) : makeAnthem(w, false, seedKeyFor(playMode)), b = loadBest(w);
-  const modeTag = playMode === 'free' ? '' : playMode === 'daily' ? ' // DAILY ' + todayStr() : playMode === 'live' ? ' // LIVE ' + (liveSnapshot && liveSnapshot.ok ? 'RPM ' + Math.round(liveSnapshot.rpm) + ' • ' + a.bpm + ' BPM' : 'WHEEL OFFLINE • 128 BPM FALLBACK') : ' // DUEL ' + String(challengeCode || '').slice(0, 12);
+  if (playMode === 'daily') applyDailySpec(); // v28: daily genre+diff come from the date
+  const lanes = lanesForSong(), mirror = mirrorForSong();
+  const a = makeAnthem(w, false, playMode === 'free' ? null : seedKeyFor(playMode), lanes, mirror), b = loadBest(w);
+  const modeTag = playMode === 'free' ? '' : playMode === 'daily' ? ' // DAILY ' + todayStr() + ' • ' + currentGenre.toUpperCase() + '/' + currentDiff.toUpperCase() : playMode === 'live' ? ' // LIVE ' + (liveSnapshot && liveSnapshot.ok ? 'RPM ' + Math.round(liveSnapshot.rpm) + ' • ' + a.bpm + ' BPM' : 'WHEEL OFFLINE • 128 BPM FALLBACK') : ' // DUEL ' + String(challengeCode || '').slice(0, 12) + (lanes === 4 ? ' • 4 LANES' : '') + (mirror ? ' • MIRROR' : '');
   $('anthemInfo').textContent = `>> ANTHEM: ${a.key} ${a.scaleName} [${a.bpm} BPM] // NOTES: ${a.chart.length}${b ? ' // BEST: ' + b.score : ''}${modeTag}`;
-  renderAvatarPreview(w); applyHue(a.hue);
+  renderAvatarPreview(w); renderUnlocks(); applyHue(a.hue);
 }
 
 const walletEl = $('walletInput');
@@ -776,6 +865,7 @@ function renderDailyBox() {
   const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 });
   const sl = $('streakLine'); if (sl) sl.textContent = `STREAK: ${st.count} DAYS — play Daily every day to keep the flame alive.`;
   const dt = $('dailyTitle'); if (dt) dt.textContent = 'DAILY ANTHEM — ' + todayStr();
+  const di = $('dailyInfo'); if (di) { const s = dailySpec(); di.textContent = `Today's song is the same for everyone: ${s.genre.toUpperCase()} / ${s.diff.toUpperCase()} — ${todayStr()}. Play today, come back tomorrow — the song changes.`; }
   const done = loadJSON(missionsDoneKey(w), []);
   const ml = $('missionList');
   if (ml) ml.innerHTML = dailyMissions(todayStr()).map(m => `<div class="mission${done.includes(m.id) ? ' done' : ''}">${m.text}</div>`).join('');
@@ -798,15 +888,110 @@ function renderMastery() {
     (avgOff !== null ? ` • AVG OFFSET: ${avgOff > 0 ? '+' : ''}${avgOff} ms` : '') +
     ' • BEST PER GENRE/DIFF: ' + Object.entries(bestBy).map(([k, v]) => `${k} ${v}`).join(', ');
 }
+
+// v28 FIX — UNLOCKS road map in the menu + options row (lanes / mirror).
+function renderUnlocks() {
+  const box = $('unlockBox'); if (!box) return;
+  const lv = playerLevel(currentWallet());
+  box.innerHTML = `<p class="unlock-title">UNLOCKS — LV ${lv}</p>` + [5, 6, 7, 8].map(l => {
+    const u = UNLOCKS[l], done = lv >= l;
+    return `<div class="unlock${done ? ' done' : ''}">${done ? '✓' : '🔒'} LV${l} — ${u.text}</div>`;
+  }).join('');
+  const vg = document.querySelector('#genreRow [data-genre="void"]');
+  if (vg) { vg.classList.toggle('locked', lv < 5); vg.textContent = lv < 5 ? 'VOID 🔒 LV5' : 'VOID'; }
+  renderOptionsRow();
+}
+function renderOptionsRow() {
+  const lv = playerLevel(currentWallet());
+  const lb = $('lanesBtn'), mb = $('mirrorBtn');
+  if (lb) { lb.textContent = 'LANES: ' + (lanes4Enabled ? '4' : '3') + (lv < 6 ? ' 🔒 LV6' : ''); lb.classList.toggle('locked', lv < 6); }
+  if (mb) { mb.textContent = 'MIRROR: ' + (mirrorEnabled ? 'ON' : 'OFF') + (lv < 7 ? ' 🔒 LV7' : ''); mb.classList.toggle('locked', lv < 7); }
+}
+function renderOffsetLine() {
+  const el = $('offsetLine'); if (el) el.textContent = 'OFFSET: ' + (offsetMs > 0 ? '+' : '') + offsetMs + ' ms' + (offsetMs === 0 ? ' (DEFAULT — TAP AUTO-CALIBRATE IF YOUR HITS FEEL EARLY/LATE)' : '');
+}
+
+// v28 FIX — AUTO-CALIBRATE: 8 metronome beats (100 BPM) on the audio clock;
+// the player taps the big button on each beat. The median tap error becomes
+// the offset (clamped ±150ms, rounded to 5ms). Needs sound — aborts if muted.
+let calib = null, calibTimer = null;
+function startCalibration() {
+  if (calib) { cancelCalibration('CALIBRATION CANCELLED.'); return; }
+  if (muted) return say('UNMUTE FIRST — CALIBRATION NEEDS SOUND.', 'pink');
+  initAudio().then(() => {
+    if (!ac || ac.state !== 'running') return say('AUDIO NOT RUNNING — TAP THE SCREEN ONCE, THEN CALIBRATE.', 'pink');
+    stopIntroMusic();
+    const t0 = ac.currentTime + 1.0, beats = [];
+    for (let i = 0; i < 8; i++) beats.push(t0 + i * 0.6);
+    calib = { beats, taps: [], next: 0 };
+    const tb = $('calibTapBtn'), pm = $('calibProg'), cm = $('calibMsg');
+    if (tb) tb.classList.remove('hidden');
+    if (pm) { pm.classList.remove('hidden'); pm.textContent = 'LISTEN… THE FIRST BEAT COMES IN 1 SECOND — TAP THE BUTTON ON EACH BEAT.'; }
+    if (cm) cm.classList.add('hidden');
+    say('CALIBRATING… TAP ON EACH OF THE 8 BEATS.', 'yellow');
+    calibTimer = setInterval(() => {
+      if (!calib) return;
+      const now = ac.currentTime;
+      while (calib.next < calib.beats.length && calib.beats[calib.next] < now + 0.18) {
+        const t = calib.beats[calib.next];
+        kick(t); tone(880, t, 'square', 0.2, 0.1);
+        calib.next++;
+      }
+      if (calib.next >= calib.beats.length && now > calib.beats[calib.beats.length - 1] + 0.6) finishCalibration();
+    }, 40);
+  }).catch(() => say('AUDIO FAILED — CALIBRATION NEEDS SOUND.', 'pink'));
+}
+function calibTap() {
+  if (!calib || !ac) return;
+  const now = ac.currentTime;
+  let best = null, bd = Infinity;
+  calib.beats.forEach((b, i) => { const d = Math.abs(now - b); if (d < bd) { bd = d; best = i; } });
+  if (best === null || bd > 0.25) return; // tap far from any beat — ignore
+  if (calib.taps.some(t => t.beat === best)) return; // one tap per beat
+  calib.taps.push({ beat: best, err: (now - calib.beats[best]) * 1000 });
+  const pm = $('calibProg');
+  if (pm) pm.textContent = `TAP ${calib.taps.length}/8 — ${calib.taps.length < 8 ? 'KEEP GOING, TAP ON EACH BEAT.' : 'DONE — CALCULATING…'}`;
+}
+function finishCalibration() {
+  if (!calib) return;
+  clearInterval(calibTimer); calibTimer = null;
+  const taps = calib.taps.slice().sort((a, b) => a.err - b.err);
+  const cm = $('calibMsg'), tb = $('calibTapBtn'), pm = $('calibProg');
+  if (tb) tb.classList.add('hidden');
+  if (pm) pm.classList.add('hidden');
+  if (taps.length < 4) {
+    if (cm) { cm.classList.remove('hidden'); cm.textContent = `ONLY ${taps.length} GOOD TAPS — NEED AT LEAST 4. TRY AGAIN, TAP RIGHT ON THE BEAT.`; }
+    say('CALIBRATION FAILED — NOT ENOUGH GOOD TAPS.', 'pink');
+  } else {
+    const med = taps[Math.floor(taps.length / 2)].err;
+    setOffsetMs(med);
+    const avg = Math.round(taps.reduce((s, t) => s + t.err, 0) / taps.length);
+    if (cm) { cm.classList.remove('hidden'); cm.textContent = `CALIBRATED: OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms (MEDIAN OF ${taps.length} TAPS, AVG ${avg > 0 ? '+' : ''}${avg} ms — ${offsetMs > 0 ? 'YOU TAP LATE ON AVERAGE' : offsetMs < 0 ? 'YOU TAP EARLY ON AVERAGE' : 'YOUR TIMING IS SPOT ON'}).`; }
+    say('CALIBRATION DONE — OFFSET ' + (offsetMs > 0 ? '+' : '') + offsetMs + ' ms.', 'green');
+  }
+  calib = null;
+  if (!muted) playIntroMusic();
+}
+function cancelCalibration(msg) {
+  if (calibTimer) { clearInterval(calibTimer); calibTimer = null; }
+  calib = null;
+  const tb = $('calibTapBtn'), pm = $('calibProg');
+  if (tb) tb.classList.add('hidden');
+  if (pm) pm.classList.add('hidden');
+  if (msg) say(msg, 'cyan');
+  if (!muted) playIntroMusic();
+}
 function setMode(m) {
   playMode = m;
   document.querySelectorAll('#modeRow .btn-diff').forEach(x => { const on = x.dataset.mode === m; x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); });
+  lockGenreDiffRows(m === 'daily'); // v28: in Daily the genre+diff are fixed by the date
+  if (m === 'daily') applyDailySpec();
   renderDailyBox(); renderLiveBox(); preview();
   if (m === 'live') { refreshLive(); startLivePoll(10000); say('LIVE ACTIVE — THE SONG TEMPO FOLLOWS THE REAL HAMSTER WHEEL. 70+ RPM = ZOOMIES ×2 SCORE.', 'yellow'); const lb = $('liveBox'); if (lb) lb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   else stopLivePoll();
-  if (m === 'daily') { say('DAILY ACTIVE — ' + todayStr() + ' • TODAY\'S SONG IS THE SAME FOR EVERYONE (SAME GENRE/DIFF).', 'yellow'); const db = $('dailyBox'); if (db) db.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  if (m === 'daily') { const s = dailySpec(); say('DAILY ACTIVE — ' + todayStr() + ' • TODAY: ' + s.genre.toUpperCase() + ' / ' + s.diff.toUpperCase() + ' — SAME SONG FOR EVERYONE.', 'yellow'); const db = $('dailyBox'); if (db) db.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
 }
-function duelLink() { if (!G || !G.seedKey) return null; const base = location.href.split('?')[0]; return `${base}?challenge=${encodeURIComponent(G.seedKey)}&genre=${G.genre}&diff=${G.diff}`; }
+function duelLink() { if (!G || !G.seedKey) return null; const base = location.href.split('?')[0]; return `${base}?challenge=${encodeURIComponent(G.seedKey)}&genre=${G.genre}&diff=${G.diff}${G.lanes === 4 ? '&lanes=4' : ''}${G.mirror ? '&mirror=1' : ''}`; }
 async function shareDuel() {
   // v26 FIX #6: feedback ditulis ke #duelMsg / #duelOut DI DALAM resultPanel — bukan ke #message di mainPanel yang tersembunyi
   const link = duelLink();
@@ -819,6 +1004,20 @@ async function shareDuel() {
 }
 document.querySelectorAll('#modeRow .btn-diff').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
 bindClick('duelBtn', shareDuel);
+bindClick('offsetMinusBtn', () => setOffsetMs(offsetMs - 5));
+bindClick('offsetPlusBtn', () => setOffsetMs(offsetMs + 5));
+bindClick('calibBtn', startCalibration);
+bindClick('calibTapBtn', calibTap);
+bindClick('lanesBtn', () => {
+  if (playerLevel(currentWallet()) < 6) return say('🔒 4 LANES UNLOCKS AT LV6 — PLAY MORE SONGS TO EARN XP.', 'pink');
+  lanes4Enabled = !lanes4Enabled; saveJSON('sqk28:lanes4', lanes4Enabled); renderOptionsRow(); preview();
+  say(lanes4Enabled ? 'LANES: 4 — HARDER HIGHWAY, MORE NOTES.' : 'LANES: 3 — CLASSIC.', 'cyan');
+});
+bindClick('mirrorBtn', () => {
+  if (playerLevel(currentWallet()) < 7) return say('🔒 MIRROR MODE UNLOCKS AT LV7 — PLAY MORE SONGS TO EARN XP.', 'pink');
+  mirrorEnabled = !mirrorEnabled; saveJSON('sqk28:mirror', mirrorEnabled); renderOptionsRow(); preview();
+  say(mirrorEnabled ? 'MIRROR: ON — THE CHART IS FLIPPED.' : 'MIRROR: OFF.', 'cyan');
+});
 
 try {
   const params = new URLSearchParams(location.search);
@@ -829,9 +1028,12 @@ try {
   const qc = params.get('challenge'); if (qc) { challengeCode = qc; playMode = 'challenge'; }
   else if (params.get('daily') === '1') playMode = 'daily';
   else if (params.get('live') === '1') playMode = 'live';
+  if (params.get('lanes') === '4') challengeLanes = 4; // v28: duel links carry the lane count
+  if (params.get('mirror') === '1') challengeMirror = true;
   if (playMode !== 'free') document.querySelectorAll('#modeRow .btn-diff').forEach(x => { const on = x.dataset.mode === playMode || (playMode === 'challenge' && x.dataset.mode === 'free'); x.classList.toggle('active', on); x.setAttribute('aria-pressed', String(on)); });
   if (quality === 'hemat') setQuality('hemat'); else setQuality('ultra');
 } catch (_) {}
-renderDailyBox(); renderLiveBox(); renderMastery();
+if (playMode === 'daily') { applyDailySpec(); lockGenreDiffRows(true); }
+renderDailyBox(); renderLiveBox(); renderMastery(); renderOffsetLine(); renderUnlocks();
 if (playMode === 'live') { refreshLive(); startLivePoll(10000); }
 preview();

@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="SQUEEKCHAIN v27 LIVE — Daily, XP, Missions, Duel, and LIVE mode: the song tempo follows the real hamster wheel. Audible intro, visible Duel Link, avatar inside the canvas.">
+<meta name="description" content="SQUEEKCHAIN v28 FIX — Daily, XP, Missions, Duel, and LIVE mode: the song tempo follows the real hamster wheel. New in v28: PRECISION timing calibration, a Daily song that is truly the same for everyone, and real LV5–LV8 unlocks (VOID genre, 4 lanes, Mirror mode, Gold avatar). Audible intro, visible Duel Link, avatar inside the canvas.">
 <meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect x='3' y='3' width='10' height='10' fill='%2300ff00'/%3E%3C/svg%3E">
-<title>SQUEEKCHAIN // v27 LIVE</title>
+<title>SQUEEKCHAIN // v28 FIX</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
         <div class="header-row">
             <div>
                 <h1 id="mainTitle" class="flicker">SQUEEKCHAIN</h1>
-                <h2>PIXEL ID // v27 LIVE</h2>
+                <h2>PIXEL ID // v28 FIX</h2>
             </div>
             <button class="btn-icon" id="qualityBtn" type="button" aria-label="Change graphics quality" title="Quality: ULTRA / ECO">QLTY: ULTRA</button>
             <button class="btn-icon" id="muteBtn" type="button" aria-label="Mute / unmute sound" aria-pressed="false" title="Mute (M)">🔊</button>
@@ -63,6 +63,7 @@
                     <button class="btn-diff active" type="button" data-genre="cyber" aria-pressed="true">CYBER</button>
                     <button class="btn-diff" type="button" data-genre="synth" aria-pressed="false">SYNTH</button>
                     <button class="btn-diff" type="button" data-genre="chip" aria-pressed="false">CHIP</button>
+                    <button class="btn-diff locked" type="button" data-genre="void" aria-pressed="false">VOID 🔒 LV5</button>
                 </div>
 
                 <label id="diffLabel">// DIFFICULTY</label>
@@ -70,6 +71,12 @@
                     <button class="btn-diff active" type="button" data-diff="easy" aria-pressed="true">EASY</button>
                     <button class="btn-diff" type="button" data-diff="normal" aria-pressed="false">NORMAL</button>
                     <button class="btn-diff" type="button" data-diff="hard" aria-pressed="false">HARD</button>
+                </div>
+
+                <label id="optionsLabel">// OPTIONS</label>
+                <div class="diff-row" id="optionsRow" role="group" aria-labelledby="optionsLabel">
+                    <button class="btn-diff locked" type="button" id="lanesBtn">LANES: 3 🔒 LV6</button>
+                    <button class="btn-diff locked" type="button" id="mirrorBtn">MIRROR: OFF 🔒 LV7</button>
                 </div>
 
                 <label id="modeLabel">// MODE</label>
@@ -89,6 +96,19 @@
                     <p id="streakLine">STREAK: 0 DAYS</p>
                     <div id="missionList"></div>
                 </div>
+                <div id="calibBox">
+                    <p class="calib-title">PRECISION — TIMING CALIBRATION</p>
+                    <p id="offsetLine">OFFSET: 0 ms</p>
+                    <div class="row">
+                        <button class="btn-secondary" type="button" id="offsetMinusBtn">[ −5 ms ]</button>
+                        <button class="btn-secondary" type="button" id="offsetPlusBtn">[ +5 ms ]</button>
+                    </div>
+                    <button class="btn-secondary" type="button" id="calibBtn">[ AUTO-CALIBRATE — TAP THE BEAT ]</button>
+                    <p id="calibMsg" class="msg hidden"></p>
+                    <button class="btn-primary hidden" type="button" id="calibTapBtn">TAP ON THE BEAT!</button>
+                    <p id="calibProg" class="msg hidden"></p>
+                </div>
+                <div id="unlockBox"></div>
                 <div id="masteryBox">
                     <p class="mastery-title">MASTERY — LAST 10 GAMES</p>
                     <div id="historyBars"></div>
@@ -146,7 +166,7 @@
             </div>
         </section>
     </main>
-    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v27 LIVE — UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia. Daily: ?daily=1 • Live: ?live=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard</footer>
+    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v28 FIX — UNOFFICIAL. On-chain data is read read-only (Sepolia token, not BNB mainnet). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia. Daily: ?daily=1 • Live: ?live=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard</footer>
 </div>
 
 <noscript><p style="color:#ff00ff;text-align:center;padding:20px">This game needs JavaScript. Enable JavaScript to play.</p></noscript>

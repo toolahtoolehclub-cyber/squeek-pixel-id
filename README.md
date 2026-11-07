@@ -1,6 +1,6 @@
-# Squeekchain v27 LIVE
+# Squeekchain v28 FIX
 
-A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only; optional wallet connect reads your address only, no signature, no transactions), play 3 lanes, earn XP, play the Daily Anthem, complete daily missions, generate your ID Card, and race the real hamster in LIVE mode.
+A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only; optional wallet connect reads your address only, no signature, no transactions), play 3 or 4 lanes, earn XP, play the Daily Anthem, complete daily missions, generate your ID Card, and race the real hamster in LIVE mode.
 
 Built by [pancigoreng](https://x.com/pancigoreng) — Made in Indonesia.
 
@@ -8,11 +8,12 @@ Built by [pancigoreng](https://x.com/pancigoreng) — Made in Indonesia.
 
 Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** or **▶ CALM 100 BPM**, enter a wallet address `0x...`, then **INITIALIZE RHYTHM**.
 
-- **Daily Anthem** — the same song for everyone on the same day (same genre + difficulty), with a daily streak
-- **XP & levels** — LV1–LV8, your avatar evolves (glasses, hat, golden crown)
+- **Daily Anthem** — the same song for everyone on the same day: genre and difficulty come from the date itself, with a daily streak
+- **XP & levels** — LV1–LV8, your avatar evolves (glasses, hat, golden crown) — and LV5–LV8 unlock real things: VOID genre (LV5), 4 lanes (LV6), Mirror mode (LV7), Gold avatar (LV8)
+- **PRECISION calibration** — manual offset ±5 ms, or AUTO-CALIBRATE by tapping 8 metronome beats; the game compensates your timing bias
 - **Daily missions** — 3 random missions per day, +25 XP each
 - **Mastery** — your last 10 games per wallet
-- **Duel Link** — share `?challenge=...` so a friend plays the exact same song
+- **Duel Link** — share `?challenge=...` so a friend plays the exact same song (4 lanes / Mirror travel in the link; a duel unlocks them for that song)
 - **Opening music, 2 modes** — HYPE 128 BPM / CALM 100 BPM, switch with 1 tap in the menu
 - **Moving background** — grid + orbs + sweep (still moves even if WebGL fails), QLTY ULTRA/ECO
 - **LIVE — Race the Hamster** — the song's tempo follows the real hamster wheel, live from `api.squeekchain.com/v1/status`: resting hamster = CALM 100 BPM, running hamster = 100 + RPM (max 180). At 70+ RPM ZOOMIES starts and all scores double. Day follows the wheel running, night follows it resting. If the wheel is offline the song uses a 128 BPM fallback and says so — never fake live data. Deep link: `?live=1`
@@ -25,6 +26,7 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - `script.js` — game, music, Daily, XP, missions, ID Card, LIVE mode
 - `AUDIT-v26-FIX.md` — notes on the v25 → v26 fixes
 - `AUDIT-v27-LIVE.md` — notes on the v26 → v27 LIVE mode
+- `AUDIT-v28-FIX.md` — notes on the v27 → v28 P0 fixes (PRECISION, Daily, LV5–LV8 unlocks)
 
 ## Notes
 

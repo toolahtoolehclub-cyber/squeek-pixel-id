@@ -176,5 +176,20 @@ body.live-day #bg-anim { filter: saturate(1.4); }
 @keyframes sweepY { from { top: -60px; } to { top: 100%; } }
 body.hemat #bg-anim { display: none; } /* HEMAT = diam, sesuai janji tombol QLTY */
 
+/* v28 FIX: calibration box, unlocks, locked buttons, gold avatar. */
+#calibBox { border: 2px dashed var(--cyan); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.calib-title { margin: 0; font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; }
+#offsetLine { margin: 0; font-size: 12px; color: var(--yellow); font-weight: bold; }
+#calibMsg, #calibProg { margin: 0; }
+#calibTapBtn { font-size: 20px; padding: 22px 15px; }
+#unlockBox { border: 2px solid #333; padding: 10px; }
+.unlock-title { margin: 0 0 8px 0; font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; }
+.unlock { font-size: 11px; color: #888; border: 1px solid #333; padding: 6px 8px; margin-top: 4px; }
+.unlock.done { color: var(--green); border-color: var(--green); }
+.btn-diff.locked { opacity: .55; }
+.locked-row { opacity: .55; }
+#avatarPreviewWrap.gold { border-color: #ffd700; box-shadow: 0 0 12px rgba(255, 215, 0, .5); }
+#avatarPreviewWrap.gold #avatar-preview { border-color: #ffd700; }
+
 .creator-link { color: var(--cyan); text-decoration: none; border-bottom: 2px solid var(--pink); font-weight: bold; letter-spacing: 1px; }
 .creator-link:hover, .creator-link:focus-visible { color: var(--yellow); border-color: var(--yellow); }
