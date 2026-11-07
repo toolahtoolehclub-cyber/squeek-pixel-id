@@ -783,6 +783,7 @@ async function play() {
   if (playMode === 'boss') { const bs = weeklySpec(); currentGenre = bs.genre; currentDiff = 'hard'; syncGenreDiffButtons(); } // v29: weekly boss is always HARD
   const lanes = lanesForSong(), mirror = mirrorForSong();
   anthem = makeAnthem(w, false, seedKey, lanes, mirror); lastAnthem = anthem; hitOffsets = []; CONFIG.SPEED = DIFFICULTIES[currentDiff].speed; applyHue(anthem.hue);
+  const lh0 = $('lastHit'), ah0 = $('avgHit'), hd0 = $('hitDir'); if (lh0) lh0.textContent = '-- ms'; if (ah0) ah0.textContent = '-- ms'; if (hd0) hd0.textContent = '—'; // v36.1: the precision readout reset with the game — the previous game's last/avg offsets no longer linger until the first tap (smoke test 2026-11-07)
   // v29 PRACTICE: 60% tempo, no XP/streak/history — scale every time value.
   if (practiceMode) { const k = 1 / 0.6; anthem.bpm = Math.round(anthem.bpm * 0.6); anthem.step *= k; anthem.duration *= k; anthem.chart.forEach(n => { n.t *= k; }); anthem.drums.forEach(d => { d.t *= k; }); CONFIG.SPEED = Math.round(CONFIG.SPEED * 0.6); }
   LW = GW / lanes; // v28: 4-lane mode widens the highway per lane

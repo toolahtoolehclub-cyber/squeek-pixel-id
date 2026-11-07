@@ -1,4 +1,4 @@
-# Squeekchain v36
+# Squeekchain v36.1
 
 A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only; optional wallet connect reads your address only, no signature, no transactions), play 3 or 4 lanes, earn XP, play the Daily Anthem, complete daily missions, generate your ID Card, race the real hamster in LIVE mode, and race Squeektoshi himself in RACE mode.
 
@@ -44,6 +44,7 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - **NEO+ upgrade (v33)** — card overlay (ID card and result card open on top of any panel, with close + minimize, no more jumping back to the menu), redesigned cards (gradient frame, compact layout, no empty void, no creator line on the cards), settings work during play (the sheet lives outside the menu now; opening it pauses the game), auto-scroll to the game and the result on start/finish, pause buttons above the canvas, ACC as an integer (no more "58..."), in-canvas effects (shockwave rings, bigger hit particles, lane judgement text, miss glitch, beat-pulse background, gold hit line in FEVER), 10 song scales (was 5) with 4–5 per genre
 - **NEO+ fixes + songs (v33.1)** — the result panel's ID-card button now shows a visible error when no wallet is entered (it used to fail silently), the browser tab title is correct, the header sticks so the gear stays reachable during play, the audio line says PAUSED while paused, the minimize bar no longer floats over the footer, the result panel is solid so the animated background can't wash out its text; every song now has a name from its scale + mood ("Neon Dorian"), the score counts up on the result panel, a NEW BEST ribbon appears on the result card, and songs are built around a repeating 2-bar motif instead of random notes (same seed = same song, verified)
 - **NEO+ fixes (v33.2)** — the audio line really says PAUSED now (v33.1 only changed the AC state — the template's leading word still said RUNNING), the song name on the result card and the ID card is no longer cut off at the right edge, and auto-scroll stops below the sticky header so the grade is not covered when the result appears
+- **v36.1** — one-line fix from the LIVE rhythm smoke test: the precision readout (TERAKHIR / RATA-RATA) now resets to "-- ms" at game start — the previous game's offsets no longer linger until the first tap. LIVE mode verified working end to end (100 BPM resting tempo, live HUD, result panel with LIVE row); TERMINATE showing no result panel is by design, unchanged.
 - **v36** — verification pass: opening the LIVE tab now fetches CHAIN data immediately instead of waiting for the 30s poll (smoke test saw ~8s of "FETCHING…"); first LIVE/390px smoke test — FREE and RACE pass, ANTHEM fix verified live, CHAIN loads real data; four tester notes checked against the code and found not to be bugs. No gameplay changes.
 - **v35.2** — ID Card fix: long anthem names (e.g. "Blues Minor Pentatonic") now shrink to 10px instead of colliding with the TEMPO value — spotted on the user's phone screenshot. No gameplay changes.
 - **v35.1** — the ID Card now draws your Squeek's own DotGrid art (live from /v1/squeeks, 76×76 frame beside the MY SQUEEK rows, card 400×680); a failed or slow image falls back to a dashed placeholder, never breaks the card. No gameplay changes.
@@ -76,6 +77,7 @@ Open `index.html` in a browser (or serve this folder), tap **▶ HYPE 128 BPM** 
 - `AUDIT-v35.1.md` — Squeek art on the ID Card (live DotGrid SVG, fail-soft placeholder); no gameplay changes
 - `AUDIT-v35.2.md` — ANTHEM/TEMPO collision fix on the ID Card (adaptive font size); no gameplay changes
 - `AUDIT-v36.md` — LIVE tab fetches immediately + first LIVE/390px smoke test (findings checked against the code); no gameplay changes
+- `AUDIT-v36.1.md` — precision readout resets at game start (LIVE smoke test finding); TERMINATE-no-panel confirmed by design
 - `REFERENSI-RHYTHM-GAMES.md` — reference research (Guitar Hero, Beat Saber, osu!, Phigros, Cytus II, DDR) for the v33 upgrade
 
 ## Notes
