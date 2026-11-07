@@ -547,3 +547,15 @@ body.playing #gamePanel.shake { animation: shake .3s !important; }
 /* v33: stat values never truncate on phones — ACC is an integer now and the
    value font shrinks a step at phone widths. */
 @media (max-width: 480px) { .stat b { font-size: 13px; white-space: nowrap; } .stat { padding: 8px 4px; } }
+
+/* ==========================================
+   v33.1 FIX — sticky header, solid result panel, card bar clearance
+   ========================================== */
+/* The gear must stay reachable during play: after auto-scroll the header
+   used to scroll off the top. Now it sticks. */
+.neo-head { position: sticky; top: 0; z-index: 30; background: #050607; }
+/* The result panel is nearly transparent glass — the animated background
+   bled through and washed out the mission rows. Solid here only. */
+#resultPanel { background: rgba(5, 6, 7, .94); }
+/* The fixed minimize bar used to float over the footer text. */
+body.cardbar { padding-bottom: 72px; }

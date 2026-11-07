@@ -575,6 +575,7 @@ function rng(seed) { let a = seed >>> 0; return () => { a = a + 0x6D2B79F5 | 0; 
 const seedOf = w => cyrb53((w || 'GUEST').toLowerCase());
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const SCALES = { 'Minor Pentatonic': [0, 3, 5, 7, 10], 'Dorian': [0, 2, 3, 5, 7, 9, 10], 'Phrygian': [0, 1, 3, 5, 7, 8, 10], 'Major Pentatonic': [0, 2, 4, 7, 9], 'Harmonic Minor': [0, 2, 3, 5, 7, 8, 11], 'Lydian': [0, 2, 4, 6, 7, 9, 11], 'Mixolydian': [0, 2, 4, 5, 7, 9, 10], 'Aeolian': [0, 2, 3, 5, 7, 8, 10], 'Blues': [0, 3, 5, 6, 7, 10], 'Major': [0, 2, 4, 5, 7, 9, 11] }; // v33: 10 scales (was 5)
+const SONG_MOODS = { 'Phrygian': 'Void', 'Harmonic Minor': 'Ember', 'Minor Pentatonic': 'Blues', 'Dorian': 'Neon', 'Major Pentatonic': 'Sunny', 'Lydian': 'Sky', 'Mixolydian': 'Groove', 'Aeolian': 'Dusk', 'Blues': 'Smoky', 'Major': 'Bright' }; // v33.1: every song gets a name from its scale + mood ("Neon Dorian")
 
 function makeAnthem(wallet, randomize = false, seedOverride = null, lanes = 3, mirror = false) {
   let seed = seedOverride ? cyrb53(seedOverride) : seedOf(wallet);
@@ -590,14 +591,25 @@ function makeAnthem(wallet, randomize = false, seedOverride = null, lanes = 3, m
   const bpm = liveBpmMatch ? parseInt(liveBpmMatch[1], 10) : genreInfo.bpm + Math.floor(r() * 20) - 10;
   const step = 60 / bpm / 4, span = scale.length * 2;
   const chart = [], drums = [], diff = DIFFICULTIES[currentDiff]; let lastT = -1;
+  // v33.1 MOTIF: a 2-bar phrase repeats every 2 bars (with small variations),
+  // so the song has a recognizable phrase instead of random notes. Every draw
+  // comes from r() in fixed order, so the same seed replays the same song
+  // (duel links, daily anthem) — determinism is tested, not assumed.
+  const motif = [[], []];
+  for (let mb = 0; mb < 2; mb++) for (let s = 0; s < 16; s++) {
+    const onBeat = s % 4 === 0, onEighth = s % 2 === 0;
+    const on = (onEighth && r() < diff.density) || (onBeat && r() < diff.density * 1.2);
+    motif[mb][s] = { on, deg: Math.floor(r() * span) };
+  }
   for (let bar = 0; bar < CONFIG.BARS; bar++) {
     for (let s = 0; s < 16; s++) {
       const t = (bar * 16 + s) * step;
       drums.push({ t, kick: s % 4 === 0 || (s === 10 && r() < .3), hat: s % 2 === 0, snare: s === 4 || s === 12, bass: s % 8 === 0 ? [0, 3, 4, 5, 2][Math.floor(r() * 5)] % scale.length : null });
-      const onBeat = s % 4 === 0, onEighth = s % 2 === 0;
-      const want = bar < 2 ? (onBeat && s % 8 === 0) : (onEighth ? r() < diff.density : (onBeat && r() < diff.density * 1.2));
+      const m = motif[bar % 2][s];
+      let want = m.on, deg = m.deg;
+      if (bar < 2) want = s % 8 === 0; // intro stays sparse (first 2 bars)
+      else { if (want && r() < 0.15) want = false; else if (want && r() < 0.15) deg = Math.max(0, Math.min(span - 1, deg + (r() < 0.5 ? -1 : 1))); } // variation on repeats
       if (want && (t - lastT > 0.25)) {
-        let deg = Math.floor(r() * span);
         const midi = 60 + root + scale[deg % scale.length] + 12 * Math.floor(deg / scale.length);
         const lane = Math.min(lanes - 1, Math.floor(deg / span * lanes));
         chart.push({ t, lane, midi, judged: null }); lastT = t;
@@ -607,7 +619,7 @@ function makeAnthem(wallet, randomize = false, seedOverride = null, lanes = 3, m
   }
   chart.sort((a, b) => a.t - b.t);
   if (mirror) chart.forEach(n => { n.lane = lanes - 1 - n.lane; }); // v28: Mirror mode (LV7) — flip the chart
-  return { bpm, step, scaleName, key: NOTE_NAMES[root], root, scale, chart, drums, duration: CONFIG.BARS * 16 * step, hue: Math.floor(r() * 360), lanes, mirror };
+  return { bpm, step, scaleName, name: (SONG_MOODS[scaleName] || scaleName) + ' ' + scaleName, key: NOTE_NAMES[root], root, scale, chart, drums, duration: CONFIG.BARS * 16 * step, hue: Math.floor(r() * 360), lanes, mirror };
 }
 
 // ==========================================
@@ -756,6 +768,7 @@ async function play() {
   if (playMode === 'challenge' && (challengeLanes === 4 || challengeMirror)) say(msgf('duelUnlock', { mods: (challengeLanes === 4 ? '4 LANES ' : '') + (challengeMirror ? 'MIRROR ' : '') }), 'yellow');
   floatTexts = [];
   show('gamePanel'); document.body.classList.add('playing'); pauseGL(); closeSettings(); // v32: freeze decorations + WebGL while playing (lag fix)
+  const emPlay = $('cardErrMsg'); if (emPlay) emPlay.classList.add('hidden'); // v33.1: a stale card error must not survive into the next game
   $('gamePanel').scrollIntoView({ behavior: 'auto', block: 'start' }); // v33: no more manual scroll to find the score + lanes
   setText('bpmVal', anthem.bpm); setText('gameAudioStatus', msgf('gameAudioTpl', { bpm: anthem.bpm, state: ac ? ac.state : '-', practice: practiceMode ? msg('practiceTag2') : '' })); hud();
   stopMenuPoll(); // v29: the menu poll pauses while a game runs
@@ -887,6 +900,7 @@ function finish() {
   const a = accuracy(), g = grade(a, G.counts.miss), key = (G.wallet || 'GUEST').toLowerCase(), prev = loadBest(G.wallet);
   const rec = { score: G.score, acc: +a.toFixed(2), grade: g, maxCombo: G.maxCombo, at: Date.now() };
   const isNew = !prev || rec.score > prev.score;
+  lastResultIsNew = isNew && G.score > 0; // v33.1: the result card draws a NEW BEST ribbon from this
   if (!G.practice && isNew) saveBest(G.wallet, rec);
   const avgOff = hitOffsets.length ? Math.round(hitOffsets.reduce((x, v) => x + v, 0) / hitOffsets.length) : null;
   const res = { score: G.score, acc: +a.toFixed(2), maxCombo: G.maxCombo, miss: G.counts.miss, perfect: G.counts.perfect, diff: G.diff, mode: G.mode, avgOff };
@@ -935,7 +949,7 @@ function finish() {
   renderDailyBox(); renderMastery(); renderAvatarPreview(G.wallet); renderUnlocks();
   const wasDuelResponse = G.mode === 'challenge' && !!pendingRival; // v30: captured before pendingRival is cleared below
   if (!G.practice) {
-    recordDiary({ at: Date.now(), song: `${G.genre.toUpperCase()} / ${G.diff.toUpperCase()} • ${anthem.key} ${anthem.scaleName}`, score: G.score, grade: g, mode: G.mode });
+    recordDiary({ at: Date.now(), song: `${G.genre.toUpperCase()} / ${G.diff.toUpperCase()} • "${anthem.name}" • ${anthem.key} ${anthem.scaleName}`, score: G.score, grade: g, mode: G.mode });
     recordChampion({ score: G.score, grade: g, mode: G.mode }); // v30: daily champion (best score of the day)
     if (G.race) saveJSON('sqk29:lastRace:' + walletKey(G.wallet), { at: Date.now(), you: +G.race.playerDist.toFixed(1), opp: +oppDist.toFixed(1), win: raceWin });
     if (G.mode === 'challenge' && pendingRival) { recordLeagueResult(pendingRival, G.score); pendingRival = null; }
@@ -945,8 +959,11 @@ function finish() {
   renderRaceBox(); renderLeague(); renderAchievements(); renderPredict(); renderBossBox(); renderDiaryList(); renderChamps();
   $('gradeVal').textContent = g; $('gradeVal').style.color = g.startsWith('S') ? 'var(--green)' : g === 'A' ? 'var(--cyan)' : 'var(--pink)';
   const c = G.counts;
-  $('resultKv').innerHTML = `<span>${rl('score')}</span><b>${G.score}</b><span>${rl('acc')}</span><b>${a.toFixed(2)}%</b><span>${rl('combo')}</span><b>${G.maxCombo}</b><span>${rl('pg')}</span><b>${c.perfect}/${c.great}</b><span>${rl('gm')}</span><b>${c.good}/${c.miss}</b><span>${rl('anthem')}</span><b>${anthem.key} ${anthem.scaleName}</b><span>${rl('setup')}</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? rl('tryCalib') : ''}${G.practice ? rl('practiceTag') : ''}</b>` + (G.live ? `<span>${rl('live')}</span><b>${G.live.offline ? rl('offline') : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '') + (G.race ? `<span>${rl('race')}</span><b>YOU ${G.race.playerDist.toFixed(0)} m vs SQUEEKTOSHI ${oppDist.toFixed(0)} m — ${raceWin ? rl('raceWin') : rl('raceLose')}${G.race.offline ? ' (' + rl('offline') + ')' : ''}</b>` : '') + (G.boss ? `<span>${rl('boss')}</span><b>${rl('bossDefeated')}</b>` : '');
+  $('resultKv').innerHTML = `<span>${rl('score')}</span><b>${G.score}</b><span>${rl('acc')}</span><b>${a.toFixed(2)}%</b><span>${rl('combo')}</span><b>${G.maxCombo}</b><span>${rl('pg')}</span><b>${c.perfect}/${c.great}</b><span>${rl('gm')}</span><b>${c.good}/${c.miss}</b><span>${rl('anthem')}</span><b>${anthem.key} ${anthem.scaleName} • "${anthem.name}"</b><span>${rl('setup')}</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? rl('tryCalib') : ''}${G.practice ? rl('practiceTag') : ''}</b>` + (G.live ? `<span>${rl('live')}</span><b>${G.live.offline ? rl('offline') : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '') + (G.race ? `<span>${rl('race')}</span><b>YOU ${G.race.playerDist.toFixed(0)} m vs SQUEEKTOSHI ${oppDist.toFixed(0)} m — ${raceWin ? rl('raceWin') : rl('raceLose')}${G.race.offline ? ' (' + rl('offline') + ')' : ''}</b>` : '') + (G.boss ? `<span>${rl('boss')}</span><b>${rl('bossDefeated')}</b>` : '');
   $('bestMsg').textContent = (isNew && G.score > 0) ? msg('newHigh') : (prev ? msgf('bestIs', { score: prev.score, grade: prev.grade }) : ''); // v30.1: a 0-score first game is not a "NEW HIGH SCORE"
+  // v33.1: the score counts up instead of appearing instantly (skipped for reduced motion).
+  const sb = $('resultKv').querySelector('b');
+  if (sb && !prefersReducedMotion && G.score > 0) { const target = G.score, t0 = performance.now(); const tick = now => { const p = Math.min(1, (now - t0) / 700); sb.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick); }
   const rbm = $('rivalBackMsg'); // v30: after answering a duel, tell the player how the challenger sees their score
   if (rbm) { if (wasDuelResponse) { rbm.classList.remove('hidden'); rbm.textContent = msg('rivalBack'); } else rbm.classList.add('hidden'); }
   show('resultPanel');
@@ -965,8 +982,8 @@ function playResultJingle(g) {
   if (g === 'SS' || g === 'S') kick(t0);
 }
 function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night'); const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.add('hidden'); document.body.classList.remove('playing'); resumeGL(); show('mainPanel'); playIntroMusic(); startMenuPoll(); }
-async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', msg('resumeBtn')); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); }
-async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', msg('pauseBtn')); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
+async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', msg('resumeBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { bpm: anthem.bpm, state: 'paused', practice: G.practice ? msg('practiceTag2') : '' })); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); } // v33.1: the audio line used to keep saying RUNNING while paused
+async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', msg('pauseBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { bpm: anthem.bpm, state: 'running', practice: G.practice ? msg('practiceTag2') : '' })); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
 async function togglePause() { if (!G) return; if (G.paused) await resumeGame(); else await pauseGame(); }
 
 const KEY_LANES = { ArrowLeft: 0, a: 0, A: 0, '1': 0, ArrowDown: 1, s: 1, S: 1, '2': 1, ArrowRight: 2, d: 2, D: 2, '3': 2, ArrowUp: 3, f: 3, F: 3, '4': 3 }; // v28: lane 3 (4th) = ↑ / F — only active in 4-lane songs (judge() guards the lane)
@@ -1078,9 +1095,9 @@ function avatar(ctx, w, x0, y0, px, level) {
 // --- v33: card overlay — the ID card and the result card open ON TOP of
 // whatever panel is showing (no more jumping back to the menu), with close
 // and minimize controls. Closing returns to the panel underneath, untouched.
-function openCard(title) { if (title) setText('cardTitle', title); const o = $('cardOverlay'), b = $('cardBackdrop'), bar = $('cardBar'); if (o) o.classList.remove('hidden'); if (b) b.classList.remove('hidden'); if (bar) bar.classList.add('hidden'); }
-function closeCard() { const o = $('cardOverlay'), b = $('cardBackdrop'), bar = $('cardBar'); if (o) o.classList.add('hidden'); if (b) b.classList.add('hidden'); if (bar) bar.classList.add('hidden'); }
-function minimizeCard() { const o = $('cardOverlay'), b = $('cardBackdrop'), bar = $('cardBar'); if (o) o.classList.add('hidden'); if (b) b.classList.add('hidden'); if (bar) bar.classList.remove('hidden'); }
+function openCard(title) { if (title) setText('cardTitle', title); const o = $('cardOverlay'), b = $('cardBackdrop'), bar = $('cardBar'); if (o) o.classList.remove('hidden'); if (b) b.classList.remove('hidden'); if (bar) bar.classList.add('hidden'); document.body.classList.remove('cardbar'); }
+function closeCard() { const o = $('cardOverlay'), b = $('cardBackdrop'), bar = $('cardBar'); if (o) o.classList.add('hidden'); if (b) b.classList.add('hidden'); if (bar) bar.classList.add('hidden'); document.body.classList.remove('cardbar'); }
+function minimizeCard() { const o = $('cardOverlay'), b = $('cardBackdrop'), bar = $('cardBar'); if (o) o.classList.add('hidden'); if (b) b.classList.add('hidden'); if (bar) bar.classList.remove('hidden'); document.body.classList.add('cardbar'); } // v33.1: the fixed bar must not float over the footer text
 bindClick('cardCloseBtn', closeCard);
 bindClick('cardBackdrop', closeCard);
 bindClick('cardMinBtn', minimizeCard);
@@ -1108,7 +1125,7 @@ function cardFrame(ctx, CW, CH, title, right) {
 
 async function generateCard() {
   const w = $('walletInput').value.trim();
-  if (!isAddr(w)) { $('walletInput').classList.add('invalid'); return say(msg('cardWallet'), 'pink'); }
+  if (!isAddr(w)) { $('walletInput').classList.add('invalid'); say(msg('cardWallet'), 'pink'); const em = $('cardErrMsg'); if (em && !$('resultPanel').classList.contains('hidden')) { em.textContent = msg('cardWallet'); em.classList.remove('hidden'); } return; } // v33.1: say() writes to #message in the menu — invisible from the result panel, so the error must also show there
   $('walletInput').classList.remove('invalid');
   const btn = $('genBtn'); if (btn) btn.disabled = true; say(msg('cardFetching'), 'cyan');
   try { await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 2000))]); } catch (_) {}
@@ -1134,7 +1151,7 @@ async function generateCard() {
   const hair = y => { ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(24, y); ctx.lineTo(CW - 24, y); ctx.stroke(); };
   row('WALLET', w.slice(0, 10) + '...' + w.slice(-8), 24, 244, '#00e5ff');
   hair(268);
-  row('ANTHEM', `${an.key} ${an.scaleName}`, 24, 292, '#ff5ce1');
+  row('ANTHEM', `"${an.name}" • ${an.key} ${an.scaleName}`, 24, 292, '#ff5ce1');
   row('TEMPO', `${an.bpm} BPM`, 224, 292, '#ff5ce1');
   row('BEST SCORE', b ? String(b.score) : 'NONE', 24, 336, '#ffe14d');
   row('GRADE', b ? b.grade : '--', 224, 336, '#ffe14d');
@@ -1150,6 +1167,7 @@ async function generateCard() {
   ctx.textAlign = 'left';
 
   if (btn) btn.disabled = false; say(msg('cardDone'), 'green');
+  const emDone = $('cardErrMsg'); if (emDone) emDone.classList.add('hidden');
   openCard(msg('cardTitleId')); // v33: the card opens on top — no jump back to the menu
 }
 
@@ -1228,7 +1246,7 @@ function preview() {
   const a = makeAnthem(w, false, playMode === 'free' ? null : seedKeyFor(playMode), lanes, mirror), b = loadBest(w);
   const liveTag = liveSnapshot && liveSnapshot.ok ? msgf('anthemLiveOk', { rpm: Math.round(liveSnapshot.rpm), bpm: a.bpm }) : msg('anthemLiveOff');
   const modeTag = playMode === 'free' ? '' : playMode === 'daily' ? msgf('anthemDaily', { date: todayStr(), genre: currentGenre.toUpperCase(), diff: currentDiff.toUpperCase() }) : playMode === 'live' ? msgf('anthemLive', { live: liveTag }) : playMode === 'race' ? msgf('anthemRace', { live: liveTag }) : playMode === 'boss' ? msgf('anthemBoss', { week: weeklyKey() }) : msgf('anthemDuel', { code: String(challengeCode || '').slice(0, 12), lanes: lanes === 4 ? ' • 4 LANES' : '', mirror: mirror ? ' • MIRROR' : '' });
-  $('anthemInfo').textContent = msg('anthemPrefix') + `${a.key} ${a.scaleName} [${a.bpm} BPM] // NOTES: ${a.chart.length}` + (b ? msgf('anthemBest', { score: b.score }) : '') + modeTag;
+  $('anthemInfo').textContent = msg('anthemPrefix') + `"${a.name}" • ${a.key} ${a.scaleName} [${a.bpm} BPM] // NOTES: ${a.chart.length}` + (b ? msgf('anthemBest', { score: b.score }) : '') + modeTag;
   renderAvatarPreview(w); renderUnlocks(); applyHue(a.hue);
 }
 
@@ -1794,6 +1812,7 @@ function startMenuPoll() { stopMenuPoll(); if (overlayMode) return; menuPoll = s
 function stopMenuPoll() { if (menuPoll) { clearInterval(menuPoll); menuPoll = null; } }
 
 // --- Shareable result card (drawn on the ID card canvas, then DOWNLOAD/SHARE) ---
+let lastResultIsNew = false; // v33.1: set by finish(), read by drawResultCard()
 function drawResultCard() {
   const c = $('card-canvas'); if (!c) return false;
   const ctx = c.getContext('2d'); if (!ctx) return false;
@@ -1811,13 +1830,16 @@ function drawResultCard() {
   ctx.globalAlpha = .3; ctx.fillStyle = gcol; ctx.fillText(g, CW / 2 + 3, 133);
   ctx.globalAlpha = 1; ctx.fillStyle = gcol; ctx.fillText(g, CW / 2, 130);
 
-  // Score, accuracy, max combo.
-  ctx.fillStyle = '#7d8a8d'; ctx.font = '10px "Space Mono"'; ctx.fillText('SCORE', CW / 2, 168);
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 30px "Space Mono"'; ctx.fillText(val(0), CW / 2, 202);
+  // Score, accuracy, max combo. (The score reads from G, not from the panel,
+  // so the count-up animation can never leak a half-counted score into the card.)
+  const dy = lastResultIsNew ? 12 : 0;
+  if (lastResultIsNew) { ctx.fillStyle = '#ffd700'; ctx.font = 'bold 12px "Space Mono"'; ctx.fillText('★ NEW BEST! ★', CW / 2, 152); }
+  ctx.fillStyle = '#7d8a8d'; ctx.font = '10px "Space Mono"'; ctx.fillText('SCORE', CW / 2, 168 + dy);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 30px "Space Mono"'; ctx.fillText(String(G && G.score !== undefined ? G.score : val(0)), CW / 2, 202 + dy);
   ctx.font = '10px "Space Mono"'; ctx.fillStyle = '#7d8a8d';
-  ctx.fillText('ACCURACY', CW / 2 - 90, 232); ctx.fillText('MAX COMBO', CW / 2 + 90, 232);
+  ctx.fillText('ACCURACY', CW / 2 - 90, 232 + dy); ctx.fillText('MAX COMBO', CW / 2 + 90, 232 + dy);
   ctx.font = 'bold 16px "Space Mono"'; ctx.fillStyle = '#fff';
-  ctx.fillText(val(2), CW / 2 - 90, 254); ctx.fillText(val(4), CW / 2 + 90, 254);
+  ctx.fillText(val(2), CW / 2 - 90, 254 + dy); ctx.fillText(val(4), CW / 2 + 90, 254 + dy);
 
   // Judgement breakdown — four mini-columns, no more a wall of text.
   ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1;
