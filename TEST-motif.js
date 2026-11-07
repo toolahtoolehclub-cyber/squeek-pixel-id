@@ -1,4 +1,4 @@
-// Motif determinism test — run: node TEST-motif.js (cwd = the v34.1 folder)
+// Motif determinism test — run: node TEST-motif.js (cwd = the v34.2 folder)
 // Extracts the pure song engine (CONFIG..makeAnthem) from script.js and runs it in Node.
 // The motif must be deterministic: same seed -> same chart, same name, same BPM.
 // It must also actually repeat: bars 2/4 and 3/5 share most of their notes.

@@ -558,7 +558,7 @@ class CircuitBreaker {
   async execute(fn) { if (this.state === 'OPEN') { if (Date.now() > this.next) this.state = 'HALF_OPEN'; else throw new Error('CIRCUIT_OPEN'); } try { const res = await fn(); this.fails = 0; this.state = 'CLOSED'; return res; } catch (e) { this.fails++; if (this.fails >= this.threshold) { this.state = 'OPEN'; this.next = Date.now() + this.timeout; } throw e; } }
 }
 const rpcBreaker = new CircuitBreaker(3, 10000);
-const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0x810239d271e80a86023f4f315943acbd65b59281', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } }; // BARS 32 (Lagu lebih panjang)
+const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } }; // BARS 32 (Lagu lebih panjang)
 const DIFFICULTIES = { easy: { speed: 350, density: 0.4, chord: 0.0 }, normal: { speed: 480, density: 0.7, chord: 0.1 }, hard: { speed: 600, density: 0.9, chord: 0.25 } };
 const GENRES = { cyber: { scales: ['Phrygian', 'Harmonic Minor', 'Minor Pentatonic', 'Aeolian', 'Blues'], bpm: 120 }, synth: { scales: ['Dorian', 'Major Pentatonic', 'Lydian', 'Major'], bpm: 100 }, chip: { scales: ['Major Pentatonic', 'Dorian', 'Mixolydian', 'Blues'], bpm: 140 }, void: { scales: ['Phrygian', 'Harmonic Minor', 'Aeolian', 'Blues'], bpm: 150 } }; // v33: 10 scales, 4-5 per genre (was 5 total) — songs stop feeling the same
 let currentDiff = 'easy', currentGenre = 'cyber';
