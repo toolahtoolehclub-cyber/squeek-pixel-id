@@ -592,9 +592,10 @@ body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 1
 #lbBox { margin-top: 12px; }
 .lb-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 .lb-row input[type=text] { flex: 1; min-width: 0; padding: 10px; }
-.lb-row .btn-secondary { flex: none; }
+.lb-row .btn-secondary { flex: none; width: auto; } /* v37.1: width:100% from .btn-secondary crushed the name input to a sliver */
 #lbModes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.lb-mode { padding: 6px 10px; font-size: 11px; }
+.lb-mode { padding: 6px 10px; font-size: 11px; flex: none; } /* v37.1: flex:1 from .btn-diff shrank all six buttons onto one line, clipping CHALLENGE */
+#lbRank:empty { display: none; } /* v37.1: .msg border rendered an empty box when no wallet was entered */
 #lbList { margin-top: 8px; }
 .lb-row.league-row { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .lb-rank { color: var(--yellow); min-width: 28px; }
