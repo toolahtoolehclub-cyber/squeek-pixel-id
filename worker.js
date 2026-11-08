@@ -58,6 +58,55 @@
 //   or league-reset logic changed. League rows only ever come from
 //   verifyOne, so verified is 1 for every real league row; the join
 //   only guards the display if the scores row ever disagrees.
+//
+// Fase 4 (v7, Batch 5 — TOKO SQK + KAPSUL EMAS, v42) — Worker only signs
+//   and credits; it NEVER holds SQK and NEVER sends a transaction.
+//   On-chain anchors (frozen interface, same spec as the shop contract):
+//     SCORES_CONTRACT 0x06be1517d7187ec1663c4f26d11a8f6cc217304f (Batch 4,
+//       deployed by the user 2026-11-08; signer + DOMAIN_SEPARATOR match
+//       this Worker exactly — see batch4-prep/DEPLOYED.md).
+//     SHOP_CONTRACT — 0x0000...0000 PLACEHOLDER: the shop contract is
+//       NOT deployed yet. Fill this in AFTER the user deploys it via
+//       Remix (flat file in repo root -> Import file from URL). Until
+//       then BOTH new endpoints refuse with 503 "shop not deployed" and
+//       the Worker signs NOTHING for the shop domain (signing for the
+//       zero address would be meaningless and unsafe to cache).
+//     SQK_TOKEN 0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e (Sepolia,
+//       name "Squeek", symbol "SQK", 18 decimals, EIP-2612 permit;
+//       domain name "Squeek" + version "1" verified live 2026-11-08:
+//       computed DOMAIN_SEPARATOR 0x2cc99df9c423e838a7b45ff60b5ee38ad122e
+//       a209dca8da37a8d2f3befdf0017 == on-chain DOMAIN_SEPARATOR()).
+//   POST /capsule-resolve {wallet, pullId, targetRound}:
+//     (a) validates input; (b) asks the public Squeekchain API
+//     (GET /v1/settlements, no query params — any query is rejected
+//     "invalid_query") for the settlement record covering targetRound;
+//     (c) 409 while the round is not settled yet (or too old to be in
+//     the API's 10-entry recent window); (d) signs the CapsuleResolve
+//     struct with SIGNING_KEY (same key as the score attestation — it
+//     is also the shop contract's dataSigner) and returns
+//     {pullId, targetRound, dataHash, deadline, signature}.
+//     dataHash DEFINITION (no per-round hash field exists in the API):
+//     the transactionHash of the settlement that settled through
+//     targetRound (first recentSettlements entry with
+//     previousSettledThroughRound < targetRound <= settledThroughRound).
+//     It is bytes32, on-chain, and canonical: anyone can re-fetch the
+//     same /v1/settlements record and check the hash. FALLBACK, only if
+//     the record has no usable transactionHash: dataHash =
+//     keccak256(canonical JSON of the whole settlement record).
+//     Deadline = now + 600 s. Rate limit 10/wallet/hour (submit_log,
+//     same table/pattern as POST /scores).
+//   POST /capsule {wallet, txHash}:
+//     credits the duplicate-capsule Keju compensation. Verifies the
+//     Sepolia receipt (public RPC): status 1, from == wallet,
+//     to == SHOP_CONTRACT, and a CapsuleResolved log with duplicate=true;
+//     kejuCompensation is read from that log (never trusted from the
+//     client). Credit goes to cheese_balances + cheese_ledger kind
+//     'capsule-duplicate' with replay_hash = txHash — the partial
+//     UNIQUE index on replay_hash (migrate-v5.sql) makes the credit
+//     idempotent: the same tx can never pay twice. No D1 schema change.
+//   NOTHING else changed in v7: replay verification, enforcement 422,
+//   EIP-712 score attestation, Keju economy, weekly league, and the
+//   existing rate limits are byte-identical to v6.
 // EIP-712 domain: { name: "Squeek Pixel ID", version: "1",
 //   chainId: 11155111 (Sepolia), verifyingContract: <signer address> }
 // Attestation: player (address), score (uint256), accuracy (uint256 =
@@ -107,7 +156,7 @@
 // It already exists since v3 — do NOT rotate or re-enter it.
 //
 // Endpoints (all JSON, CORS open):
-//   GET  /                  -> { service, version: 6 }
+//   GET  /                  -> { service, version: 7 }
 //   GET  /cheese?wallet=0x...   -> { wallet, balance, items: [{id, slot,
 //                             rarity, name, price, equipped}], catalog }
 //                             (no wallet -> catalog only, balance 0)
@@ -118,6 +167,16 @@
 //                             (100 Keju, server RNG, weighted 70/22/7/1)
 //   POST /cheese/equip {wallet, item_id}
 //                          -> { ok, equipped, slot }
+//   POST /capsule-resolve {wallet, pullId, targetRound}
+//                          -> { pullId, targetRound, dataHash, deadline,
+//                             signature } or 409 (round not settled yet)
+//                             or 503 (shop not deployed) or 429.
+//   POST /capsule {wallet, txHash}
+//                          -> { ok, compensation, balance,
+//                             alreadyCredited } or 400/503.
+//                             Credits duplicate-capsule Keju from a
+//                             verified CapsuleResolved receipt, idempotent
+//                             per txHash.
 //   GET  /league?week=YYYY-MM-DD&wallet=0x...
 //                          -> { week_start, reset_at, count,
 //                             scores: [{rank, wallet, name, best_score,
@@ -283,6 +342,59 @@ function catalogItem(id) {
   return CHEESE_CATALOG.find((c) => c.id === id) || null;
 }
 
+// --- SQK shop + golden capsule (v7, Batch 5) — pure data + helpers ---
+// Frozen shop interface (same spec as SqueekPixelShop.sol). Prices are
+// whole SQK; the contract works in wei (18 decimals), the client converts.
+const SCORES_CONTRACT = "0x06be1517d7187ec1663c4f26d11a8f6cc217304f"; // Batch 4, live
+const SHOP_CONTRACT = "0x0000000000000000000000000000000000000000"; // PLACEHOLDER —
+//   the shop contract is NOT deployed yet. Set this to the deployed
+//   address after the user deploys it; until then /capsule-resolve and
+//   /capsule answer 503 and nothing is signed for the shop domain.
+const SQK_TOKEN = "0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e"; // Sepolia SQK
+const SHOP_OWNER = "0x88538a82143065664232422e2dec4309038fcf9a";
+const SEPOLIA_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
+const SQUEEK_API_SETTLEMENTS = "https://api.squeekchain.com/v1/settlements";
+const SQK_SHOP_CATALOG = [
+  { id: 1, name: "Skin Rare", priceSqk: 5 },
+  { id: 2, name: "Efek Epic", priceSqk: 10 },
+  { id: 3, name: "Bingkai Animasi", priceSqk: 15 },
+  { id: 4, name: "Skin Epic", priceSqk: 20 },
+  { id: 5, name: "Golden Wheel", priceSqk: 50 },
+  { id: 6, name: "Skin Legendary", priceSqk: 100 },
+];
+const SQK_CAPSULE_PRICE = 2; // SQK per pull
+const SQK_CAPSULE_ODDS = { common: 70, rare: 22, epic: 7, legendary: 1 };
+const SQK_CAPSULE_DUP_COMP = { common: 25, rare: 50, epic: 100, legendary: 250 };
+const SQK_CAPSULE_PITY = 20; // pityCounter >= 19 -> result at least rare
+const SQK_SPLIT_OWNER = 70; // 70% owner / 30% prize pool, 0% burn
+const SQK_SPLIT_POOL = 30;
+
+function sqkShopItem(id) {
+  return SQK_SHOP_CATALOG.find((c) => c.id === id) || null;
+}
+
+function sqkShopDeployed() {
+  return /^0x[0-9a-fA-F]{40}$/.test(SHOP_CONTRACT) && SHOP_CONTRACT !== "0x0000000000000000000000000000000000000000";
+}
+
+// Split in milli-SQK (integers, no floats): 5 SQK -> 3500/1500,
+// 2 SQK -> 1400/600. Matches the contract's 70/30 split exactly.
+function sqkSplitMilli(priceSqk) {
+  const milli = Math.round(priceSqk * 1000);
+  return { ownerMilli: (milli * SQK_SPLIT_OWNER) / 100, poolMilli: (milli * SQK_SPLIT_POOL) / 100 };
+}
+
+// Capsule rarity from a uniform r in [0,1) + pity counter. Hard pity:
+// pityCounter >= 19 forces at least rare (the contract's rule).
+function sqkCapsuleRarity(r, pityCounter) {
+  if (!(r >= 0 && r < 1)) return null;
+  if (pityCounter >= SQK_CAPSULE_PITY - 1 && r < 0.7) return "rare";
+  if (r < 0.7) return "common";
+  if (r < 0.92) return "rare";
+  if (r < 0.99) return "epic";
+  return "legendary";
+}
+
 // --- EIP-712 (Fase 1) ---
 const SIGNER_ADDRESS = "0x69f24c0598c8e6b6b938527d84141dd04ec2b3e3";
 const EIP712_NAME = "Squeek Pixel ID";
@@ -409,8 +521,7 @@ function attestationDigest(a) {
   return keccak_256(concatBytes(new Uint8Array([0x19, 0x01]), DOMAIN_SEPARATOR, structHash));
 }
 
-function signAttestation(privHex, a) {
-  const digest = attestationDigest(a);
+function signDigest(privHex, digest) {
   const priv = hexToBytes(privHex);
   // noble v2 sign() prehashes by default; EIP-712 needs the raw digest.
   const compact = secp256k1.sign(digest, priv, { prehash: false });
@@ -428,6 +539,130 @@ function signAttestation(privHex, a) {
   }
   if (recovery < 0) throw new Error("recovery failed");
   return "0x" + bytesToHex(concatBytes(compact, new Uint8Array([27 + recovery])));
+}
+
+function signAttestation(privHex, a) {
+  return signDigest(privHex, attestationDigest(a));
+}
+
+// --- Shop capsule EIP-712 (v7) — domain of SqueekPixelShop, NOT the
+// score attestation domain. Same signer key (SIGNING_KEY) = the shop
+// contract's dataSigner. NEVER called while SHOP_CONTRACT is the zero
+// placeholder (the endpoints refuse 503 before reaching here).
+const SHOP_EIP712_NAME = "Squeek Pixel Shop";
+const SHOP_EIP712_VERSION = "1";
+const CAPSULE_RESOLVE_TYPEHASH = keccak_256(
+  new TextEncoder().encode(
+    "CapsuleResolve(address player,uint256 pullId,uint256 targetRound,bytes32 dataHash,uint256 deadline)"
+  )
+);
+
+function shopDomainSeparator() {
+  return keccak_256(
+    concatBytes(
+      DOMAIN_TYPEHASH,
+      encString(SHOP_EIP712_NAME),
+      encString(SHOP_EIP712_VERSION),
+      encUint256(EIP712_CHAIN_ID),
+      encAddress(SHOP_CONTRACT)
+    )
+  );
+}
+
+function capsuleResolveDigest(a) {
+  const structHash = keccak_256(
+    concatBytes(
+      CAPSULE_RESOLVE_TYPEHASH,
+      encAddress(a.player),
+      encUint256(a.pullId),
+      encUint256(a.targetRound),
+      encBytes32(a.dataHash),
+      encUint256(a.deadline)
+    )
+  );
+  return keccak_256(concatBytes(new Uint8Array([0x19, 0x01]), shopDomainSeparator(), structHash));
+}
+
+function signCapsuleResolve(privHex, a) {
+  return signDigest(privHex, capsuleResolveDigest(a));
+}
+
+// Settlement lookup (v7): which /v1/settlements record settled a round?
+// A round R is settled by the first recentSettlements entry with
+// previousSettledThroughRound < R <= settledThroughRound. Returns the
+// entry or null (not settled yet / too old for the 10-entry window).
+function settlementForRound(recent, targetRound) {
+  if (!Array.isArray(recent)) return null;
+  for (const s of recent) {
+    const prev = Number(s.previousSettledThroughRound);
+    const through = Number(s.settledThroughRound);
+    if (Number.isFinite(prev) && Number.isFinite(through) && prev < targetRound && targetRound <= through) {
+      return s;
+    }
+  }
+  return null;
+}
+
+function maxSettledRound(recent) {
+  if (!Array.isArray(recent)) return null;
+  let m = null;
+  for (const s of recent) {
+    const through = Number(s.settledThroughRound);
+    if (Number.isFinite(through) && (m === null || through > m)) m = through;
+  }
+  return m;
+}
+
+// dataHash for a settled round (v7 definition — see header Fase 4):
+// the settlement's transactionHash when usable, else keccak256 of the
+// canonical JSON of the whole settlement record.
+function dataHashForSettlement(record) {
+  const tx = typeof record.transactionHash === "string" ? record.transactionHash : "";
+  if (/^0x[0-9a-fA-F]{64}$/.test(tx)) return tx.toLowerCase();
+  return "0x" + bytesToHex(keccak_256(new TextEncoder().encode(canonical(record))));
+}
+
+// CapsuleResolved log parsing (v7). Event (frozen interface, no indexed
+// params): CapsuleResolved(address player, uint256 pullId, uint256
+// targetRound, bytes32 dataHash, uint8 rarity, uint256 itemId,
+// bool duplicate, uint256 kejuCompensation). topic0 =
+// keccak("CapsuleResolved(address,uint256,uint256,bytes32,uint8,uint256,bool,uint256)")
+// = 0xb1190a79761e5e0820f774b1613ed3b5022912a9aa445806273a260a8527a502.
+// Defensive: if a future build marks `player` indexed, topics[1] holds
+// it and the data words shift by one — both layouts are accepted.
+const CAPSULE_RESOLVED_TOPIC0 = "0xb1190a79761e5e0820f774b1613ed3b5022912a9aa445806273a260a8527a502";
+
+function parseCapsuleResolvedLog(log) {
+  if (!log || typeof log !== "object") return null;
+  const topics = Array.isArray(log.topics) ? log.topics : [];
+  if (!topics.length || topics[0].toLowerCase() !== CAPSULE_RESOLVED_TOPIC0) return null;
+  const data = typeof log.data === "string" ? log.data : "";
+  if (!/^0x[0-9a-fA-F]*$/.test(data)) return null;
+  const nWords = (data.length - 2) / 64;
+  if (!Number.isInteger(nWords) || nWords < 7) return null;
+  const words = [];
+  for (let i = 0; i < nWords; i++) {
+    words.push(data.slice(2 + i * 64, 2 + (i + 1) * 64));
+  }
+  const indexedPlayer = topics.length >= 2 && /^0x[0-9a-fA-F]{64}$/.test(topics[1]);
+  // Indexed layout: data is [pullId, targetRound, dataHash, rarity,
+  // itemId, duplicate, kejuCompensation] (7 words). Plain layout: data
+  // is [player, pullId, ...] (8 words) — drop the player word.
+  const w = indexedPlayer ? words : words.slice(1);
+  if (w.length < 7) return null;
+  const player = indexedPlayer
+    ? "0x" + topics[1].slice(-40).toLowerCase()
+    : "0x" + words[0].slice(-40).toLowerCase();
+  return {
+    player,
+    pullId: Number(BigInt("0x" + w[0])),
+    targetRound: Number(BigInt("0x" + w[1])),
+    dataHash: "0x" + w[2].toLowerCase(),
+    rarity: Number(BigInt("0x" + w[3])),
+    itemId: Number(BigInt("0x" + w[4])),
+    duplicate: BigInt("0x" + w[5]) !== 0n,
+    kejuCompensation: Number(BigInt("0x" + w[6])),
+  };
 }
 
 // --- Replay v1 helpers ---
@@ -931,7 +1166,7 @@ export default {
 
     try {
       if (url.pathname === "/" && request.method === "GET") {
-        return json({ service: "squeekchain-leaderboard", version: 6 });
+        return json({ service: "squeekchain-leaderboard", version: 7 });
       }
 
       // --- v5: Cheese shop (GET /cheese, POST /cheese/buy|pull|equip) ---
@@ -1072,6 +1307,201 @@ export default {
           ).bind(wallet, item.id),
         ]);
         return json({ ok: true, equipped: item.id, slot: item.slot });
+      }
+
+      // --- v7: SQK shop capsule — resolve signature + duplicate credit ---
+      // POST /capsule-resolve {wallet, pullId, targetRound}: sign the
+      // CapsuleResolve struct for a round that has ALREADY settled.
+      // Refuses 503 while SHOP_CONTRACT is the zero placeholder.
+      if (url.pathname === "/capsule-resolve" && request.method === "POST") {
+        const body = await request.json().catch(() => null);
+        if (!body || !isWallet(body.wallet)) {
+          return json({ error: "wallet address is not valid" }, 400);
+        }
+        if (!sqkShopDeployed()) {
+          return json({ error: "shop not deployed" }, 503);
+        }
+        const wallet = body.wallet.toLowerCase();
+        const pullId = Number(body.pullId);
+        const targetRound = Number(body.targetRound);
+        if (!Number.isInteger(pullId) || pullId < 1) {
+          return json({ error: "pullId is not valid" }, 400);
+        }
+        if (!Number.isInteger(targetRound) || targetRound < 0) {
+          return json({ error: "targetRound is not valid" }, 400);
+        }
+        // Rate limit 10/wallet/hour, same submit_log pattern as /scores.
+        const now = Date.now();
+        await env.DB.prepare("DELETE FROM submit_log WHERE ts < ?")
+          .bind(now - RATE_WINDOW_MS)
+          .run();
+        const walletCount = await env.DB.prepare(
+          "SELECT COUNT(*) AS n FROM submit_log WHERE wallet = ? AND ts >= ?"
+        )
+          .bind(wallet, now - RATE_WINDOW_MS)
+          .first();
+        await env.DB.prepare(
+          "INSERT INTO submit_log (wallet, ip, ts) VALUES (?, ?, ?)"
+        )
+          .bind(wallet, request.headers.get("CF-Connecting-IP") || "unknown", now)
+          .run();
+        if ((walletCount.n || 0) >= RATE_MAX_WALLET) {
+          return json({ error: "rate_limited" }, 429);
+        }
+        // Is targetRound settled? The public API takes NO query params.
+        let recent = null;
+        try {
+          const res = await fetch(SQUEEK_API_SETTLEMENTS, {
+            headers: { "User-Agent": "squeekchain-leaderboard/7" },
+          });
+          if (!res.ok) throw new Error("settlements HTTP_" + res.status);
+          const data = await res.json();
+          recent = data.recentSettlements || null;
+        } catch (e) {
+          return json({ error: "settlement api unavailable", detail: String(e && e.message ? e.message : e).slice(0, 80) }, 502);
+        }
+        const record = settlementForRound(recent, targetRound);
+        if (!record) {
+          const settled = maxSettledRound(recent);
+          return json(
+            {
+              error: "round not settled yet",
+              targetRound,
+              settledThroughRound: settled,
+              detail:
+                settled === null
+                  ? "could not read the settled frontier"
+                  : targetRound > settled
+                    ? "target round is still open — wait for it to settle, then resolve again"
+                    : "target round is older than the API's recent-settlements window — it can no longer be resolved from this endpoint",
+            },
+            409
+          );
+        }
+        const dataHash = dataHashForSettlement(record);
+        const deadline = Math.floor(now / 1000) + 600;
+        const signature = signCapsuleResolve(env.SIGNING_KEY, {
+          player: wallet,
+          pullId,
+          targetRound,
+          dataHash,
+          deadline,
+        });
+        return json({ pullId, targetRound, dataHash, deadline, signature });
+      }
+
+      // POST /capsule {wallet, txHash}: credit the duplicate-capsule
+      // Keju compensation from a verified CapsuleResolved receipt.
+      // Idempotent per txHash (cheese_ledger UNIQUE replay_hash).
+      // Refuses 503 while SHOP_CONTRACT is the zero placeholder.
+      if (url.pathname === "/capsule" && request.method === "POST") {
+        const body = await request.json().catch(() => null);
+        if (!body || !isWallet(body.wallet)) {
+          return json({ error: "wallet address is not valid" }, 400);
+        }
+        if (!sqkShopDeployed()) {
+          return json({ error: "shop not deployed" }, 503);
+        }
+        const wallet = body.wallet.toLowerCase();
+        const txHash = typeof body.txHash === "string" ? body.txHash.toLowerCase() : "";
+        if (!/^0x[0-9a-f]{64}$/.test(txHash)) {
+          return json({ error: "txHash is not valid" }, 400);
+        }
+        // Already credited? The UNIQUE index makes the INSERT below
+        // idempotent, but answer early with a clear flag.
+        const prior = await env.DB.prepare(
+          "SELECT amount FROM cheese_ledger WHERE replay_hash = ? AND kind = 'capsule-duplicate'"
+        )
+          .bind(txHash)
+          .first();
+        if (prior) {
+          const bal = await env.DB.prepare(
+            "SELECT balance FROM cheese_balances WHERE wallet = ?"
+          )
+            .bind(wallet)
+            .first();
+          return json({ ok: true, alreadyCredited: true, compensation: prior.amount, balance: bal ? bal.balance : 0 });
+        }
+        // Fetch the receipt from the public Sepolia RPC (retry 3x —
+        // the endpoint drops connections occasionally).
+        let receipt = null;
+        let lastErr = "";
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const res = await fetch(SEPOLIA_RPC, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "User-Agent": "squeekchain-leaderboard/7" },
+              body: JSON.stringify({
+                jsonrpc: "2.0",
+                id: 1,
+                method: "eth_getTransactionReceipt",
+                params: [txHash],
+              }),
+            });
+            if (!res.ok) throw new Error("rpc HTTP_" + res.status);
+            const data = await res.json();
+            receipt = data.result || null;
+            break;
+          } catch (e) {
+            lastErr = String(e && e.message ? e.message : e).slice(0, 80);
+            if (attempt < 2) await new Promise((r) => setTimeout(r, 1000));
+          }
+        }
+        if (!receipt) {
+          return json({ error: "receipt not found", detail: lastErr || "no receipt for this txHash (yet?)" }, 400);
+        }
+        if (String(receipt.status) !== "0x1") {
+          return json({ error: "transaction failed on-chain" }, 400);
+        }
+        if (String(receipt.from || "").toLowerCase() !== wallet) {
+          return json({ error: "transaction is not from this wallet" }, 400);
+        }
+        if (String(receipt.to || "").toLowerCase() !== SHOP_CONTRACT.toLowerCase()) {
+          return json({ error: "transaction is not to the shop contract" }, 400);
+        }
+        const logs = Array.isArray(receipt.logs) ? receipt.logs : [];
+        let resolved = null;
+        for (const log of logs) {
+          const parsed = parseCapsuleResolvedLog(log);
+          if (parsed && parsed.player === wallet) {
+            resolved = parsed;
+            break;
+          }
+        }
+        if (!resolved) {
+          return json({ error: "no CapsuleResolved event for this wallet in the receipt" }, 400);
+        }
+        if (!resolved.duplicate || !(resolved.kejuCompensation > 0)) {
+          return json({ error: "capsule was not a duplicate — no Keju compensation", rarity: resolved.rarity, itemId: resolved.itemId }, 400);
+        }
+        const now = Date.now();
+        const comp = resolved.kejuCompensation;
+        // Idempotent credit: INSERT OR IGNORE on the UNIQUE replay_hash
+        // index — a concurrent duplicate request credits only once.
+        const ins = await env.DB.prepare(
+          "INSERT OR IGNORE INTO cheese_ledger (wallet, replay_hash, kind, amount, day_key, created_at) VALUES (?, ?, 'capsule-duplicate', ?, ?, ?)"
+        )
+          .bind(wallet, txHash, comp, squeekDayKey(now), now)
+          .run();
+        if ((ins.meta.changes || 0) === 0) {
+          const bal = await env.DB.prepare(
+            "SELECT balance FROM cheese_balances WHERE wallet = ?"
+          )
+            .bind(wallet)
+            .first();
+          return json({ ok: true, alreadyCredited: true, compensation: comp, balance: bal ? bal.balance : 0 });
+        }
+        await env.DB.prepare(
+          "INSERT INTO cheese_balances (wallet, balance, updated_at) VALUES (?, ?, ?) ON CONFLICT(wallet) DO UPDATE SET balance = cheese_balances.balance + excluded.balance, updated_at = excluded.updated_at"
+        )
+          .bind(wallet, comp, now)
+          .run();
+        const bal = await env.DB.prepare(
+          "SELECT balance FROM cheese_balances WHERE wallet = ?"
+        )
+          .bind(wallet)
+          .first();
+        return json({ ok: true, alreadyCredited: false, compensation: comp, balance: bal ? bal.balance : 0, pullId: resolved.pullId, rarity: resolved.rarity, itemId: resolved.itemId });
       }
 
       // --- v5: Weekly league (GET /league) ---

@@ -292,3 +292,134 @@ Kontrak koordinasi dipakai apa adanya (tidak diubah): POST `/session` →
 - **Hapus `worker.js` / `TEST-*.js`**: di luar daftar file yang boleh diubah;
   tidak disentuh. Tidak ada test yang mengunci XP_LEVELS/jumlah achievement
   (dicek via grep — hanya ada assert timeout fetch di `TEST-v34-neo.js`).
+
+---
+
+## ADDENDUM — Penutup Batch 1 (pekerja TES + DEPLOY + VERIFIKASI, 2026-11-08 ~17:08–17:20 WIB)
+
+### A1. Worker: lazy prune session + redeploy
+
+- `worker.js` 271 → **276 baris**: hanya 3 baris baru + 2 baris komentar di
+  `POST /session` — `DELETE FROM sessions WHERE expires_at < ?` (now)
+  sebelum insert session baru. Logika lain TIDAK diubah (version tetap 2).
+- Redeploy via `upload_worker.py`: `success: true`, deployment_id baru
+  **`eb9bae4d60cb406db280ef11070895af`** (sebelumnya
+  `16d76aed99224c759ac31a74a5c1c84c`), compatibility_date 2026-11-07.
+- Bukti prune bekerja (bukan klaim): 1 baris session kedaluwarsa palsu
+  (`prune-test-expired-001`, expires_at 1 jam lalu) disisipkan langsung ke D1,
+  lalu 1× `POST /session` → baris itu hilang (`COUNT = 0`). Session T2
+  pekerja A (`e20fa215…`, expires 10:30:47 UTC) TIDAK ter-prune saat dicek
+  karena memang belum kedaluwarsa pada jam itu — perilaku benar.
+- Smoke test ulang pasca-redeploy: `GET /` → 200
+  `{"service":"squeekchain-leaderboard","version":2}`; `POST /session` → 200
+  (sessionId `c8af6ec0-…`, expiresAt +30 mnt); `POST /scores` TEST
+  `0x372D…3a1Db` mode free score 100 → 200 `{ok:true, improved:false,
+  verified:0}`; `GET /scores?mode=free` → TEST tetap **3000, verified 0**.
+  Board tidak berubah.
+
+### A2. Uji jalur verified=1 yang mengalahkan best (wallet sekali-pakai)
+
+- Wallet `0x00000000000000000000000000000000000000dEaD`, mode `boss`:
+  (a) `POST /session` → 200, sessionId `95c3d43c-1f20-4ea9-946c-8eca446b560f`;
+  (b) `POST /scores` `{score:500, acc:90, name:"TEST38", sessionId, notes:100,
+  taps:100, durationMs:60000}` → 200 **`{ok:true, improved:true,
+  verified:1}`** ✅;
+  (c) `GET /scores?mode=boss` → 1 baris, `verified:1`, `rank 1` (juga
+  `GET /rank` → rank 1, score 500, total 1) ✅;
+  (d) `DELETE FROM scores WHERE wallet=… AND mode='boss'` via D1 API →
+  1 baris terhapus; `GET /scores?mode=boss` → `count:0, scores:[]` ✅.
+- Board kembali bersih: D1 `scores` hanya 2 baris — TEST free **3000
+  verified 0** dan race `0x8853…cf9a` **66805 verified 0** (keduanya tidak
+  berubah). Catatan: sebelum (b), 11 baris `submit_log` wallet dEaD sisa tes
+  rate-limit T6 pekerja A (<1 jam) dihapus via D1 — kalau tidak, rate limit
+  10/wallet/jam akan 429 dan tes (b) tidak bisa jalan. Penghapusan hanya
+  menyentuh wallet tes sekali-pakai itu.
+- Dengan ini semua jalur Worker v2 sudah diuji live: session valid + plausibility
+  lolos → verified 1 (A2 ini); session dipakai 2× → verified 0 (T3c pekerja A);
+  tanpa session → verified 0; plausibility gagal → 400; rate limit → 429.
+
+### A3. Tes game — diperbarui + dijalankan
+
+- Baseline sebelum perubahan tes: **944 passed, 3 failed** — ketiganya
+  perubahan v38 yang disengaja: `html says v37.2`, `browser tab title is
+  v37.2`, dan `endGame captures the submittable result` (lastResult lama
+  tanpa sessionId/taps/notes/durationMs).
+- `TEST-v34-neo.js` diperbarui: 3 tes di atas disesuaikan ke v38 + seksi
+  baru **§12 (v38)** — XP_LEVELS/levelFor dijalankan asli (16 batas +
+  4000 XP lama kini LV3 + tidak ada ambang lama tersisa), squeekTodayStr()
+  dijalankan asli (11:59 UTC→kemarin, 12:00 UTC→hari ini, 00:30 UTC→kemarin,
+  18:59 WIB masih hari lama), saveWallet38() dijalankan asli dengan mock
+  localStorage (key `sqk38:wallet`, alamat invalid/empty diabaikan), migrasi
+  LEGACY LV8 dijalankan asli dengan mock store (xp 5000→badge+flag,
+  panggilan ke-2→false tanpa duplikat, xp 3999→skip tapi ter-mark, xp
+  4000 persis→lolos; `check: () => false` di entri legacy8), pause overlay
+  (7 id 1×, tanpa `window.confirm(`, two-step armed), session (POST /session
+  di play(), seed server `FREE-`, submit membawa 4 field), meta OG/Twitter +
+  Genesis meta baris 8 byte-identical + baris terakhir README, README
+  (11 achievements, 54.000 XP, 19:00 WIB), dead CSS v31 hilang.
+- Dua kegagalan saat penulisan tes ternyata **bug tes, bukan bug game**:
+  (1) `eth_requestAccounts` muncul 2× — satu di komentar penjelas
+  `connectWallet` — tes diperbaiki jadi menghitung pemakaian
+  `method: 'eth_requestAccounts'` (=1); (2) string kartu ID adalah
+  `'/11 — '` (em dash), bukan `'/11'` — tes diperbaiki.
+- **Hasil akhir: `TEST-v34-neo.js` 1017 passed, 0 failed; `TEST-motif.js`
+  10 passed, 0 failed.** `node --check script.js` OK (2.387 baris).
+
+### A4. Push GitHub
+
+- Remote head sebelum push (list_commits): `2846c6fc29d50156673e0251b3f46d479bf85692`
+  (v37.2).
+- Push 9 file (index.html, script.js, style.css, README.md, AUDIT-v38.md,
+  AUDIT-v38-worker.md, TEST-v34-neo.js, TEST-motif.js, worker.js) via
+  `github push-files` (NUL-separated paths) → OK, approval tercatat.
+- **Commit baru: `2ea495755767298a6773e5a3372f4313d1cf650e`** — "Squeekchain v38
+  (Batch 1): XP economy LV8=54,000 + LEGACY LV8 badge, Squeek-day reset
+  19:00 WIB, remembered wallet, real pause menu, verified sessions (worker v2
+  + lazy session prune), OG/Twitter meta, dead v31 CSS removed; tests
+  1017/1017 + motif 10/10", 2026-11-08T10:12:48Z. Remote head sesudah push
+  diverifikasi = commit ini.
+- Catatan sync `~/workspace/your_files/squeekchain-v31.muse-github-snapshot-sync.json`
+  diperbarui: entri ke-36, format `{commit, version:"v38 Batch 1",
+  date:"2026-11-08", files:[9 file], note:…}` (format sama dengan entri
+  v34–v37.2; head sebelumnya dicek cocok `2846c6fc…` sebelum append).
+
+### A5. Verifikasi live (curl, bukan browser) — 2026-11-08 ~10:13–10:14 UTC
+
+| # | Cek | Hasil |
+|---|-----|-------|
+| L1 | `curl https://squeekpixel.web.id/` | **200** ✅ (percobaan 1 masih v37.2; percobaan 2, ~1 mnt setelah push, sudah v38 — GitHub Pages deploy ~1 menit) |
+| L2 | Meta Genesis di HTML live | **Ada, baris 8, byte-identical** `<meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">` ✅ |
+| L3 | og:image + deskripsi baru | **og:image** `https://squeekpixel.web.id/squeekchain-headline-simple.png` ✅; deskripsi `SQUEEKCHAIN v38 — …` ✅; `v32 NEO` muncul **0×** ✅; `<title>SQUEEKCHAIN // v38</title>` ✅ |
+| L4 | `curl .../script.js` live | **200, 181.322 byte** (sama dengan lokal); `const XP_LEVELS = [0, 700, 2000, 4300, 8500, 16000, 29500, 54000]` ✅; 25 kemunculan `squeekTodayStr\|sqk38:wallet\|legacy8\|pauseOverlay` ✅ |
+| L5 | TXT DNS `_squeekchain.squeekpixel.web.id` | **`squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9`** ✅ — via Cloudflare DoH; catatan: `dig` langsung di VM ini dijawab **REFUSED** oleh resolver (8.8.8.8/1.1.1.1), jadi TXT dicek lewat DoH, bukan dig |
+| L6 | GitHub raw `README.md` | **200**; baris pertama `# Squeekchain v38`; **baris terakhir utuh** `squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7` ✅ |
+
+**Ketiga Genesis proofs terverifikasi utuh di live:** meta (L2), README (L6),
+TXT (L5).
+
+### A6. Artifact preview (slug `squeekchain-v26-fix`) — GAGAL, bukan karena konten
+
+- `artifact.inspect` **tidak ada** di tool list subagent ini (error:
+  "Unknown tool `artifact.inspect`: no exact match exists…"). Namespace
+  `artifact` yang ter-load hanya berisi 3 fungsi: `restore`, `share`,
+  `unshare` — **tidak ada inspect/edit/create**. Tanpa inspect/edit, artifact
+  TIDAK bisa dibaca apalagi diperbarui in-app oleh pekerja ini.
+- **Tidak ada perubahan artifact yang dilakukan.** Perlu pekerja/agent yang
+  punya tool artifact edit (atau parent) untuk menerapkan perubahan v38 ke
+  preview, dengan 2 baris yang selalu berbeda dari site (duelLink +
+  overlayUrl canonical base `https://squeekpixel.web.id/`), 0 location.href,
+  0 BNB/Binance, meta Genesis byte-identical. Jangan share publik.
+
+### A7. Yang TIDAK sempat dilakukan + alasannya
+
+- **Update artifact preview v38 (tugas 6)** — tool `artifact.inspect` /
+  edit tidak tersedia di subagent ini (lihat A6). Butuh agent dengan akses
+  artifact edit.
+- **Cek visual di browser nyata** (tampilan pause overlay, alur CALIBRATE →
+  BACK TO GAME, PLAY end-to-end dengan session) — subagent ini tidak punya
+  live browser; semua verifikasi di atas via curl/Node/D1 API. Perlu smoke
+  test browser oleh koordinator sebelum diumumkan.
+- **Push ulang addendum ini** — addendum ini ditulis SETELAH push 9 file;
+  `AUDIT-v38.md` di repo masih versi sebelum addendum. Sengaja tidak
+  di-push ulang karena tugas hanya memerintahkan satu push 9 file; parent
+  bisa memutuskan push susulan.
