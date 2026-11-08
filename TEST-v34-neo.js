@@ -39,8 +39,8 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v42.1', (html.match(/v42\.1/g) || []).length >= 2);
-t('browser tab title is v42.1', html.includes('<title>SQUEEKCHAIN // v42.1</title>'));
+t('html says v42.2', (html.match(/v42\.2/g) || []).length >= 2);
+t('browser tab title is v42.2', html.includes('<title>SQUEEKCHAIN // v42.2</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -355,7 +355,7 @@ t('wallet refill reads sqk38:wallet on load', js.includes("localStorage.getItem(
 t('forgetWallet38 removes sqk38:wallet', js.includes("localStorage.removeItem('sqk38:wallet')"));
 t('forget wallet button exists once', (html.match(/id="forgetWalletBtn"/g) || []).length === 1);
 t('wallet saved on connect + accountsChanged + change/blur', (js.match(/saveWallet38\(/g) || []).length >= 4);
-t('no auto eth_requestAccounts outside connectWallet', (js.match(/method: 'eth_requestAccounts'/g) || []).length === 1);
+t('eth_requestAccounts only inside connect handlers (injected + WC, never on load)', (js.match(/method: 'eth_requestAccounts'/g) || []).length === 2);
 
 // 12d. LEGACY LV8 — check is always false; run the real migration with a mock store
 const legacyLine = jsLines.find(l => l.includes("id: 'legacy8'"));
@@ -396,7 +396,7 @@ t('Genesis meta tag is line 8, byte-identical', htmlLines[7] === '<meta name="sq
 t('README last line is the Genesis proof', readme.trimEnd().split('\n').pop() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 t('OG image is absolute on the live domain', html.includes('og:image" content="https://squeekpixel.web.id/squeekchain-headline-simple.png"'));
 t('Twitter card is summary_large_image', html.includes('twitter:card" content="summary_large_image"'));
-t('meta description is v42.1, not v32 NEO', html.includes('SQUEEKCHAIN v42.1') && !html.includes('v32 NEO'));
+t('meta description is v42.2, not v32 NEO', html.includes('SQUEEKCHAIN v42.2') && !html.includes('v32 NEO'));
 t('README documents 11 achievements', readme.includes('11 named achievements'));
 t('README documents the v38 XP economy', readme.includes('54,000 total XP') && readme.includes('[0, 700, 2000, 4300, 8500, 16000, 29500, 54000]'));
 t('README documents the 19:00 WIB Squeek-day reset', readme.includes('19:00 WIB'));
@@ -485,7 +485,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v42.1', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.1'"));
+t('submit sends replay + hash + gameVersion v42.2', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.2'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -511,7 +511,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v42.1', readme.startsWith('# Squeekchain v42.1'));
+t('README title is v42.2', readme.startsWith('# Squeekchain v42.2'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -1004,8 +1004,8 @@ t('worker v6: /league you carries verified', worker.includes('verified: me.verif
 t('worker version is 8', worker.includes('{ service: "squeekchain-leaderboard", version: 8 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v42.1', js.includes("gameVersion: 'v42.1'"));
-t('html title is v42.1', html.includes('<title>SQUEEKCHAIN // v42.1</title>'));
+t('submit sends gameVersion v42.2', js.includes("gameVersion: 'v42.2'"));
+t('html title is v42.2', html.includes('<title>SQUEEKCHAIN // v42.2</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {
@@ -1058,6 +1058,24 @@ t('client credits Keju only from a Worker-verified receipt', js.includes('Credit
 t('client disables sqk buttons while the shop is undeployed', js.includes('commit.disabled = !deployed') && js.includes('if (!sqkShopDeployed()) return sqkShopMsg(msg(') && js.includes("sqkShopSoon')"));
 t('sqk i18n exists in EN + ID', js.includes("sqkShopSoon: 'SQK SHOP COMING SOON") && js.includes("sqkShopSoon: 'TOKO SQK SEGERA HADIR") && js.includes("sqkCapsuleOdds: 'ODDS: COMMON 70%") && js.includes("sqkCapsuleOdds: 'PELUANG: COMMON 70%"));
 t('shop tab fetches the SQK shop too', js.includes("if (name === 'shop') { fetchShop(); fetchSqkShop(); }"));
+// --- 15g. v42.2: WalletConnect (Reown) — connect from a plain browser ---
+t('WC UMD script tag is in the HTML (correct path, before script.js)', html.includes('https://unpkg.com/@walletconnect/ethereum-provider@2.26.0/dist/index.umd.js') && !html.includes('dist/umd/index.min.js') && html.indexOf('@walletconnect/ethereum-provider') < html.indexOf('src="script.js"'));
+t('WC script tag is deferred (order preserved)', html.includes('<script src="https://unpkg.com/@walletconnect/ethereum-provider@2.26.0/dist/index.umd.js" defer></script>'));
+t('CONFIG has WC_PROJECT_ID + WC_CHAINS', js.includes("CONFIG.WC_PROJECT_ID = '1f186dd3221f938c4e0b8c72c233a3be'") && js.includes('CONFIG.WC_CHAINS = [11155111]'));
+['getEth', 'sqkChainIdHex', 'ensureSepoliaChain', 'wcGetProvider', 'connectWalletConnect', 'restoreWalletConnectSession'].forEach(f => t('v42.2 js has ' + f, js.includes('function ' + f)));
+t('WC init uses the verified API (projectId, chains, showQrModal, rpcMap, metadata)', js.includes('window.EthereumProvider.init({') && js.includes('projectId: CONFIG.WC_PROJECT_ID') && js.includes('chains: CONFIG.WC_CHAINS') && js.includes('showQrModal: true') && js.includes('rpcMap: { 11155111: CONFIG.SEPOLIA_RPC }') && js.includes("name: 'Squeek Pixel ID'") && js.includes("url: 'https://squeekpixel.web.id/'"));
+t('WC connect opens the modal then requests accounts', js.includes('await p.connect()') && js.includes("await p.request({ method: 'eth_requestAccounts' })"));
+t('connectWallet has both paths (injected first, WC fallback)', js.includes('await connectWalletConnect()') && js.includes("const eth = window.ethereum;"));
+t('WC load failure is fail-soft (message, no crash)', js.includes("typeof window.EthereumProvider === 'undefined'") && js.includes("msg('wcLoadFail')"));
+t('WC session restore is gated on a wc@2: key (no relay on plain loads)', js.includes("k.indexOf('wc@2:') === 0") && js.includes('restoreWalletConnectSession()'));
+t('tx paths use getEth() (permit, receipt, resolve)', (js.split('const eth = getEth();').length - 1) === 3);
+t('chain ensure switches + adds Sepolia (0xaa36a7, 4902)', js.includes("method: 'wallet_switchEthereumChain'") && js.includes("method: 'wallet_addEthereumChain'") && js.includes("chainId: '0xaa36a7'") && js.includes('e.code === 4902'));
+t('chain id normalises number + hex (WC returns a number)', js.includes("typeof v === 'number'") && js.includes('v.toString(16)'));
+t('WC i18n exists in EN + ID', js.includes("wcLoadFail: 'WALLETCONNECT FAILED TO LOAD") && js.includes("wcLoadFail: 'WALLETCONNECT GAGAL DIMUAT") && js.includes("wcRejected: 'WALLETCONNECT CANCELLED") && js.includes("wcRejected: 'WALLETCONNECT DIBATALKAN"));
+t('no direct window.ethereum in tx paths', !js.slice(js.indexOf('async function sqkPermitAndSend'), js.indexOf('async function buySqkItem')).includes('const eth = window.ethereum;'));
+t('WC provider is module-level (not on G)', js.includes('let wcProvider = null;') && !js.includes('G.wcProvider'));
+t('no private key anywhere in the WC code', !/privateKey|PRIVATE_KEY|mnemonic|seed phrase/i.test(js.slice(js.indexOf('// --- v42.2: WalletConnect'), js.indexOf("bindClick('connectBtn'"))));
+
 t('no BNB/Binance anywhere incl. worker (v42.1)', !/BNB|Binance/i.test(html + css + js + readme + worker));
 t('README documents v42.1 + SQK catalog + split', readme.includes('**v42.1**') && readme.includes('Skin Rare 5') && readme.includes('70% owner / 30% prize pool') && readme.includes('SHOP_CONTRACT'));
 t('worker v8: SCORES_CONTRACT is the Batch 4 address', worker.includes('0x06be1517d7187ec1663c4f26d11a8f6cc217304f'));

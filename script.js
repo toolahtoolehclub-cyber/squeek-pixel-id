@@ -120,7 +120,7 @@ const MSG = {
     noWallet: 'NO WALLET FOUND IN THIS BROWSER — TYPE YOUR 0x ADDRESS MANUALLY.',
     walletInvalid: 'WALLET RETURNED NO VALID ADDRESS — TYPE YOUR 0x ADDRESS MANUALLY.',
     walletConnected: 'WALLET CONNECTED: {addr} — ADDRESS ONLY, NO SIGNATURE REQUESTED.',
-    connRejected: 'CONNECTION REJECTED — TYPE YOUR 0x ADDRESS MANUALLY.', connFail: 'CONNECT FAILED: {err}',
+    connRejected: 'CONNECTION REJECTED — TYPE YOUR 0x ADDRESS MANUALLY.', connFail: 'CONNECT FAILED: {err}', wcLoadFail: 'WALLETCONNECT FAILED TO LOAD — CHECK YOUR CONNECTION AND RETRY.', wcRejected: 'WALLETCONNECT CANCELLED — NOTHING WAS CONNECTED.', wcChainFail: 'COULD NOT SWITCH TO SEPOLIA — SWITCH MANUALLY IN YOUR WALLET.',
     walletSwitched: 'WALLET SWITCHED TO {addr}.', calibStart: 'CALIBRATING… TAP ON EACH OF THE 8 BEATS.',
     qltyEco: ' — WebGL off, static gradient background.', qltyUltra: ' — WebGL / moving grid.',
     voidLock: '🔒 VOID GENRE UNLOCKS AT LV5 — PLAY MORE SONGS TO EARN XP.',
@@ -247,7 +247,7 @@ const MSG = {
     noWallet: 'TIDAK ADA WALLET DI BROWSER INI — KETIK ALAMAT 0x SECARA MANUAL.',
     walletInvalid: 'WALLET TIDAK MENGEMBALIKAN ALAMAT VALID — KETIK ALAMAT 0x SECARA MANUAL.',
     walletConnected: 'WALLET TERHUBUNG: {addr} — HANYA ALAMAT, TANPA SIGNATURE.',
-    connRejected: 'KONEKSI DITOLAK — KETIK ALAMAT 0x SECARA MANUAL.', connFail: 'KONEKSI GAGAL: {err}',
+    connRejected: 'KONEKSI DITOLAK — KETIK ALAMAT 0x SECARA MANUAL.', connFail: 'KONEKSI GAGAL: {err}', wcLoadFail: 'WALLETCONNECT GAGAL DIMUAT — PERIKSA KONEKSIMU DAN COBA LAGI.', wcRejected: 'WALLETCONNECT DIBATALKAN — TIDAK ADA YANG TERHUBUNG.', wcChainFail: 'TIDAK BISA PINDAH KE SEPOLIA — PINDAH MANUAL DI WALLETMU.',
     walletSwitched: 'WALLET BERGANTI KE {addr}.', calibStart: 'MENGALIBRASI… KETUK DI SETIAP DARI 8 KETUKAN.',
     qltyEco: ' — WebGL mati, latar gradien statis.', qltyUltra: ' — WebGL / grid bergerak.',
     voidLock: '🔒 GENRE VOID TERBUKA DI LV5 — MAIN LAGU LAGI UNTUK XP.',
@@ -621,6 +621,15 @@ const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', CORE_URL: 'ht
 CONFIG.SHOP_ADDRESS = '0x43f568AcfaDcee4333785c9F26596719ED0B02fb';
 CONFIG.SQK_TOKEN = CONFIG.TOKEN;
 CONFIG.SEPOLIA_RPC = CONFIG.RPC_URL;
+// --- v42.2: WalletConnect (Reown). WC_PROJECT_ID is PUBLIC by design —
+// it identifies the dApp to the WalletConnect relay, it is not a secret
+// and it grants no access to any wallet. Created by the user at
+// cloud.reown.com (free). The UMD bundle (@walletconnect/ethereum-provider
+// 2.26.0, dist/index.umd.js — the old dist/umd/index.min.js path is 404)
+// sets window.EthereumProvider + the AppKit QR modal. WC_CHAINS is the
+// only chain the game ever uses: Sepolia 11155111.
+CONFIG.WC_PROJECT_ID = '1f186dd3221f938c4e0b8c72c233a3be';
+CONFIG.WC_CHAINS = [11155111];
 const SQK_SHOP_CATALOG = [
   { id: 1, name: 'Skin Rare', priceSqk: 5 },
   { id: 2, name: 'Efek Epic', priceSqk: 10 },
@@ -1795,22 +1804,127 @@ if (walletEl) { walletEl.addEventListener('change', () => saveWallet38(walletEl.
 // wallet to REVEAL the address (eth_requestAccounts) — no signature, no
 // approval, no transaction, no chain switch. If no provider exists, or the
 // user rejects, manual 0x input stays the way in. Never auto-requests on load.
-async function connectWallet() {
+// --- v42.2: WalletConnect (Reown) — path B for plain browsers (Chrome)
+// that have no injected wallet. Verified against the published
+// @walletconnect/ethereum-provider 2.26.0 .d.ts + UMD source:
+// EthereumProvider.init({projectId, chains, optionalChains, showQrModal,
+// rpcMap, metadata}) -> provider.connect() opens the AppKit modal (QR +
+// wallet list) -> provider.request() works like any EIP-1193 provider.
+// eth_chainId on the WC provider returns a NUMBER (not a hex string) —
+// sqkChainIdHex normalises both. A live session is restored from
+// localStorage by init() itself; we only attempt the restore when a
+// "wc@2:" key exists, so plain loads never open a relay connection.
+let wcProvider = null; // active WalletConnect provider (module-level: G is replaced every game)
+function getEth() {
+  if (wcProvider && typeof wcProvider.request === 'function' && wcProvider.connected !== false) return wcProvider;
   const eth = window.ethereum;
-  if (!eth || typeof eth.request !== 'function') return say(msg('noWallet'), 'pink');
+  if (eth && typeof eth.request === 'function') return eth;
+  return null;
+}
+function sqkChainIdHex(v) {
+  if (typeof v === 'number' && Number.isFinite(v)) return '0x' + v.toString(16);
+  const s = String(v == null ? '' : v).trim().toLowerCase();
+  if (/^0x[0-9a-f]+$/.test(s)) return s;
+  if (/^[0-9]+$/.test(s)) return '0x' + parseInt(s, 10).toString(16);
+  return s;
+}
+async function ensureSepoliaChain(eth) {
+  if (!eth || typeof eth.request !== 'function') return false;
   try {
-    const accounts = await eth.request({ method: 'eth_requestAccounts' });
+    const cid = await eth.request({ method: 'eth_chainId' });
+    if (cid !== null && cid !== undefined && sqkChainIdHex(cid) === '0xaa36a7') return true;
+  } catch (_) {}
+  try {
+    await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0xaa36a7' }] });
+    return true;
+  } catch (e) {
+    if (e && e.code === 4902) {
+      try {
+        await eth.request({ method: 'wallet_addEthereumChain', params: [{ chainId: '0xaa36a7', chainName: 'Sepolia', nativeCurrency: { name: 'Sepolia ETH', symbol: 'ETH', decimals: 18 }, rpcUrls: [CONFIG.SEPOLIA_RPC], blockExplorerUrls: ['https://eth-sepolia.blockscout.com'] }] });
+        return true;
+      } catch (_) { return false; }
+    }
+    return false;
+  }
+}
+async function wcGetProvider() {
+  if (wcProvider) return wcProvider;
+  if (typeof window.EthereumProvider === 'undefined') return null;
+  const p = await window.EthereumProvider.init({
+    projectId: CONFIG.WC_PROJECT_ID,
+    chains: CONFIG.WC_CHAINS,
+    optionalChains: CONFIG.WC_CHAINS,
+    showQrModal: true,
+    rpcMap: { 11155111: CONFIG.SEPOLIA_RPC },
+    metadata: {
+      name: 'Squeek Pixel ID',
+      description: 'Pixel rhythm game on Squeekchain — the hamster sets the tempo',
+      url: 'https://squeekpixel.web.id/',
+      icons: ['https://squeekpixel.web.id/squeekchain-headline-simple.png'],
+    },
+  });
+  wcProvider = p;
+  if (typeof p.on === 'function') {
+    p.on('accountsChanged', (accounts) => {
+      const addr = Array.isArray(accounts) ? accounts[0] : null;
+      if (addr && isAddr(addr) && walletEl) { walletEl.value = addr; saveWallet38(addr); preview(); say(msgf('walletSwitched', { addr: addr.slice(0, 6) + '...' + addr.slice(-4) }), 'cyan'); }
+    });
+    p.on('disconnect', () => { wcProvider = null; });
+  }
+  return p;
+}
+async function connectWalletConnect() {
+  let p = null;
+  try { p = await wcGetProvider(); } catch (_) { p = null; }
+  if (!p) return say(msg('wcLoadFail'), 'pink');
+  try {
+    await p.connect(); // AppKit modal: QR + wallet list (OKX, MetaMask, ...)
+    const accounts = await p.request({ method: 'eth_requestAccounts' });
     const addr = Array.isArray(accounts) ? accounts[0] : null;
     if (!addr || !isAddr(addr)) return say(msg('walletInvalid'), 'pink');
     if (walletEl) walletEl.value = addr;
     saveWallet38(addr);
     preview();
     say(msgf('walletConnected', { addr: addr.slice(0, 6) + '...' + addr.slice(-4) }), 'green');
-  } catch (e) {
-    const code = e && e.code;
-    if (code === 4001) return say(msg('connRejected'), 'pink');
-    return say(msgf('connFail', { err: String((e && e.message) || e).slice(0, 60) }), 'pink');
+  } catch (_) {
+    return say(msg('wcRejected'), 'pink'); // modal closed / rejected — never an error, never a crash
   }
+}
+async function restoreWalletConnectSession() {
+  try {
+    if (window.ethereum) return; // injected path owns the wallet field
+    let hasWc = false;
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('wc@2:') === 0) { hasWc = true; break; } } } catch (_) {}
+    if (!hasWc) return;
+    const p = await wcGetProvider();
+    if (!p) return;
+    let accounts = (p.accounts && p.accounts.length) ? p.accounts : null;
+    if (!accounts) { try { accounts = await p.request({ method: 'eth_accounts' }); } catch (_) { accounts = null; } }
+    const addr = Array.isArray(accounts) ? accounts[0] : null;
+    if (addr && isAddr(addr)) { if (walletEl) walletEl.value = addr; saveWallet38(addr); preview(); }
+  } catch (_) {}
+}
+async function connectWallet() {
+  const eth = window.ethereum;
+  if (eth && typeof eth.request === 'function') {
+    // Path A (unchanged since v26.1): in-wallet browser (MetaMask/OKX app).
+    try {
+      const accounts = await eth.request({ method: 'eth_requestAccounts' });
+      const addr = Array.isArray(accounts) ? accounts[0] : null;
+      if (!addr || !isAddr(addr)) return say(msg('walletInvalid'), 'pink');
+      if (walletEl) walletEl.value = addr;
+      saveWallet38(addr);
+      preview();
+      say(msgf('walletConnected', { addr: addr.slice(0, 6) + '...' + addr.slice(-4) }), 'green');
+    } catch (e) {
+      const code = e && e.code;
+      if (code === 4001) return say(msg('connRejected'), 'pink');
+      return say(msgf('connFail', { err: String((e && e.message) || e).slice(0, 60) }), 'pink');
+    }
+    return;
+  }
+  // Path B (v42.2): plain browser (Chrome) — WalletConnect modal.
+  await connectWalletConnect();
 }
 if (window.ethereum && typeof window.ethereum.on === 'function') {
   window.ethereum.on('accountsChanged', (accounts) => {
@@ -1818,6 +1932,7 @@ if (window.ethereum && typeof window.ethereum.on === 'function') {
     if (addr && isAddr(addr) && walletEl) { walletEl.value = addr; saveWallet38(addr); preview(); say(msgf('walletSwitched', { addr: addr.slice(0, 6) + '...' + addr.slice(-4) }), 'cyan'); }
   });
 }
+restoreWalletConnectSession();
 bindClick('connectBtn', connectWallet);
 bindClick('playBtn', play); bindClick('genBtn', generateCard);
 bindClick('dlBtn', download); bindClick('shareBtn', share);
@@ -2331,7 +2446,7 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 8000);
   try {
-    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.1' } : bodyBase);
+    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.2' } : bodyBase);
     if (!r.ok && r.status === 400 && lastResult.replay) r = await postScores(bodyBase);
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();
@@ -2593,11 +2708,9 @@ async function fetchSqkShop() {
 // One exact-amount permit (EIP-2612) + the shop call. Returns the tx hash
 // or null (message already shown). Never an unlimited approval.
 async function sqkPermitAndSend(wallet, valueWei, encodeFn) {
-  const eth = window.ethereum;
+  const eth = getEth(); // v42.2: WalletConnect provider when connected via WC, else window.ethereum
   if (!eth || typeof eth.request !== 'function') { sqkShopMsg(msg('sqkNoProvider')); return null; }
-  let chainId = null;
-  try { chainId = await eth.request({ method: 'eth_chainId' }); } catch (_) {}
-  if (chainId && chainId.toLowerCase() !== '0xaa36a7') { sqkShopMsg(msg('sqkWrongChain')); return null; }
+  if (!(await ensureSepoliaChain(eth))) { sqkShopMsg(msg('sqkWrongChain')); return null; } // v42.2: switch/add Sepolia instead of refusing
   const deadline = Math.floor(Date.now() / 1000) + 600;
   let nonce = 0n, tokenName = 'Squeek';
   try {
@@ -2648,7 +2761,8 @@ async function sqkPermitAndSend(wallet, valueWei, encodeFn) {
   return txHash || null;
 }
 async function sqkWaitReceipt(txHash, tries) {
-  const eth = window.ethereum;
+  const eth = getEth(); // v42.2: receipt polling through the active provider (WC or injected)
+  if (!eth || typeof eth.request !== 'function') return null;
   for (let i = 0; i < (tries || 12); i++) {
     try {
       const r = await eth.request({ method: 'eth_getTransactionReceipt', params: [txHash] });
@@ -2744,8 +2858,9 @@ async function resolveSqkCapsule() {
     return sqkShopMsg(msg('sqkResolveFail'));
   }
   if (!d || !d.signature || !d.dataHash || !d.deadline) return sqkShopMsg(msg('sqkResolveFail'));
-  const eth = window.ethereum;
+  const eth = getEth(); // v42.2: WalletConnect provider when connected via WC, else window.ethereum
   if (!eth || typeof eth.request !== 'function') return sqkShopMsg(msg('sqkNoProvider'));
+  if (!(await ensureSepoliaChain(eth))) return sqkShopMsg(msg('sqkWrongChain')); // v42.2: switch/add Sepolia instead of refusing
   let txHash;
   try {
     txHash = await eth.request({ method: 'eth_sendTransaction', params: [{ from: w, to: CONFIG.SHOP_ADDRESS, data: sqkEncodeResolve(pending.pullId, d.dataHash, d.deadline, d.signature), value: '0x0' }] });
