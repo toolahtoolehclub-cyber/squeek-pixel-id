@@ -1,17 +1,17 @@
-# DEPLOYED — SqueekPixelShop (Batch 5) — DRAFT
+# DEPLOYED — SqueekPixelShop (Batch 5)
 
 Kontrak toko SQK + Kapsul Emas (gacha) Squeek Pixel ID.
-Status: **BELUM DI-DEPLOY** — file ini draft, diisi setelah user deploy via
-Remix (lihat `PANDUAN-DEPLOY-REMIX-SHOP.md`).
+Status: **DI-DEPLOY 2026-11-08 ~23:07 WIB** — user deploy via Remix
+(WalletConnect + MetaMask, wallet Genesis). Verifikasi on-chain LENGKAP.
 
 ## Alamat & transaksi
 
-- **Kontrak:** `<ALAMAT_KONTRAK_SEPOLIA — isi setelah deploy>`
+- **Kontrak:** `0x43f568AcfaDcee4333785c9F26596719ED0B02fb`
 - **Chain:** Sepolia (chain ID 11155111)
-- **Tx deploy:** `<TX_HASH — isi setelah deploy>`
-- **Blok:** `<NOMOR_BLOK — isi setelah deploy>`
+- **Tx deploy:** `0x506ba0a37d0c7c959de26889df9e12777d9a954ccca76d123d7e698996408765`
+- **Blok:** `12091616` (txIndex 53, nonce 46)
 - **Deployer:** `0x88538a82143065664232422e2dec4309038fcf9a` (wallet Genesis user)
-- **Gas dipakai:** `<GAS — isi setelah deploy>` (dry-run Anvil: shop deploy 1.796.574 gas dengan optimizer Foundry; 2.780.383 gas TANPA optimizer — setara Remix 0.8.34)
+- **Gas dipakai:** `18.642.371` (~0,000019 ETH; gas Sepolia saat itu ~1 gwei — jauh lebih murah dari estimasi 0,00004 ETH)
 - **Compiler:** solc 0.8.34 (Remix), optimizer OFF, source flat `SqueekPixelShop.flat.sol` (0 import).
 
 ## Constructor args (yang di-deploy)
@@ -22,29 +22,36 @@ Remix (lihat `PANDUAN-DEPLOY-REMIX-SHOP.md`).
 - **Season end:** `1801915200` (= Sabtu, 2027-02-06 19:00 WIB; 90 hari setelah 2026-11-08)
 - **Sweep tersedia mulai:** `1802520000` (= Sabtu, 2027-02-13 19:00 WIB; seasonEnd + 7 hari)
 
-## Verifikasi on-chain (diisi setelah deploy — dicek langsung via RPC publik)
+## Verifikasi on-chain (dicek langsung via RPC publik, 2026-11-08 ~23:10–23:16 WIB)
 
-- `owner()` → `0x88538A82143065664232422E2DEc4309038Fcf9A` ☐
-- `sqk()` → `0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e` ☐
-- `dataSigner()` → `0x69f24C0598C8e6b6b938527D84141dd04ec2b3E3` ☐
-- `seasonEnd()` → `1801915200` ☐
-- `sweepAvailableAt()` → `1802520000` ☐
-- `domainSeparator()` → `<NILAI — isi setelah deploy>` ☐
-- `itemPrice(1..6)` → 5 / 10 / 15 / 20 / 50 / 100 SQK ☐
+- `owner()` → `0x88538A82143065664232422E2DEc4309038Fcf9A` ✅
+- `sqk()` → `0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e` ✅
+- `dataSigner()` → `0x69f24C0598C8e6b6b938527D84141dd04ec2b3E3` ✅
+- `seasonEnd()` → `1801915200` ✅
+- `sweepAvailableAt()` → `1802520000` ✅
+- `prizePool()` → `0` ✅ (belum ada penjualan)
+- `isSwept()` → `false` ✅
+- `DOMAIN_SEPARATOR()` → `0x086127eb5e72e191a621590d1bc74ffa9833f58b62f817384c6ae33da14e6c84` ✅ — SAMA PERSIS dengan hitungan EIP-712 domain {name "Squeek Pixel Shop", version "1", chainId 11155111, verifyingContract = alamat toko}
+- `itemPrice(1..6)` → 5 / 10 / 15 / 20 / 50 / 100 SQK ✅ (5e18 / 10e18 / 15e18 / 20e18 / 50e18 / 100e18)
+- Catatan: `capsulePrice()` BUKAN fungsi — harga kapsul 2 SQK adalah `CAPSULE_PRICE` constant (baris 76 source), jadi eth_call ke selector itu revert. Bukan bug.
 
-## Verifikasi source code (diisi setelah deploy)
+## Verifikasi source code
 
-- **Sourcify:** `<status — isi setelah deploy>`
-- **Blockscout Sepolia:** `<status — isi setelah deploy>`
-- Link Sourcify: `https://sourcify.dev/server/v2/contract/11155111/<ALAMAT_KONTRAK_SEPOLIA>`
+- **Sourcify:** **TERVERIFIKASI full match** (creation + runtime, matchId 58821398, verifiedAt 2026-11-08T16:18:34Z; job `b35054cb-0c3b-4165-9404-6a03be23d685`, disubmit ~23:19 WIB via endpoint v2 `POST /v2/verify/11155111/<alamat>`, stdJson flat source, solc 0.8.34+commit.80d5c536, optimizer OFF, creationTransactionHash — match dalam 3 detik)
+- **Blockscout Sepolia:** diteruskan Sourcify (verificationId `43f568acfadcee4333785c9f26596719ed0b02fb6af0a0da`) tapi status `Fail - Unable to verify` saat dicek ~23:21 WIB — sama seperti Batch 4 (Blockscout lambat/gagal meneruskan); Sourcify full match sudah cukup sebagai bukti, cek ulang nanti di https://eth-sepolia.blockscout.com/address/0x43f568AcfaDcee4333785c9F26596719ED0B02fb
+- **Etherscan:** forwarding gagal karena limit harian Etherscan (500 submission/hari) — BUKAN masalah kontrak, sama seperti Batch 4
+- **Routescan:** diteruskan (verificationId `2872842c-f28a-53c3-8b77-e7465190a893`)
+- Link Sourcify: `https://sourcify.dev/server/v2/contract/11155111/0x43f568AcfaDcee4333785c9F26596719ED0B02fb`
+- Link Blockscout: `https://eth-sepolia.blockscout.com/address/0x43f568AcfaDcee4333785c9F26596719ED0B02fb`
 
 ## Yang sudah selesai (Batch 5 — kontrak)
 
 - [x] Kontrak ditulis + dites (Foundry 50/50 lolos — lihat bawah)
 - [x] Anvil dry-run sukses (beli + commit + resolve + sweep, split 70/30 terbukti dalam wei persis; detail angka di bawah)
-- [ ] Deploy nyata ke Sepolia oleh user
-- [ ] `owner()` / `sqk()` / `dataSigner()` / `seasonEnd()` / `domainSeparator()` cocok
-- [ ] Source terverifikasi di Sourcify (full match)
+- [x] Deploy nyata ke Sepolia oleh user
+- [x] `owner()` / `sqk()` / `dataSigner()` / `seasonEnd()` / `sweepAvailableAt()` / `prizePool()` / `isSwept()` / `DOMAIN_SEPARATOR()` / `itemPrice(1..6)` cocok
+- [ ] Source terverifikasi di Sourcify (full match) — job sedang dipolling
+- [x] Source terverifikasi di Sourcify — **FULL MATCH** (creation + runtime, matchId 58821398, verifiedAt 2026-11-08T16:18:34Z)
 
 ## Hasil tes (final, `forge test` polos — 50/50 lolos, ~16 detik)
 
