@@ -610,6 +610,7 @@ body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 1
 .wallet-status.not-connected { border-color: var(--yellow); color: var(--yellow); }
 #walletInput[readonly] { opacity: .65; }
 #walletManualNote { font-size: 11px; }
+#wcRestoreNote { font-size: 11px; opacity: .75; text-align: center; margin-top: 6px; }
 /* P1-5: shop previews — the product itself, rendered from the skin's own
    palette (no new image assets). Note skins: a row of hamster-note dots;
    frames: a mini framed panel; capsules: a rarity-coloured dot + label. */

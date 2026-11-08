@@ -121,7 +121,7 @@ const MSG = {
     noWallet: 'NO WALLET FOUND IN THIS BROWSER — TYPE YOUR 0x ADDRESS MANUALLY.',
     walletInvalid: 'WALLET RETURNED NO VALID ADDRESS — TYPE YOUR 0x ADDRESS MANUALLY.',
     walletConnected: 'WALLET CONNECTED: {addr} — ADDRESS ONLY, NO SIGNATURE REQUESTED.',
-    connRejected: 'CONNECTION REJECTED — TYPE YOUR 0x ADDRESS MANUALLY.', connFail: 'CONNECT FAILED: {err}', wcLoadFail: 'WALLETCONNECT FAILED TO LOAD — CHECK YOUR CONNECTION AND RETRY.', wcRejected: 'WALLETCONNECT CANCELLED — NOTHING WAS CONNECTED.', wcChainFail: 'COULD NOT SWITCH TO SEPOLIA — SWITCH MANUALLY IN YOUR WALLET.',
+    connRejected: 'CONNECTION REJECTED — TYPE YOUR 0x ADDRESS MANUALLY.', connFail: 'CONNECT FAILED: {err}', wcLoadFail: 'WALLETCONNECT FAILED TO LOAD — CHECK YOUR CONNECTION AND RETRY.', wcRejected: 'WALLETCONNECT CANCELLED — NOTHING WAS CONNECTED.', wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason} — TAP [ CONNECT WALLET ] TO RECONNECT.', wcChainFail: 'COULD NOT SWITCH TO SEPOLIA — SWITCH MANUALLY IN YOUR WALLET.',
     walletSwitched: 'WALLET SWITCHED TO {addr}.', walletDisconnected: 'WALLET DISCONNECTED.', walletConnectedTpl: 'WALLET CONNECTED: {addr} • Transactions use THIS address (OKX / WalletConnect / in-app wallet).', calibStart: 'CALIBRATING… TAP ON EACH OF THE 8 BEATS.',
     qltyEco: ' — WebGL off, static gradient background.', qltyUltra: ' — WebGL / moving grid.',
     voidLock: '🔒 VOID GENRE UNLOCKS AT LV5 — PLAY MORE SONGS TO EARN XP.',
@@ -165,7 +165,7 @@ const MSG = {
     glStatusTpl: 'WEBGL: {webgl} • QLTY: {q}{tail}', glTailEco: ' • BACKGROUND: STATIC GRADIENT', glTailUltra: ' • BACKGROUND: 3D / MOVING GRID',
     leagueWin: 'WIN ✓', leagueLose: 'LOSE',
     lbLoading: 'LOADING LEADERBOARD…', lbOffline: 'LEADERBOARD OFFLINE — CHECK YOUR CONNECTION.', lbEmpty: 'NO SCORES YET — BE THE FIRST.', lbSent: 'SCORE SENT — NEW BEST!', lbKept: 'SCORE SENT — YOUR BEST STANDS.', lbNeedWallet: 'CONNECT A WALLET FIRST TO SUBMIT YOUR SCORE.', lbNoScore: 'NO SCORE TO SUBMIT.', lbPractice: 'PRACTICE RUNS DO NOT COUNT.', lbYourRank: 'YOUR RANK #{rank} OF {total}', lbVerifying: 'WAITING FOR VERIFICATION…', lbVerified: 'VERIFIED ✓', lbVerifyRejected: 'VERIFICATION REJECTED — SCORE NOT ON THE BOARD.', lbVerifyRejectedReason: 'VERIFICATION REJECTED — {reason}. PLAY AGAIN AND RESUBMIT.', lbVerifyUnknown: 'VERIFICATION STATUS UNKNOWN — CHECK THE LEAGUE TAB.',
-    shopNeedWallet: 'CONNECT A WALLET FIRST TO USE THE SHOP.', shopOffline: 'SHOP OFFLINE — CHECK YOUR CONNECTION.', shopBought: 'BOUGHT {item} ✓', shopPulled: 'CAPSULE: {item} ({rarity}) ✓', shopDup: 'CAPSULE: {item} (DUPLICATE) → +{n} 🧀', shopEquipped: 'EQUIPPED {item} ✓', shopNoCheese: 'NOT ENOUGH 🧀 — PLAY A VERIFIED SONG TO EARN MORE.', shopOwned: 'ALREADY OWNED.', shopCapsuleOnly: 'CAPSULE ONLY — PULL TO WIN IT.', shopBalanceTpl: '🧀 BALANCE: {n}', shopBuyTpl: '[ BUY — {price} 🧀 ]', sqkPoolTpl: '🏆 PRIZE POOL: {pool} SQK', sqkSeasonTpl: 'SEASON ENDS: {date}', sqkSweepTpl: 'After the season ends, the remaining pool is swept to the owner 7 days later ({date}).', sqkSwept: 'PRIZE POOL SWEPT — SEASON OVER.', sqkBalanceTpl: 'SQK BALANCE: {n}', sqkBuyTpl: '[ BUY — {price} SQK ]', sqkOwnedTpl: 'OWNED ×{n}', sqkBought: 'BOUGHT {item} ✓', sqkEquipBtn: '[ EQUIP ]', sqkEquippedTpl: 'EQUIPPED ✓', sqkEquipped: 'EQUIPPED: {item} ✓ — YOUR NEXT SONG USES THE NEW SKIN.', sqkNotOwned: 'YOU DO NOT OWN {item} YET — BUY IT FIRST.', sqkEquipFail: 'CANNOT EQUIP THIS ITEM.', sqkNeedWallet: 'CONNECT A WALLET FIRST TO USE THE SQK SHOP.', sqkNoProvider: 'NO WALLET CONNECTED — TAP [ CONNECT WALLET ] TO CONNECT (WORKS WITH OKX, METAMASK AND OTHER WALLETS).', sqkWrongChain: 'SWITCH YOUR WALLET TO SEPOLIA TO BUY.', sqkNoSqk: 'NOT ENOUGH SQK.', sqkPermitRejected: 'SIGNATURE REJECTED — NOTHING WAS BOUGHT.', sqkTxRejected: 'TRANSACTION REJECTED — NOTHING WAS BOUGHT.', sqkWaiting: 'WAITING FOR CONFIRMATION…', sqkTxFail: 'TRANSACTION FAILED ON-CHAIN.', sqkShopOffline: 'SQK SHOP OFFLINE — CHECK YOUR CONNECTION.', sqkPityTpl: 'PITY: {n} / 20', sqkCommitBtn: '[ COMMIT CAPSULE — 2 SQK ]', sqkResolveBtn: '[ RESOLVE CAPSULE ]', sqkCommitted: 'CAPSULE COMMITTED (PULL #{pull}, ROUND {round}) — RESOLVE AFTER ROUND {round} SETTLES.', sqkResolved: 'CAPSULE: {item} ({rarity}) ✓', sqkDupKeju: 'CAPSULE: {item} ({rarity}, DUPLICATE) → +{n} 🧀', sqkRoundUnknown: 'CURRENT ROUND UNKNOWN — CHECK YOUR CONNECTION.', sqkNotSettled: 'ROUND {round} HAS NOT SETTLED YET — SETTLEMENTS ONLY HAPPEN WHEN THE HAMSTER RUNS (DAYTIME). TRY AGAIN AFTER THE MORNING RUN.', sqkNoPending: 'NO PENDING CAPSULE — COMMIT ONE FIRST.', sqkResolveFail: 'RESOLVE FAILED — CHECK THE WORKER / TRY AGAIN.', sqkRateLimited: 'TOO MANY REQUESTS — TRY AGAIN AT {time}.', lbRateLimited: 'TOO MANY SUBMITS — TRY AGAIN AT {time}.', lbRateLimitedNoTime: 'TOO MANY SUBMITS — TRY AGAIN IN A FEW MINUTES.', lbLullaby: 'LULLABY SCORES DO NOT COUNT — SWEET DREAMS.', ghostNapping: '😴 SQUEEKTOSHI IS ASLEEP — RACING HIS GHOST (SIMULATION).', ghostOffline: '❓ WHEEL OFFLINE — RACING A GHOST (SIMULATION).', ghostPaceTpl: 'GHOST PACE: {pace} m/s — REAL 7-DAY DAYTIME AVERAGE (SIMULATION, NOT LIVE DATA).', ghostWokeUp: '🐹 SQUEEKTOSHI WOKE UP — BACK TO THE LIVE HAMSTER!', dreamPlanted: 'DREAM SEED PLANTED 🌱 — PLAY A LULLABY TO WATER IT, HARVEST IN THE MORNING.', dreamAlready: 'A DREAM SEED IS ALREADY GROWING TONIGHT.', dreamNotNight: 'DREAM SEEDS ARE PLANTED AT NIGHT (19:00–06:00 WIB) OR WHILE THE HAMSTER SLEEPS.', dreamWatered: 'DREAM SEED WATERED 💧 — STAGE {stage}/2.', dreamNoSeed: 'NO DREAM SEED TO HARVEST — PLANT ONE TONIGHT.', dreamNotReady: 'THE SEED NEEDS WATER FIRST — PLAY A LULLABY TONIGHT.', dreamHarvested: 'HARVESTED +{n} 🧀 — SWEET DREAMS PAID OFF.', dreamNeedWallet: 'CONNECT OR TYPE A WALLET TO HARVEST.', dreamLineNone: 'No seed planted — plant one tonight (19:00–06:00) or while the hamster sleeps, then water it with a Lullaby song.', dreamLineDay: 'Dream Seeds grow at night (19:00–06:00) or while the hamster sleeps. The hamster is awake right now.', dreamLineStage: 'Seed planted {night} — stage {stage}/2. Play a Lullaby song to water it (2 = ready to harvest).', dreamHarvestFail: 'HARVEST FAILED — CHECK THE SERVER / TRY AGAIN.', modeLullaby: 'LULLABY — SLOW NIGHT SONG (60% TEMPO). SCORES ARE NOT SUBMITTED; +50 XP AND IT WATERS YOUR DREAM SEED.', lullabyInfo: 'A slow 60 BPM song for the night, while the hamster sleeps. No board submit — this is a lullaby, not a race. Finish it for +50 XP and to water your Dream Seed.', lullabyInfoAwake: 'The hamster is AWAKE right now — Lullaby is a slow night song (60% tempo). Scores are NOT submitted; +50 XP and it waters your Dream Seed.', sqkShopSoon: 'SQK SHOP COMING SOON — the shop contract is not deployed yet. SQK shopping opens after the deploy.', leagueWeeklyLoading: 'LOADING WEEKLY LEAGUE…', leagueWeeklyOffline: 'WEEKLY LEAGUE OFFLINE — CHECK YOUR CONNECTION.', leagueWeeklyYourRank: 'YOUR WEEK RANK #{rank}',
+    shopNeedWallet: 'CONNECT A WALLET FIRST TO USE THE SHOP.', shopOffline: 'SHOP OFFLINE — CHECK YOUR CONNECTION.', shopBought: 'BOUGHT {item} ✓', shopPulled: 'CAPSULE: {item} ({rarity}) ✓', shopDup: 'CAPSULE: {item} (DUPLICATE) → +{n} 🧀', shopEquipped: 'EQUIPPED {item} ✓', shopUnequipped: 'UNEQUIPPED {item} ✓', shopNoCheese: 'NOT ENOUGH 🧀 — PLAY A VERIFIED SONG TO EARN MORE.', shopOwned: 'ALREADY OWNED.', shopCapsuleOnly: 'CAPSULE ONLY — PULL TO WIN IT.', shopBalanceTpl: '🧀 BALANCE: {n}', shopBuyTpl: '[ BUY — {price} 🧀 ]', sqkPoolTpl: '🏆 PRIZE POOL: {pool} SQK', sqkSeasonTpl: 'SEASON ENDS: {date}', sqkSweepTpl: 'After the season ends, the remaining pool is swept to the owner 7 days later ({date}).', sqkSwept: 'PRIZE POOL SWEPT — SEASON OVER.', sqkBalanceTpl: 'SQK BALANCE: {n}', sqkBuyTpl: '[ BUY — {price} SQK ]', sqkOwnedTpl: 'OWNED ×{n}', sqkBought: 'BOUGHT {item} ✓', sqkEquipBtn: '[ EQUIP ]', sqkEquippedTpl: 'EQUIPPED ✓', sqkEquipped: 'EQUIPPED: {item} ✓ — YOUR NEXT SONG USES THE NEW SKIN.', sqkUnequipBtn: '[ UNEQUIP ]', sqkUnequipped: 'UNEQUIPPED: {item} ✓ — BACK TO DEFAULT.', sqkNotOwned: 'YOU DO NOT OWN {item} YET — BUY IT FIRST.', sqkEquipFail: 'CANNOT EQUIP THIS ITEM.', sqkNeedWallet: 'CONNECT A WALLET FIRST TO USE THE SQK SHOP.', sqkNoProvider: 'NO WALLET CONNECTED — TAP [ CONNECT WALLET ] TO CONNECT (WORKS WITH OKX, METAMASK AND OTHER WALLETS).', sqkWrongChain: 'SWITCH YOUR WALLET TO SEPOLIA TO BUY.', sqkNoSqk: 'NOT ENOUGH SQK.', sqkPermitRejected: 'SIGNATURE REJECTED — NOTHING WAS BOUGHT.', sqkTxRejected: 'TRANSACTION REJECTED — NOTHING WAS BOUGHT.', sqkWaiting: 'WAITING FOR CONFIRMATION…', sqkTxFail: 'TRANSACTION FAILED ON-CHAIN.', sqkShopOffline: 'SQK SHOP OFFLINE — CHECK YOUR CONNECTION.', sqkPityTpl: 'PITY: {n} / 20', sqkCommitBtn: '[ COMMIT CAPSULE — 2 SQK ]', sqkResolveBtn: '[ RESOLVE CAPSULE ]', sqkCommitted: 'CAPSULE COMMITTED (PULL #{pull}, ROUND {round}) — RESOLVE AFTER ROUND {round} SETTLES.', sqkResolved: 'CAPSULE: {item} ({rarity}) ✓', sqkDupKeju: 'CAPSULE: {item} ({rarity}, DUPLICATE) → +{n} 🧀', sqkRoundUnknown: 'CURRENT ROUND UNKNOWN — CHECK YOUR CONNECTION.', sqkNotSettled: 'ROUND {round} HAS NOT SETTLED YET — SETTLEMENTS ONLY HAPPEN WHEN THE HAMSTER RUNS (DAYTIME). TRY AGAIN AFTER THE MORNING RUN.', sqkNoPending: 'NO PENDING CAPSULE — COMMIT ONE FIRST.', sqkResolveFail: 'RESOLVE FAILED — CHECK THE WORKER / TRY AGAIN.', sqkRateLimited: 'TOO MANY REQUESTS — TRY AGAIN AT {time}.', lbRateLimited: 'TOO MANY SUBMITS — TRY AGAIN AT {time}.', lbRateLimitedNoTime: 'TOO MANY SUBMITS — TRY AGAIN IN A FEW MINUTES.', lbSlow: 'SLOW CONNECTION — TRY AGAIN.', lbRetrying: 'SLOW CONNECTION — RETRYING…', lbLullaby: 'LULLABY SCORES DO NOT COUNT — SWEET DREAMS.', ghostNapping: '😴 SQUEEKTOSHI IS ASLEEP — RACING HIS GHOST (SIMULATION).', ghostOffline: '❓ WHEEL OFFLINE — RACING A GHOST (SIMULATION).', ghostPaceTpl: 'GHOST PACE: {pace} m/s — REAL 7-DAY DAYTIME AVERAGE (SIMULATION, NOT LIVE DATA).', ghostWokeUp: '🐹 SQUEEKTOSHI WOKE UP — BACK TO THE LIVE HAMSTER!', dreamPlanted: 'DREAM SEED PLANTED 🌱 — PLAY A LULLABY TO WATER IT, HARVEST IN THE MORNING.', dreamAlready: 'A DREAM SEED IS ALREADY GROWING TONIGHT.', dreamNotNight: 'DREAM SEEDS ARE PLANTED AT NIGHT (19:00–06:00 WIB) OR WHILE THE HAMSTER SLEEPS.', dreamWatered: 'DREAM SEED WATERED 💧 — STAGE {stage}/2.', dreamNoSeed: 'NO DREAM SEED TO HARVEST — PLANT ONE TONIGHT.', dreamNotReady: 'THE SEED NEEDS WATER FIRST — PLAY A LULLABY TONIGHT.', dreamHarvested: 'HARVESTED +{n} 🧀 — SWEET DREAMS PAID OFF.', dreamNeedWallet: 'CONNECT OR TYPE A WALLET TO HARVEST.', dreamLineNone: 'No seed planted — plant one tonight (19:00–06:00) or while the hamster sleeps, then water it with a Lullaby song.', dreamLineDay: 'Dream Seeds grow at night (19:00–06:00) or while the hamster sleeps. The hamster is awake right now.', dreamLineStage: 'Seed planted {night} — stage {stage}/2. Play a Lullaby song to water it (2 = ready to harvest).', dreamHarvestFail: 'HARVEST FAILED — CHECK THE SERVER / TRY AGAIN.', modeLullaby: 'LULLABY — SLOW NIGHT SONG (60% TEMPO). SCORES ARE NOT SUBMITTED; +50 XP AND IT WATERS YOUR DREAM SEED.', lullabyInfo: 'A slow 60 BPM song for the night, while the hamster sleeps. No board submit — this is a lullaby, not a race. Finish it for +50 XP and to water your Dream Seed.', lullabyInfoAwake: 'The hamster is AWAKE right now — Lullaby is a slow night song (60% tempo). Scores are NOT submitted; +50 XP and it waters your Dream Seed.', sqkShopSoon: 'SQK SHOP COMING SOON — the shop contract is not deployed yet. SQK shopping opens after the deploy.', leagueWeeklyLoading: 'LOADING WEEKLY LEAGUE…', leagueWeeklyOffline: 'WEEKLY LEAGUE OFFLINE — CHECK YOUR CONNECTION.', leagueWeeklyYourRank: 'YOUR WEEK RANK #{rank}',
     leagueRowTpl: 'YOU {mine} vs {rival} {theirs} — {result} • {date}',
     roundHistRowTpl: '{key} — {label} (AVG {avg} RPM, {n} SAMPLES, ~{work} WORK, {blocks} BLOCKS) — {state}',
     chainUnknown: 'CHAIN STATE UNKNOWN [{status}] — SHOWING NOTHING AS ZERO.',
@@ -248,7 +248,7 @@ const MSG = {
     noWallet: 'TIDAK ADA WALLET DI BROWSER INI — KETIK ALAMAT 0x SECARA MANUAL.',
     walletInvalid: 'WALLET TIDAK MENGEMBALIKAN ALAMAT VALID — KETIK ALAMAT 0x SECARA MANUAL.',
     walletConnected: 'WALLET TERHUBUNG: {addr} — HANYA ALAMAT, TANPA SIGNATURE.',
-    connRejected: 'KONEKSI DITOLAK — KETIK ALAMAT 0x SECARA MANUAL.', connFail: 'KONEKSI GAGAL: {err}', wcLoadFail: 'WALLETCONNECT GAGAL DIMUAT — PERIKSA KONEKSIMU DAN COBA LAGI.', wcRejected: 'WALLETCONNECT DIBATALKAN — TIDAK ADA YANG TERHUBUNG.', wcChainFail: 'TIDAK BISA PINDAH KE SEPOLIA — PINDAH MANUAL DI WALLETMU.',
+    connRejected: 'KONEKSI DITOLAK — KETIK ALAMAT 0x SECARA MANUAL.', connFail: 'KONEKSI GAGAL: {err}', wcLoadFail: 'WALLETCONNECT GAGAL DIMUAT — PERIKSA KONEKSIMU DAN COBA LAGI.', wcRejected: 'WALLETCONNECT DIBATALKAN — TIDAK ADA YANG TERHUBUNG.', wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason} — KETUK [ CONNECT WALLET ] UNTUK MENGHUBUNGKAN LAGI.', wcChainFail: 'TIDAK BISA PINDAH KE SEPOLIA — PINDAH MANUAL DI WALLETMU.',
     walletSwitched: 'WALLET BERGANTI KE {addr}.', walletDisconnected: 'WALLET TERPUTUS.', walletConnectedTpl: 'WALLET TERHUBUNG: {addr} • Transaksi memakai alamat INI (OKX / WalletConnect / wallet dalam aplikasi).', calibStart: 'MENGALIBRASI… KETUK DI SETIAP DARI 8 KETUKAN.',
     qltyEco: ' — WebGL mati, latar gradien statis.', qltyUltra: ' — WebGL / grid bergerak.',
     voidLock: '🔒 GENRE VOID TERBUKA DI LV5 — MAIN LAGU LAGI UNTUK XP.',
@@ -292,7 +292,7 @@ const MSG = {
     glStatusTpl: 'WEBGL: {webgl} • KUALITAS: {q}{tail}', glTailEco: ' • LATAR: GRADIEN STATIS', glTailUltra: ' • LATAR: 3D / GRID BERGERAK',
     leagueWin: 'MENANG ✓', leagueLose: 'KALAH',
     lbLoading: 'MEMUAT LEADERBOARD…', lbOffline: 'LEADERBOARD OFFLINE — PERIKSA KONEKSIMU.', lbEmpty: 'BELUM ADA SKOR — JADILAH YANG PERTAMA.', lbSent: 'SKOR TERKIRIM — REKOR BARU!', lbKept: 'SKOR TERKIRIM — REKORMU TETAP.', lbNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK KIRIM SKOR.', lbNoScore: 'TIDAK ADA SKOR UNTUK DIKIRIM.', lbPractice: 'LATIHAN TIDAK DIHITUNG.', lbYourRank: 'PERINGKATMU #{rank} DARI {total}', lbVerifying: 'MENUNGGU VERIFIKASI…', lbVerified: 'TERVERIFIKASI ✓', lbVerifyRejected: 'VERIFIKASI DITOLAK — SKOR TIDAK MASUK BOARD.', lbVerifyRejectedReason: 'VERIFIKASI DITOLAK — {reason}. MAIN ULANG DAN KIRIM LAGI.', lbVerifyUnknown: 'STATUS VERIFIKASI BELUM DIKETAHUI — CEK TAB LEAGUE.',
-    shopNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK MEMAKAI TOKO.', shopOffline: 'TOKO OFFLINE — PERIKSA KONEKSIMU.', shopBought: 'TERBELI {item} ✓', shopPulled: 'KAPSUL: {item} ({rarity}) ✓', shopDup: 'KAPSUL: {item} (DUPLIKAT) → +{n} 🧀', shopEquipped: 'DIPAKAI {item} ✓', shopNoCheese: '🧀 TIDAK CUKUP — MAIN SATU LAGU TERVERIFIKASI UNTUK DAPAT LEBIH.', shopOwned: 'SUDAH DIMILIKI.', shopCapsuleOnly: 'HANYA KAPSUL — TARIK UNTUK MENDAPATKANNYA.', shopBalanceTpl: '🧀 SALDO: {n}', shopBuyTpl: '[ BELI — {price} 🧀 ]', sqkPoolTpl: '🏆 PRIZE POOL: {pool} SQK', sqkSeasonTpl: 'MUSIM BERAKHIR: {date}', sqkSweepTpl: 'Setelah musim berakhir, sisa pool disapu ke owner 7 hari kemudian ({date}).', sqkSwept: 'PRIZE POOL SUDAH DISAPU — MUSIM SELESAI.', sqkBalanceTpl: 'SALDO SQK: {n}', sqkBuyTpl: '[ BELI — {price} SQK ]', sqkOwnedTpl: 'DIMILIKI ×{n}', sqkBought: 'TERBELI {item} ✓', sqkEquipBtn: '[ PAKAI ]', sqkEquippedTpl: 'DIPAKAI ✓', sqkEquipped: 'DIPAKAI: {item} ✓ — LAGU BERIKUTNYA PAKAI SKIN BARU.', sqkNotOwned: 'KAMU BELUM MEMILIKI {item} — BELI DULU.', sqkEquipFail: 'TIDAK BISA MEMAKAI ITEM INI.', sqkNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK MEMAKAI TOKO SQK.', sqkNoProvider: 'WALLET BELUM TERHUBUNG — TEKAN [ HUBUNGKAN WALLET ] UNTUK CONNECT (OKX, METAMASK, DLL).', sqkWrongChain: 'PINDAHKAN WALLETMU KE SEPOLIA UNTUK MEMBELI.', sqkNoSqk: 'SQK TIDAK CUKUP.', sqkPermitRejected: 'SIGNATURE DITOLAK — TIDAK ADA YANG TERBELI.', sqkTxRejected: 'TRANSAKSI DITOLAK — TIDAK ADA YANG TERBELI.', sqkWaiting: 'MENUNGGU KONFIRMASI…', sqkTxFail: 'TRANSAKSI GAGAL ON-CHAIN.', sqkShopOffline: 'TOKO SQK OFFLINE — PERIKSA KONEKSIMU.', sqkPityTpl: 'PITY: {n} / 20', sqkCommitBtn: '[ COMMIT KAPSUL — 2 SQK ]', sqkResolveBtn: '[ RESOLVE KAPSUL ]', sqkCommitted: 'KAPSUL DI-COMMIT (PULL #{pull}, RONDE {round}) — RESOLVE SETELAH RONDE {round} SETTLED.', sqkResolved: 'KAPSUL: {item} ({rarity}) ✓', sqkDupKeju: 'KAPSUL: {item} ({rarity}, DUPLIKAT) → +{n} 🧀', sqkRoundUnknown: 'RONDE SAAT INI TIDAK DIKETAHUI — PERIKSA KONEKSIMU.', sqkNotSettled: 'RONDE {round} BELUM SETTLED — SETTLEMENT HANYA TERJADI SAAT HAMSTER LARI (SIANG HARI). COBA LAGI SETELAH LARI PAGI.', sqkNoPending: 'TIDAK ADA KAPSUL TERTUNDA — COMMIT DULU.', sqkResolveFail: 'RESOLVE GAGAL — PERIKSA WORKER / COBA LAGI.', sqkRateLimited: 'TERLALU SERING — COBA LAGI {time}.', lbRateLimited: 'TERLALU SERING KIRIM SKOR — COBA LAGI {time}.', lbRateLimitedNoTime: 'TERLALU SERING KIRIM SKOR — COBA LAGI BEBERAPA MENIT LAGI.', lbLullaby: 'SKOR LULLABY TIDAK DIHITUNG — SELAMAT TIDUR.', ghostNapping: '😴 SQUEEKTOSHI TIDUR — BALAPAN MELAWAN HANTUNYA (SIMULASI).', ghostOffline: '❓ RODA OFFLINE — BALAPAN MELAWAN HANTU (SIMULASI).', ghostPaceTpl: 'PACE HANTU: {pace} m/dtk — RATA-RATA SIANG ASLI 7 HARI (SIMULASI, BUKAN DATA LIVE).', ghostWokeUp: '🐹 SQUEEKTOSHI BANGUN — KEMBALI KE HAMSTER ASLI!', dreamPlanted: 'DREAM SEED DITANAM 🌱 — MAIN LULLABY UNTUK MENYIRAM, PANEN PAGI HARI.', dreamAlready: 'SUDAH ADA DREAM SEED YANG TUMBUH MALAM INI.', dreamNotNight: 'DREAM SEED DITANAM DI MALAM HARI (19:00–06:00 WIB) ATAU SAAT HAMSTER TIDUR.', dreamWatered: 'DREAM SEED DISIRAM 💧 — TAHAP {stage}/2.', dreamNoSeed: 'TIDAK ADA DREAM SEED UNTUK DIPANEN — TANAM MALAM INI.', dreamNotReady: 'BENIH PERLU DISIRAM DULU — MAIN LULLABY MALAM INI.', dreamHarvested: 'PANEN +{n} 🧀 — MIMPI INDAH BERBUAH.', dreamNeedWallet: 'HUBUNGKAN ATAU KETIK WALLET UNTUK PANEN.', dreamLineNone: 'Belum ada benih — tanam malam ini (19:00–06:00) atau saat hamster tidur, lalu siram dengan lagu Lullaby.', dreamLineDay: 'Dream Seed tumbuh di malam hari (19:00–06:00) atau saat hamster tidur. Hamster sedang bangun sekarang.', dreamLineStage: 'Benih ditanam {night} — tahap {stage}/2. Mainkan lagu Lullaby untuk menyiram (2 = siap panen).', dreamHarvestFail: 'PANEN GAGAL — PERIKSA SERVER / COBA LAGI.', modeLullaby: 'LULLABY — LAGU MALAM PELAN (TEMPO 60%). SKOR TIDAK DISUBMIT; +50 XP DAN MENYIRAM DREAM SEED.', lullabyInfo: 'Lagu pelan 60 BPM untuk malam hari, saat hamster tidur. Tidak masuk board — ini lagu pengantar tidur, bukan balapan. Selesaikan untuk +50 XP dan menyiram Dream Seed.', lullabyInfoAwake: 'Hamster sedang BANGUN sekarang — Lullaby adalah lagu malam yang pelan (tempo 60%). Skor TIDAK disubmit; +50 XP dan menyiram Dream Seed kamu.', sqkShopSoon: 'TOKO SQK SEGERA HADIR — kontrak toko belum di-deploy. Belanja SQK dibuka setelah deploy.', leagueWeeklyLoading: 'MEMUAT LIGA MINGGUAN…', leagueWeeklyOffline: 'LIGA MINGGUAN OFFLINE — PERIKSA KONEKSIMU.', leagueWeeklyYourRank: 'PERINGKAT MINGGUMU #{rank}',
+    shopNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK MEMAKAI TOKO.', shopOffline: 'TOKO OFFLINE — PERIKSA KONEKSIMU.', shopBought: 'TERBELI {item} ✓', shopPulled: 'KAPSUL: {item} ({rarity}) ✓', shopDup: 'KAPSUL: {item} (DUPLIKAT) → +{n} 🧀', shopEquipped: 'DIPAKAI {item} ✓', shopUnequipped: 'DILEPAS {item} ✓', shopNoCheese: '🧀 TIDAK CUKUP — MAIN SATU LAGU TERVERIFIKASI UNTUK DAPAT LEBIH.', shopOwned: 'SUDAH DIMILIKI.', shopCapsuleOnly: 'HANYA KAPSUL — TARIK UNTUK MENDAPATKANNYA.', shopBalanceTpl: '🧀 SALDO: {n}', shopBuyTpl: '[ BELI — {price} 🧀 ]', sqkPoolTpl: '🏆 PRIZE POOL: {pool} SQK', sqkSeasonTpl: 'MUSIM BERAKHIR: {date}', sqkSweepTpl: 'Setelah musim berakhir, sisa pool disapu ke owner 7 hari kemudian ({date}).', sqkSwept: 'PRIZE POOL SUDAH DISAPU — MUSIM SELESAI.', sqkBalanceTpl: 'SALDO SQK: {n}', sqkBuyTpl: '[ BELI — {price} SQK ]', sqkOwnedTpl: 'DIMILIKI ×{n}', sqkBought: 'TERBELI {item} ✓', sqkEquipBtn: '[ PAKAI ]', sqkEquippedTpl: 'DIPAKAI ✓', sqkEquipped: 'DIPAKAI: {item} ✓ — LAGU BERIKUTNYA PAKAI SKIN BARU.', sqkUnequipBtn: '[ LEPAS ]', sqkUnequipped: 'DILEPAS: {item} ✓ — KEMBALI KE DEFAULT.', sqkNotOwned: 'KAMU BELUM MEMILIKI {item} — BELI DULU.', sqkEquipFail: 'TIDAK BISA MEMAKAI ITEM INI.', sqkNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK MEMAKAI TOKO SQK.', sqkNoProvider: 'WALLET BELUM TERHUBUNG — TEKAN [ HUBUNGKAN WALLET ] UNTUK CONNECT (OKX, METAMASK, DLL).', sqkWrongChain: 'PINDAHKAN WALLETMU KE SEPOLIA UNTUK MEMBELI.', sqkNoSqk: 'SQK TIDAK CUKUP.', sqkPermitRejected: 'SIGNATURE DITOLAK — TIDAK ADA YANG TERBELI.', sqkTxRejected: 'TRANSAKSI DITOLAK — TIDAK ADA YANG TERBELI.', sqkWaiting: 'MENUNGGU KONFIRMASI…', sqkTxFail: 'TRANSAKSI GAGAL ON-CHAIN.', sqkShopOffline: 'TOKO SQK OFFLINE — PERIKSA KONEKSIMU.', sqkPityTpl: 'PITY: {n} / 20', sqkCommitBtn: '[ COMMIT KAPSUL — 2 SQK ]', sqkResolveBtn: '[ RESOLVE KAPSUL ]', sqkCommitted: 'KAPSUL DI-COMMIT (PULL #{pull}, RONDE {round}) — RESOLVE SETELAH RONDE {round} SETTLED.', sqkResolved: 'KAPSUL: {item} ({rarity}) ✓', sqkDupKeju: 'KAPSUL: {item} ({rarity}, DUPLIKAT) → +{n} 🧀', sqkRoundUnknown: 'RONDE SAAT INI TIDAK DIKETAHUI — PERIKSA KONEKSIMU.', sqkNotSettled: 'RONDE {round} BELUM SETTLED — SETTLEMENT HANYA TERJADI SAAT HAMSTER LARI (SIANG HARI). COBA LAGI SETELAH LARI PAGI.', sqkNoPending: 'TIDAK ADA KAPSUL TERTUNDA — COMMIT DULU.', sqkResolveFail: 'RESOLVE GAGAL — PERIKSA WORKER / COBA LAGI.', sqkRateLimited: 'TERLALU SERING — COBA LAGI {time}.', lbRateLimited: 'TERLALU SERING KIRIM SKOR — COBA LAGI {time}.', lbRateLimitedNoTime: 'TERLALU SERING KIRIM SKOR — COBA LAGI BEBERAPA MENIT LAGI.', lbSlow: 'KONEKSI LAMBAT — COBA LAGI.', lbRetrying: 'KONEKSI LAMBAT — MENCOBA LAGI…', lbLullaby: 'SKOR LULLABY TIDAK DIHITUNG — SELAMAT TIDUR.', ghostNapping: '😴 SQUEEKTOSHI TIDUR — BALAPAN MELAWAN HANTUNYA (SIMULASI).', ghostOffline: '❓ RODA OFFLINE — BALAPAN MELAWAN HANTU (SIMULASI).', ghostPaceTpl: 'PACE HANTU: {pace} m/dtk — RATA-RATA SIANG ASLI 7 HARI (SIMULASI, BUKAN DATA LIVE).', ghostWokeUp: '🐹 SQUEEKTOSHI BANGUN — KEMBALI KE HAMSTER ASLI!', dreamPlanted: 'DREAM SEED DITANAM 🌱 — MAIN LULLABY UNTUK MENYIRAM, PANEN PAGI HARI.', dreamAlready: 'SUDAH ADA DREAM SEED YANG TUMBUH MALAM INI.', dreamNotNight: 'DREAM SEED DITANAM DI MALAM HARI (19:00–06:00 WIB) ATAU SAAT HAMSTER TIDUR.', dreamWatered: 'DREAM SEED DISIRAM 💧 — TAHAP {stage}/2.', dreamNoSeed: 'TIDAK ADA DREAM SEED UNTUK DIPANEN — TANAM MALAM INI.', dreamNotReady: 'BENIH PERLU DISIRAM DULU — MAIN LULLABY MALAM INI.', dreamHarvested: 'PANEN +{n} 🧀 — MIMPI INDAH BERBUAH.', dreamNeedWallet: 'HUBUNGKAN ATAU KETIK WALLET UNTUK PANEN.', dreamLineNone: 'Belum ada benih — tanam malam ini (19:00–06:00) atau saat hamster tidur, lalu siram dengan lagu Lullaby.', dreamLineDay: 'Dream Seed tumbuh di malam hari (19:00–06:00) atau saat hamster tidur. Hamster sedang bangun sekarang.', dreamLineStage: 'Benih ditanam {night} — tahap {stage}/2. Mainkan lagu Lullaby untuk menyiram (2 = siap panen).', dreamHarvestFail: 'PANEN GAGAL — PERIKSA SERVER / COBA LAGI.', modeLullaby: 'LULLABY — LAGU MALAM PELAN (TEMPO 60%). SKOR TIDAK DISUBMIT; +50 XP DAN MENYIRAM DREAM SEED.', lullabyInfo: 'Lagu pelan 60 BPM untuk malam hari, saat hamster tidur. Tidak masuk board — ini lagu pengantar tidur, bukan balapan. Selesaikan untuk +50 XP dan menyiram Dream Seed.', lullabyInfoAwake: 'Hamster sedang BANGUN sekarang — Lullaby adalah lagu malam yang pelan (tempo 60%). Skor TIDAK disubmit; +50 XP dan menyiram Dream Seed kamu.', sqkShopSoon: 'TOKO SQK SEGERA HADIR — kontrak toko belum di-deploy. Belanja SQK dibuka setelah deploy.', leagueWeeklyLoading: 'MEMUAT LIGA MINGGUAN…', leagueWeeklyOffline: 'LIGA MINGGUAN OFFLINE — PERIKSA KONEKSIMU.', leagueWeeklyYourRank: 'PERINGKAT MINGGUMU #{rank}',
     leagueRowTpl: 'KAMU {mine} vs {rival} {theirs} — {result} • {date}',
     roundHistRowTpl: '{key} — {label} (RATA-RATA {avg} RPM, {n} SAMPEL, ~{work} KERJA, {blocks} BLOK) — {state}',
     chainUnknown: 'STATUS CHAIN TIDAK DIKETAHUI [{status}] — TIDAK ADA YANG DITAMPILKAN SEBAGAI NOL.',
@@ -353,7 +353,7 @@ const I18N = {
     roundHistEmpty: 'No finished rounds recorded yet — keep this page open and rounds settle here.',
     cardBarLbl: 'ID CARD — TAP TO OPEN',
     forgetWallet: '[ FORGET SAVED WALLET ]', pauseTitle: 'PAUSED', pauseCalib: '[ CALIBRATE ]', pauseResume: '[ RESUME ]', pauseExit: '[ EXIT ]', pauseSure: '[ SURE? TAP AGAIN ]', backToGame: '[ BACK TO GAME ]',
-    shopTitle: 'CHEESE SHOP — SPEND KEJU, NOT MONEY', shopNote: 'Keju is earned by playing: 100 per verified song, +500 for grade S, +50 for the daily mission (first verified song of the day). Capsule: 100 Keju per pull. Cosmetics only — nothing here makes you stronger.', capsuleTitle: 'CHEESE CAPSULE — 100 KEJU / PULL', capsuleBtn: '[ PULL CAPSULE — 100 🧀 ]', equipBtn: '[ EQUIP ]', equippedLbl: 'EQUIPPED ✓', ownedLbl: 'OWNED', capsuleOnlyLbl: 'CAPSULE ONLY', leagueWeekly: 'WEEKLY LEAGUE — TOP 30 THIS WEEK', leagueWeekNote: 'Best FREE score of the week. Resets every Monday 19:00 WIB.', leagueWeeklyEmpty: 'No weekly scores yet — play a FREE song and verify it to join this week.',
+    shopTitle: 'CHEESE SHOP — SPEND KEJU, NOT MONEY', shopNote: 'Keju is earned by playing: 100 per verified song, +500 for grade S, +50 for the daily mission (first verified song of the day). Capsule: 100 Keju per pull. Cosmetics only — nothing here makes you stronger.', capsuleTitle: 'CHEESE CAPSULE — 100 KEJU / PULL', capsuleBtn: '[ PULL CAPSULE — 100 🧀 ]', equipBtn: '[ EQUIP ]', unequipBtn: '[ UNEQUIP ]', equippedLbl: 'EQUIPPED ✓', ownedLbl: 'OWNED', capsuleOnlyLbl: 'CAPSULE ONLY', leagueWeekly: 'WEEKLY LEAGUE — TOP 30 THIS WEEK', leagueWeekNote: 'Best FREE score of the week. Resets every Monday 19:00 WIB.', leagueWeeklyEmpty: 'No weekly scores yet — play a FREE song and verify it to join this week.',
     sqkShopTitle: 'SQK SHOP — COSMETICS FOR SQK (TESTNET)', sqkShopNote: 'Cosmetics only — nothing here makes you stronger. You pay with SQK (Sepolia testnet, no real money value) via permit: 1 signature + 1 transaction, exact amount, 10-minute deadline. NO unlimited approval, ever.', sqkShopSoon: 'SQK SHOP COMING SOON — the shop contract is not deployed yet. SQK shopping opens after the deploy.', sqkPoolTpl: '🏆 PRIZE POOL: {pool} SQK', sqkSeasonTpl: 'SEASON ENDS: {date}', sqkSweepTpl: 'After the season ends, the remaining pool is swept to the owner 7 days later ({date}).', sqkSwept: 'PRIZE POOL SWEPT — SEASON OVER.', sqkBalanceTpl: 'SQK BALANCE: {n}', sqkBuyTpl: '[ BUY — {price} SQK ]', sqkOwnedTpl: 'OWNED ×{n}', sqkBought: 'BOUGHT {item} ✓', sqkEquipBtn: '[ EQUIP ]', sqkEquippedTpl: 'EQUIPPED ✓', sqkEquipped: 'EQUIPPED: {item} ✓ — YOUR NEXT SONG USES THE NEW SKIN.', sqkNotOwned: 'YOU DO NOT OWN {item} YET — BUY IT FIRST.', sqkEquipFail: 'CANNOT EQUIP THIS ITEM.', sqkNeedWallet: 'CONNECT A WALLET FIRST TO USE THE SQK SHOP.', sqkNoProvider: 'NO WALLET CONNECTED — TAP [ CONNECT WALLET ] TO CONNECT (WORKS WITH OKX, METAMASK AND OTHER WALLETS).', sqkWrongChain: 'SWITCH YOUR WALLET TO SEPOLIA TO BUY.', sqkNoSqk: 'NOT ENOUGH SQK.', sqkPermitRejected: 'SIGNATURE REJECTED — NOTHING WAS BOUGHT.', sqkTxRejected: 'TRANSACTION REJECTED — NOTHING WAS BOUGHT.', sqkWaiting: 'WAITING FOR CONFIRMATION…', sqkTxFail: 'TRANSACTION FAILED ON-CHAIN.', sqkShopOffline: 'SQK SHOP OFFLINE — CHECK YOUR CONNECTION.', sqkCapsuleTitle: 'GOLDEN CAPSULE — 2 SQK / PULL', sqkCapsuleOdds: 'ODDS: COMMON 70% • RARE 22% • EPIC 7% • LEGENDARY 1%. Duplicate → Keju compensation (25/50/100/250). Hard pity: pull 20 is at least RARE.', sqkPityTpl: 'PITY: {n} / 20', sqkCommitBtn: '[ COMMIT CAPSULE — 2 SQK ]', sqkResolveBtn: '[ RESOLVE CAPSULE ]', sqkCommitted: 'CAPSULE COMMITTED (PULL #{pull}, ROUND {round}) — RESOLVE AFTER ROUND {round} SETTLES.', sqkResolved: 'CAPSULE: {item} ({rarity}) ✓', sqkDupKeju: 'CAPSULE: {item} ({rarity}, DUPLICATE) → +{n} 🧀', sqkRoundUnknown: 'CURRENT ROUND UNKNOWN — CHECK YOUR CONNECTION.', sqkNotSettled: 'ROUND {round} HAS NOT SETTLED YET — SETTLEMENTS ONLY HAPPEN WHEN THE HAMSTER RUNS (DAYTIME). TRY AGAIN AFTER THE MORNING RUN.', sqkNoPending: 'NO PENDING CAPSULE — COMMIT ONE FIRST.', sqkResolveFail: 'RESOLVE FAILED — CHECK THE WORKER / TRY AGAIN.', tagline: 'Your high score depends on a hamster.', walletManualNote: 'MANUAL — type an address to play & submit scores without connecting a wallet. This is NOT a connection.', disconnect: '[ DISCONNECT ]', modeLullaby: 'LULLABY', lullabyInfo: 'A slow 60 BPM song for the night, while the hamster sleeps. No board submit — this is a lullaby, not a race. Finish it for +50 XP and to water your Dream Seed.', dreamTitle: 'DREAM SEEDS — GROW OVERNIGHT', dreamPlant: '[ PLANT DREAM SEED ]', dreamHarvest: '[ HARVEST ]' },
   id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', connectedTpl: '[ TERHUBUNG: {addr} ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', lbTitle: 'LEADERBOARD GLOBAL — SKOR TERATAS', lbNote: 'Skor bersifat publik. Walletmu tampil terpotong.', lbRefresh: '[ MUAT ULANG ]', lbSubmit: '[ KIRIM SKOR ]', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR', chainTitle: 'CHAIN — LIVE DARI SQUEEKCORE', chainLoading: 'MENGAMBIL STATUS CHAIN…', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI',
     warn: '⚠️ Hanya alamat 0x. JANGAN PERNAH memasukkan seed phrase / private key di sini, di mana pun.',
@@ -375,7 +375,7 @@ const I18N = {
     roundHistEmpty: 'Belum ada ronde selesai yang tercatat — biarkan halaman ini terbuka dan ronde akan tercatat di sini.',
     cardBarLbl: 'KARTU ID — KETUK UNTUK BUKA',
     forgetWallet: '[ LUPAKAN WALLET TERSIMPAN ]', pauseTitle: 'DIJEDA', pauseCalib: '[ KALIBRASI ]', pauseResume: '[ LANJUT ]', pauseExit: '[ KELUAR ]', pauseSure: '[ YAKIN? KETUK LAGI ]', backToGame: '[ KEMBALI KE GAME ]',
-    shopTitle: 'TOKO KEJU — BELANJA PAKAI KEJU', shopNote: 'Keju didapat dari bermain: 100 per lagu terverifikasi, +500 untuk grade S, +50 untuk misi harian (lagu terverifikasi pertama hari itu). Kapsul: 100 Keju per pull. Kosmetik saja — tidak ada yang membuatmu lebih kuat.', capsuleTitle: 'KAPSUL KEJU — 100 KEJU / PULL', capsuleBtn: '[ TARIK KAPSUL — 100 🧀 ]', equipBtn: '[ PAKAI ]', equippedLbl: 'DIPAKAI ✓', ownedLbl: 'DIMILIKI', capsuleOnlyLbl: 'HANYA KAPSUL', leagueWeekly: 'LIGA MINGGUAN — 30 TERATAS MINGGU INI', leagueWeekNote: 'Skor FREE terbaik minggu ini. Reset tiap Senin 19:00 WIB.', leagueWeeklyEmpty: 'Belum ada skor minggu ini — main satu lagu FREE dan verifikasi untuk ikut minggu ini.',
+    shopTitle: 'TOKO KEJU — BELANJA PAKAI KEJU', shopNote: 'Keju didapat dari bermain: 100 per lagu terverifikasi, +500 untuk grade S, +50 untuk misi harian (lagu terverifikasi pertama hari itu). Kapsul: 100 Keju per pull. Kosmetik saja — tidak ada yang membuatmu lebih kuat.', capsuleTitle: 'KAPSUL KEJU — 100 KEJU / PULL', capsuleBtn: '[ TARIK KAPSUL — 100 🧀 ]', equipBtn: '[ PAKAI ]', unequipBtn: '[ LEPAS ]', equippedLbl: 'DIPAKAI ✓', ownedLbl: 'DIMILIKI', capsuleOnlyLbl: 'HANYA KAPSUL', leagueWeekly: 'LIGA MINGGUAN — 30 TERATAS MINGGU INI', leagueWeekNote: 'Skor FREE terbaik minggu ini. Reset tiap Senin 19:00 WIB.', leagueWeeklyEmpty: 'Belum ada skor minggu ini — main satu lagu FREE dan verifikasi untuk ikut minggu ini.',
     sqkShopTitle: 'TOKO SQK — KOSMETIK UNTUK SQK (TESTNET)', sqkShopNote: 'Kosmetik saja — tidak ada yang membuatmu lebih kuat. Bayar pakai SQK (testnet Sepolia, tanpa nilai uang) via permit: 1 signature + 1 transaksi, jumlah exact, deadline 10 menit. TIDAK ADA unlimited approve.', sqkShopSoon: 'TOKO SQK SEGERA HADIR — kontrak toko belum di-deploy. Belanja SQK dibuka setelah deploy.', sqkPoolTpl: '🏆 PRIZE POOL: {pool} SQK', sqkSeasonTpl: 'MUSIM BERAKHIR: {date}', sqkSweepTpl: 'Setelah musim berakhir, sisa pool disapu ke owner 7 hari kemudian ({date}).', sqkSwept: 'PRIZE POOL SUDAH DISAPU — MUSIM SELESAI.', sqkBalanceTpl: 'SALDO SQK: {n}', sqkBuyTpl: '[ BELI — {price} SQK ]', sqkOwnedTpl: 'DIMILIKI ×{n}', sqkBought: 'TERBELI {item} ✓', sqkEquipBtn: '[ PAKAI ]', sqkEquippedTpl: 'DIPAKAI ✓', sqkEquipped: 'DIPAKAI: {item} ✓ — LAGU BERIKUTNYA PAKAI SKIN BARU.', sqkNotOwned: 'KAMU BELUM MEMILIKI {item} — BELI DULU.', sqkEquipFail: 'TIDAK BISA MEMAKAI ITEM INI.', sqkNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK MEMAKAI TOKO SQK.', sqkNoProvider: 'WALLET BELUM TERHUBUNG — TEKAN [ HUBUNGKAN WALLET ] UNTUK CONNECT (OKX, METAMASK, DLL).', sqkWrongChain: 'PINDAHKAN WALLETMU KE SEPOLIA UNTUK MEMBELI.', sqkNoSqk: 'SQK TIDAK CUKUP.', sqkPermitRejected: 'SIGNATURE DITOLAK — TIDAK ADA YANG TERBELI.', sqkTxRejected: 'TRANSAKSI DITOLAK — TIDAK ADA YANG TERBELI.', sqkWaiting: 'MENUNGGU KONFIRMASI…', sqkTxFail: 'TRANSAKSI GAGAL ON-CHAIN.', sqkShopOffline: 'TOKO SQK OFFLINE — PERIKSA KONEKSIMU.', sqkCapsuleTitle: 'KAPSUL EMAS — 2 SQK / TARIK', sqkCapsuleOdds: 'PELUANG: COMMON 70% • RARE 22% • EPIC 7% • LEGENDARY 1%. Duplikat → kompensasi Keju (25/50/100/250). Hard pity: tarikan ke-20 minimal RARE.', sqkPityTpl: 'PITY: {n} / 20', sqkCommitBtn: '[ COMMIT KAPSUL — 2 SQK ]', sqkResolveBtn: '[ RESOLVE KAPSUL ]', sqkCommitted: 'KAPSUL DI-COMMIT (PULL #{pull}, RONDE {round}) — RESOLVE SETELAH RONDE {round} SETTLED.', sqkResolved: 'KAPSUL: {item} ({rarity}) ✓', sqkDupKeju: 'KAPSUL: {item} ({rarity}, DUPLIKAT) → +{n} 🧀', sqkRoundUnknown: 'RONDE SAAT INI TIDAK DIKETAHUI — PERIKSA KONEKSIMU.', sqkNotSettled: 'RONDE {round} BELUM SETTLED — SETTLEMENT HANYA TERJADI SAAT HAMSTER LARI (SIANG HARI). COBA LAGI SETELAH LARI PAGI.', sqkNoPending: 'TIDAK ADA KAPSUL TERTUNDA — COMMIT DULU.', sqkResolveFail: 'RESOLVE GAGAL — PERIKSA WORKER / COBA LAGI.', tagline: 'Skormu tergantung pada seekor hamster.', walletManualNote: 'MANUAL — ketik alamat untuk main & kirim skor tanpa connect wallet. Ini BUKAN koneksi.', disconnect: '[ PUTUSKAN ]', modeLullaby: 'LULLABY', lullabyInfo: 'Lagu pelan 60 BPM untuk malam hari, saat hamster tidur. Tidak masuk board — ini lagu pengantar tidur, bukan balapan. Selesaikan untuk +50 XP dan menyiram Dream Seed.', dreamTitle: 'DREAM SEEDS — TUMBUH SEMALAM', dreamPlant: '[ TANAM DREAM SEED ]', dreamHarvest: '[ PANEN ]' },
 };
 let lang = loadJSON('sqk29:lang', 'en');
@@ -1318,6 +1318,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && G &
 // 5. CARD & RPC
 // ==========================================
 async function tfetch(url, opt = {}, ms = 6000) { const c = new AbortController(), t = setTimeout(() => c.abort(), ms); try { return await fetch(url, { ...opt, signal: c.signal }) } finally { clearTimeout(t) } }
+function isTimeoutError(e) { return !!e && (e.name === 'AbortError' || e.name === 'TimeoutError'); } // v42.5.2 (FIX 2): tfetch memakai AbortController — timeout muncul sebagai AbortError; bedakan dari offline generik
 function fmt(raw, dec) { if (dec === 0) return raw.toString(); if (dec > 30) return raw.toString() + ' (dec>30)'; const s = 10n ** BigInt(dec), w = raw / s, f = raw % s; const fs = f.toString().padStart(dec, '0').replace(/0+$/, ''); if (!fs) return w.toLocaleString('en-US'); if (w === 0n) { const i = fs.search(/[1-9]/); return i < 0 ? '0' : '0.' + fs.slice(0, i + 3); } return w.toLocaleString('en-US') + '.' + fs.slice(0, 2); }
 function decodeStr(hex) { try { if (!hex || hex === '0x') return 'TOKEN'; const h = hex.slice(2); if (h.length < 64) return 'TOKEN'; const len = parseInt(h.slice(64, 128), 16); if (!Number.isFinite(len) || len <= 0 || len > 64) { const raw = decodeURIComponent(h.slice(0, 64).replace(/(00)+$/, '').replace(/../g, '%$&')); return raw.replace(/[^\x20-\x7E]/g, '').slice(0, 10) || 'TOKEN'; } const str = decodeURIComponent(h.slice(128, 128 + len * 2).replace(/../g, '%$&')); return str.slice(0, 10) || 'TOKEN'; } catch { return 'TOKEN'; } }
 
@@ -1900,12 +1901,16 @@ async function ensureSepoliaChain(eth) {
   }
 }
 let wcBundlePromise = null; // v42.3: one in-flight load of the vendored WC bundle (deduped)
-function wcLoadBundle() {
-  // Lazy-load the vendored bundle ONLY on demand — never at page load
-  // (~2 MB; plain players must never pay for it). Returns true iff
-  // window.EthereumProvider exists afterwards. Resolves false on any
-  // failure (network, CSP, bundle error) — never throws, never hangs:
-  // the 15 s watchdog covers a script that never fires onload/onerror.
+function wcLoadBundle(timeoutMs) {
+  // Lazy-load the vendored bundle ONLY on demand (~2 MB; plain players
+  // must never pay for it) — except the v42.5.2 FIX 3 restore preload,
+  // which runs at page load ONLY when a wc@2: session key exists.
+  // Returns true iff window.EthereumProvider exists afterwards. Resolves
+  // false on any failure (network, CSP, bundle error) — never throws,
+  // never hangs. v42.5.2 FIX 3: the watchdog is a parameter — the restore
+  // path waits up to 60 s (the bundle cannot download in 15 s at ~3 K/s);
+  // a manual connect click keeps the 15 s watchdog.
+  const waitMs = (typeof timeoutMs === 'number' && timeoutMs > 0) ? timeoutMs : 15000;
   if (typeof window.EthereumProvider !== 'undefined') return Promise.resolve(true);
   if (wcBundlePromise) return wcBundlePromise;
   wcBundlePromise = new Promise((resolve) => {
@@ -1917,22 +1922,22 @@ function wcLoadBundle() {
       s.onload = () => finish(typeof window.EthereumProvider !== 'undefined');
       s.onerror = () => finish(false);
       document.head.appendChild(s);
-      setTimeout(() => finish(typeof window.EthereumProvider !== 'undefined'), 15000);
+      setTimeout(() => finish(typeof window.EthereumProvider !== 'undefined'), waitMs);
     } catch (_) { finish(false); }
   });
   return wcBundlePromise;
 }
-async function wcGetProvider() {
+async function wcGetProvider(bundleTimeoutMs, forRestore) {
   if (wcProvider) return wcProvider;
   if (typeof window.EthereumProvider === 'undefined') {
-    const ok = await wcLoadBundle(); // v42.3: vendored bundle, loaded on demand
+    const ok = await wcLoadBundle(bundleTimeoutMs); // v42.3: vendored bundle, loaded on demand
     if (!ok || typeof window.EthereumProvider === 'undefined') return null;
   }
   const p = await window.EthereumProvider.init({
     projectId: CONFIG.WC_PROJECT_ID,
     chains: CONFIG.WC_CHAINS,
     optionalChains: CONFIG.WC_CHAINS,
-    showQrModal: true,
+    showQrModal: !forRestore, // v42.5.2 FIX 3: restore init NEVER opens a modal on page load — the vendored bundle opens it only when showQrModal is true
     rpcMap: { 11155111: CONFIG.SEPOLIA_RPC },
     metadata: {
       name: 'Squeek Pixel ID',
@@ -1941,7 +1946,7 @@ async function wcGetProvider() {
       icons: ['https://squeekchain-leaderboard.pancigoreng.workers.dev/icon.png'],
     },
   });
-  wcProvider = p;
+  if (!forRestore) wcProvider = p; // v42.5.2 FIX 3: a restore provider is cached only after a successful restore (see restoreWalletConnectSession)
   if (typeof p.on === 'function') {
     p.on('accountsChanged', (accounts) => {
       const addr = Array.isArray(accounts) ? accounts[0] : null;
@@ -1970,19 +1975,63 @@ async function connectWalletConnect() {
     return say(msg('wcRejected'), 'pink'); // modal closed / rejected — never an error, never a crash
   }
 }
+// v42.5.2 FIX 3 — WalletConnect restore: diagnosis + fix (details in
+// AUDIT-v42.5.2.md). The restore NEVER worked on the user's phone.
+// Diagnosis, verified against the vendored @walletconnect/
+// ethereum-provider 2.26.0 bundle: (a) restore only read accounts
+// PASSIVELY (p.accounts / eth_accounts) — on a provider that has not
+// connected yet that returns [] even when a session is stored; only
+// enable() re-activates the stored session (bundle: enable() =
+// this.session || await this.connect(), then eth_requestAccounts —
+// with a session present connect() is SKIPPED, so no modal, no hang).
+// (b) the 2.1 MB bundle had to download first behind a 15 s watchdog —
+// impossible at ~3 K/s on cold load, so restore died silently before
+// it could try. Fix: preload the bundle at page load when a wc@2: key
+// exists; restore waits up to 60 s for it; enable() is called only when
+// a session key exists AND p.session is present (never when there is no
+// session at all); restore init uses showQrModal:false so a modal can
+// NEVER open on page load. Every failure records a reason shown as
+// small text under the wallet card, so the user can report the exact
+// reason if it still fails.
+let wcRestoreReason = null; // v42.5.2 FIX 3: last restore failure code, for diagnosis
+function setWcRestoreNote(reason) {
+  wcRestoreReason = reason || null;
+  const el = $('wcRestoreNote'); if (!el) return;
+  // Only real failures are shown: a missing session key is the normal
+  // never-connected state, not a failure worth displaying.
+  const show = reason === 'bundle-timeout' || reason === 'no-accounts' || reason === 'enable-rejected';
+  el.classList.toggle('hidden', !show);
+  if (show) el.textContent = msgf('wcRestoreNoteTpl', { reason });
+}
+function hasWcSessionKey() {
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('wc@2:') === 0) return true; } } catch (_) {}
+  return false;
+}
 async function restoreWalletConnectSession() {
   try {
     if (window.ethereum) return; // injected path owns the wallet field
-    let hasWc = false;
-    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('wc@2:') === 0) { hasWc = true; break; } } } catch (_) {}
-    if (!hasWc) return;
-    const p = await wcGetProvider();
-    if (!p) return;
+    if (!hasWcSessionKey()) { setWcRestoreNote('no-session-key'); return; }
+    const p = await wcGetProvider(60000, true); // v42.5.2 FIX 3: 60 s bundle wait, no modal
+    if (!p) { setWcRestoreNote('bundle-timeout'); return; }
     let accounts = (p.accounts && p.accounts.length) ? p.accounts : null;
     if (!accounts) { try { accounts = await p.request({ method: 'eth_accounts' }); } catch (_) { accounts = null; } }
-    const addr = Array.isArray(accounts) ? accounts[0] : null;
-    if (addr && isAddr(addr)) { if (walletEl) walletEl.value = addr; saveWallet38(addr); preview(); setConnected(addr); } // v42.4: restore session juga menandai tombol TERHUBUNG
-  } catch (_) {}
+    let addr = Array.isArray(accounts) ? accounts[0] : null;
+    if (!addr && p.session) {
+      // Passive read empty but a stored session exists: re-activate it
+      // silently. enable() skips connect() when this.session is set
+      // (verified in the vendored bundle), so no modal and no hang.
+      try {
+        const enabled = await p.enable();
+        addr = Array.isArray(enabled) ? enabled[0] : null;
+        if (!addr) { try { const a2 = await p.request({ method: 'eth_accounts' }); addr = Array.isArray(a2) ? a2[0] : null; } catch (_) {} }
+      } catch (_) { setWcRestoreNote('enable-rejected'); return; }
+    }
+    if (addr && isAddr(addr)) {
+      wcProvider = p; // cache only after a successful restore
+      if (walletEl) walletEl.value = addr; saveWallet38(addr); preview(); setConnected(addr);
+      setWcRestoreNote(null);
+    } else setWcRestoreNote('no-accounts');
+  } catch (_) { setWcRestoreNote('bundle-timeout'); }
 }
 async function restoreInjectedSession() { // v42.4: browser dalam-app wallet (MetaMask/OKX) tetap terhubung saat reload — baca akun TANPA prompt (eth_accounts tidak pernah membuka pop-up)
   try {
@@ -2040,7 +2089,7 @@ async function disconnectWallet() {
   setConnected(null);
   say(msg('walletDisconnected'), 'cyan');
 }
-function setConnected(addr) { connectedAddr = (addr && isAddr(addr)) ? addr : null; updateConnectBtn(); }
+function setConnected(addr) { connectedAddr = (addr && isAddr(addr)) ? addr : null; if (connectedAddr) setWcRestoreNote(null); updateConnectBtn(); }
 async function connectWallet() {
   const eth = window.ethereum;
   if (eth && typeof eth.request === 'function') {
@@ -2071,6 +2120,11 @@ if (window.ethereum && typeof window.ethereum.on === 'function') {
     else if (!addr) setConnected(null); // v42.4: akun kosong = terputus — tombol kembali ke CONNECT WALLET
   });
 }
+// v42.5.2 FIX 3: preload the WC bundle in the background when a session
+// key exists, so the restore does not wait for a cold 2.1 MB download.
+// (Fire-and-forget: the load is deduped via wcBundlePromise and the
+// restore below awaits the same promise.)
+if (!window.ethereum && hasWcSessionKey()) wcLoadBundle(60000);
 restoreWalletConnectSession();
 restoreInjectedSession(); // v42.4: pulihkan status terhubung di in-app browser tanpa prompt
 // v42.5 (P1-1): bila restore gagal, tampilkan status BELUM TERHUBUNG dengan
@@ -2519,7 +2573,7 @@ async function fetchLb(mode) {
   lbState.loading = true;
   el.innerHTML = `<p class="msg">${msg('lbLoading')}</p>`;
   try {
-    const r = await tfetch(CONFIG.LB_URL + '/scores?mode=' + lbState.mode + '&limit=10', null, 8000);
+    const r = await tfetch(CONFIG.LB_URL + '/scores?mode=' + lbState.mode + '&limit=10', null, 20000); // v42.5.2 (FIX 2): 20 detik — board di koneksi ~3 K/s
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();
     if (!d || !Array.isArray(d.scores)) throw new Error('bad board');
@@ -2536,7 +2590,7 @@ async function fetchLbRank() {
   const w = currentWallet();
   if (!isAddr(w)) { rk.textContent = ''; return; }
   try {
-    const r = await tfetch(CONFIG.LB_URL + '/rank?wallet=' + w + '&mode=' + lbState.mode, null, 8000);
+    const r = await tfetch(CONFIG.LB_URL + '/rank?wallet=' + w + '&mode=' + lbState.mode, null, 20000); // v42.5.2 (FIX 2): 20 detik — koneksi lambat
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();
     rk.textContent = (d && d.rank) ? msgf('lbYourRank', { rank: d.rank, total: d.total }) : '';
@@ -2554,7 +2608,7 @@ let lastVerifyHash = null, lastVerifyStatus = null;
 async function recheckVerifyOnLeague() {
   if (!lastVerifyHash || lastVerifyStatus === 'verified') return;
   try {
-    const r = await tfetch(CONFIG.LB_URL + '/verify?replayHash=' + encodeURIComponent(lastVerifyHash), null, 8000);
+    const r = await tfetch(CONFIG.LB_URL + '/verify?replayHash=' + encodeURIComponent(lastVerifyHash), null, 20000); // v42.5.2 (FIX 2): 20 detik — koneksi lambat
     const d = await r.json().catch(() => null);
     const status = verifyPollOutcome(r.status, d);
     if (status === 'verified' || status === 'rejected') {
@@ -2598,7 +2652,7 @@ async function pollVerify(replayHash, onStatus) {
     tries++;
     let status = 'unknown', data = null;
     try {
-      const r = await tfetch(CONFIG.LB_URL + '/verify?replayHash=' + encodeURIComponent(replayHash), null, 8000);
+      const r = await tfetch(CONFIG.LB_URL + '/verify?replayHash=' + encodeURIComponent(replayHash), null, 20000); // v42.5.2 (FIX 2): 20 detik — koneksi lambat
       const d = await r.json().catch(() => null);
       status = verifyPollOutcome(r.status, d); data = d;
     } catch (_) { status = 'unknown'; }
@@ -2636,9 +2690,20 @@ async function submitLb() {
   // hanya membakar 1 baris rate-limit. 400 = replay tidak valid, tunjukkan
   // apa adanya. 429 (rate limit) TIDAK pernah di-retry.
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
-  const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 8000);
+  const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 30000); // v42.5.2 (FIX 2): 30 detik — upload replay (puluhan KB) di koneksi ~3 K/s butuh >8 detik
   try {
-    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.5.1' } : bodyBase);
+    const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.5.2' } : bodyBase;
+    let r;
+    try { r = await postScores(body); }
+    catch (e1) {
+      // v42.5.2 (FIX 2): SATU retry otomatis bila request jelas gagal/timeout
+      // SEBELUM respons diterima — replay yang sama, server dedupe via
+      // replay_hash (percobaan pertama yang ternyata sampai tidak akan
+      // tercatat dua kali). Respons yang SUDAH diterima (422/429/400) TIDAK
+      // pernah di-retry.
+      show(msg('lbRetrying'));
+      r = await postScores(body); // gagal lagi -> catch luar (lbSlow/lbOffline)
+    }
     if (r.status === 429) { // v42.5 (P0-1): pesan spesifik + jam retry, bukan "offline" generik
       const d429 = await r.json().catch(() => null);
       const t = d429 && d429.retryAfterSec ? new Date(Date.now() + d429.retryAfterSec * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
@@ -2680,8 +2745,8 @@ async function submitLb() {
     }
     saveJSON('sqk37:lbname', lbName());
     lbState.mode = lbMode(lastResult.mode); renderLbModes(); fetchLb(lbState.mode);
-  } catch (_) {
-    show(msg('lbOffline'));
+  } catch (e) { // v42.5.2 (FIX 2): bedakan timeout/koneksi lambat dari offline
+    show(isTimeoutError(e) ? msg('lbSlow') : msg('lbOffline'));
     if (b) b.disabled = false;
   }
 }
@@ -2776,7 +2841,7 @@ function renderShop() {
   if (!shopState.catalog.length) { cat.innerHTML = `<p class="msg">${msg('shopOffline')}</p>`; return; }
   cat.innerHTML = shopState.catalog.map(c => {
     const owned = shopOwned(c.id), eq = shopEquipped(c.id);
-    const btn = !isAddr(w) ? '' : eq ? `<span class="msg">${I18N[lang].equippedLbl}</span>`
+    const btn = !isAddr(w) ? '' : eq ? `<span class="msg">${I18N[lang].equippedLbl}</span> <button class="btn-secondary" type="button" data-unequip="${c.slot}">${I18N[lang].unequipBtn}</button>` // v42.5.2 (FIX 1): UNEQUIP — skin yang dipakai bisa dicopot, kembali ke default
       : owned ? `<button class="btn-secondary" type="button" data-equip="${c.id}">${I18N[lang].equipBtn}</button>`
       : c.capsuleOnly ? `<span class="msg">${I18N[lang].capsuleOnlyLbl}</span>`
       : `<button class="btn-secondary" type="button" data-buy="${c.id}">${msgf('shopBuyTpl', { price: c.price })}</button>`;
@@ -2784,6 +2849,7 @@ function renderShop() {
   }).join('');
   cat.querySelectorAll('[data-buy]').forEach(b => b.addEventListener('click', () => buyItem(b.dataset.buy)));
   cat.querySelectorAll('[data-equip]').forEach(b => b.addEventListener('click', () => equipItem(b.dataset.equip)));
+  cat.querySelectorAll('[data-unequip]').forEach(b => b.addEventListener('click', () => unequipItem(b.dataset.unequip))); // v42.5.2 (FIX 1)
   const cp = $('capsulePreview'); if (cp) cp.innerHTML = capsulePreviewHtml(); // v42.5 (P1-5)
 }
 async function fetchShop() {
@@ -2855,6 +2921,23 @@ async function equipItem(id) {
     await fetchShop();
   } catch (_) { shopMsg(msg('shopOffline')); }
 }
+async function unequipItem(slot) { // v42.5.2 (FIX 1): copot skin Keju — status equipped Keju hidup di SERVER (Worker /cheese/equip), jadi unequip lokal saja TIDAK cukup (fetchShop akan mengembalikannya). POST /cheese/unequip (Worker v12) membersihkan flag equipped di D1; lokal: slot Keju dikosongkan + penanda terakhir-di-equip pindah ke 'sqk' supaya skin SQK (bila ada) tampil kembali. Kepemilikan TIDAK disentuh: item tetap OWNED, hanya tidak dipakai.
+  const w = currentWallet();
+  if (!isAddr(w)) return shopMsg(msg('shopNeedWallet'));
+  if (slot !== 'note' && slot !== 'frame') return shopMsg(msg('shopOffline'));
+  try {
+    const r = await tfetch(CONFIG.LB_URL + '/cheese/unequip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w, slot }) }, 8000);
+    const d = await r.json().catch(() => null);
+    if (!r.ok) throw new Error('HTTP_' + r.status);
+    const item = shopState.items.find(i => i.slot === slot && i.equipped);
+    const keju = loadJSON('sqk41:skin-keju', { note: null, frame: null }) || { note: null, frame: null };
+    keju[slot] = null;
+    saveKejuSkin(keju); saveSkinLast(slot, 'sqk');
+    applyResultFrame();
+    shopMsg(msgf('shopUnequipped', { item: item ? item.name : slot }));
+    await fetchShop(); // re-sync dari server: server kini melaporkan tidak ada yang terpasang di slot ini
+  } catch (_) { shopMsg(msg('shopOffline')); }
+}
 // --- v42.1: SQK shop (Batch 5) — permit buys + golden capsule ---
 // The client NEVER touches a private key: every signature goes through
 // the browser wallet provider (eth_signTypedData_v4) and every
@@ -2922,6 +3005,16 @@ async function equipSqkItem(itemId) { // v42.4 (BUG 3): item SQK dimiliki ON-CHA
     renderSqkShop();
   } catch (_) { sqkShopMsg(msg('sqkShopOffline')); }
 }
+function unequipSqkItem(itemId) { // v42.5.2 (FIX 1): copot skin SQK — lokal saja (kepemilikan on-chain TIDAK disentuh: item tetap OWNED, hanya tidak dipakai). Slot dikosongkan dari kunci SQK + penanda terakhir-di-equip pindah ke 'keju' supaya skin Keju (bila ada) tampil kembali.
+  const item = sqkShopItem(itemId);
+  if (!item || !item.skin || !item.slot) return sqkShopMsg(msg('sqkEquipFail'));
+  const sqk = loadJSON('sqk41:skin-sqk', { note: null, frame: null }) || { note: null, frame: null };
+  if (item.slot === 'note') sqk.note = null; else if (item.slot === 'frame') sqk.frame = null;
+  saveSqkSkin(sqk); saveSkinLast(item.slot, 'keju');
+  applyResultFrame();
+  sqkShopMsg(msgf('sqkUnequipped', { item: item.name }));
+  renderSqkShop();
+}
 function renderSqkShop() {
   const deployed = sqkShopDeployed();
   const soon = $('sqkShopSoon'); if (soon) soon.classList.toggle('hidden', deployed);
@@ -2941,12 +3034,13 @@ function renderSqkShop() {
     const owned = sqkState.owned[c.id] || 0;
     const btn = !deployed ? `<button class="btn-secondary" type="button" disabled>${msgf('sqkBuyTpl', { price: c.priceSqk })}</button>`
       : !isAddr(w) ? ''
-      : owned > 0 ? (sqkIsEquipped(c) ? `<span class="msg">${msg('sqkEquippedTpl')}</span>` : `<button class="btn-secondary" type="button" data-sqk-equip="${c.id}">${msg('sqkEquipBtn')}</button>`)
+      : owned > 0 ? (sqkIsEquipped(c) ? `<span class="msg">${msg('sqkEquippedTpl')}</span> <button class="btn-secondary" type="button" data-sqk-unequip="${c.id}">${msg('sqkUnequipBtn')}</button>` : `<button class="btn-secondary" type="button" data-sqk-equip="${c.id}">${msg('sqkEquipBtn')}</button>`) // v42.5.2 (FIX 1): UNEQUIP
       : `<button class="btn-secondary" type="button" data-sqk-buy="${c.id}">${msgf('sqkBuyTpl', { price: c.priceSqk })}</button>`;
     return `<div class="shop-item"><b>${escHtml(c.name)}</b>${skinPreviewHtml(c.skin, c.slot)}<span class="shop-meta">SQK • ${c.priceSqk} SQK${owned > 0 ? ' • ' + msgf('sqkOwnedTpl', { n: owned }) : ''}${sqkIsEquipped(c) ? ' • ' + msg('sqkEquippedTpl') : ''}</span>${btn}</div>`;
   }).join('');
   cat.querySelectorAll('[data-sqk-buy]').forEach(b => b.addEventListener('click', () => buySqkItem(Number(b.dataset.sqkBuy))));
   cat.querySelectorAll('[data-sqk-equip]').forEach(b => b.addEventListener('click', () => equipSqkItem(Number(b.dataset.sqkEquip)))); // v42.4 (BUG 3)
+  cat.querySelectorAll('[data-sqk-unequip]').forEach(b => b.addEventListener('click', () => unequipSqkItem(Number(b.dataset.sqkUnequip)))); // v42.5.2 (FIX 1)
   const scp = $('sqkCapsulePreview'); if (scp) scp.innerHTML = capsulePreviewHtml(); // v42.5 (P1-5)
   const pity = $('sqkCapsulePity');
   if (pity) pity.textContent = sqkState.pity === null ? '' : msgf('sqkPityTpl', { n: sqkState.pity });

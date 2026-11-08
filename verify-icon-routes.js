@@ -1,5 +1,5 @@
-// Verify v42.5.1 Worker image routes against the esbuild bundle (local, no deploy).
-// Run: node verify-icon-routes.js  (cwd = the v42.5.1 folder)
+// Verify v42.5.2 Worker image routes against the esbuild bundle (local, no deploy).
+// Run: node verify-icon-routes.js  (cwd = the v42.5.2 folder)
 const fs = require('fs');
 
 function pngDims(buf) {
@@ -12,13 +12,13 @@ function b64ToBuf(b64) { return Buffer.from(b64, 'base64'); }
   let pass = 0, fail = 0;
   const t = (name, ok) => { if (ok) { pass++; } else { fail++; console.log('FAIL:', name); } };
 
-  const mod = await import('/tmp/v42.5.1-build/dist/worker.js');
+  const mod = await import('/tmp/v42.5.2-build/dist/worker.js');
   const worker = mod.default;
   const env = {}; // image + root routes need no D1
 
   const root = await worker.fetch(new Request('https://x/'), env);
   const rootJson = await root.json();
-  t('GET / -> version 11', root.status === 200 && rootJson.version === 11);
+  t('GET / -> version 12', root.status === 200 && rootJson.version === 12);
   console.log('  GET /:', root.status, JSON.stringify(rootJson));
 
   const icon = await worker.fetch(new Request('https://x/icon.png'), env);

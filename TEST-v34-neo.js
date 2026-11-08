@@ -45,7 +45,7 @@ t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
 t('html says v42.5', (html.match(/v42\.5/g) || []).length >= 2);
-t('browser tab title is v42.5.1', html.includes('<title>SQUEEKCHAIN // v42.5.1</title>'));
+t('browser tab title is v42.5.2', html.includes('<title>SQUEEKCHAIN // v42.5.2</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -490,7 +490,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v42.5.1', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.5.1'"));
+t('submit sends replay + hash + gameVersion v42.5.2', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.5.2'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -846,7 +846,7 @@ const validateReplay42 = new Function(
   'const GENRES = ["cyber","synth","chip","void"]; const DIFFS = ["easy","normal","hard"]; const MAX_EXTRA_TAPS = 50; const MAX_POLLS = 600; const GOLDEN_MAX = 2;\n' +
   fnSrcW('isNonEmptyString') + '\n' + fnSrcW('isInt') + '\n' + fnSrcW('isFiniteNumber') + '\n' + fnSrcW('checkOppDist') + '\n' + fnSrcW('validateReplay') +
   '\nreturn validateReplay;')();
-t('worker v11: GET / version 11', worker.includes('version: 11'));
+t('worker v12: GET / version 12', worker.includes('version: 12'));
 t('worker v9: replay user ASLI lolos validasi bentuk (yang menolaknya simulasi, bukan validasi)', validateReplay42(userRep42, { notes: 148 }, 'daily', 34675, 51.8).ok === true);
 t('worker v9: replay user t=-0.10 LOLOS validasi (lead-in diterima)', validateReplay42(userFixed42, { notes: 148 }, 'daily', 34675, 51.8).ok === true);
 const userTooEarly42 = JSON.parse(JSON.stringify(userRep42));
@@ -1245,7 +1245,7 @@ t('dupCompensation bogus = 0', dupCompensation('bogus') === 0);
 t('catalogItem finds note-gold', catalogItem('note-gold').slot === 'note' && catalogItem('note-gold').rarity === 'rare' && catalogItem('note-gold').price === 800);
 t('catalogItem misses unknown ids', catalogItem('nope') === null);
 // 15b. Worker v5 wiring (string checks — the live D1 + endpoint checks run after deploy).
-t('worker root reports version 11', worker.includes('version: 11'));
+t('worker root reports version 12', worker.includes('version: 12'));
 t('worker has GET /cheese', worker.includes("url.pathname === \"/cheese\" && request.method === \"GET\""));
 t('worker has POST /cheese/buy', worker.includes("url.pathname === \"/cheese/buy\" && request.method === \"POST\""));
 t('worker has POST /cheese/pull', worker.includes("url.pathname === \"/cheese/pull\" && request.method === \"POST\""));
@@ -1322,11 +1322,11 @@ t('README documents the v41 shop catalog', readme.includes('Mint/Golden/Void/Rai
 t('worker v6: /league joins scores for verified', worker.includes("LEFT JOIN scores s ON s.wallet = l.wallet AND s.mode = 'free'") && worker.includes('COALESCE(s.verified, 0) AS verified'));
 t('worker v6: /league rows carry verified', worker.includes('verified: r.verified ? 1 : 0'));
 t('worker v6: /league you carries verified', worker.includes('verified: me.verified ? 1 : 0'));
-t('worker version is 11', worker.includes('{ service: "squeekchain-leaderboard", version: 11 }'));
+t('worker version is 12', worker.includes('{ service: "squeekchain-leaderboard", version: 12 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v42.5.1', js.includes("gameVersion: 'v42.5.1'"));
-t('html title is v42.5.1', html.includes('<title>SQUEEKCHAIN // v42.5.1</title>'));
+t('submit sends gameVersion v42.5.2', js.includes("gameVersion: 'v42.5.2'"));
+t('html title is v42.5.2', html.includes('<title>SQUEEKCHAIN // v42.5.2</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {
@@ -1386,12 +1386,18 @@ t('NO WalletConnect CDN anywhere in the HTML (v42.3: vendored bundle only)', !ht
 t('vendored WC bundle exists, is self-contained, exposes EthereumProvider', (() => { try { const b = fs.readFileSync('wc-provider.bundle.js', 'utf8'); return b.length > 1000000 && b.includes('EthereumProvider') && !b.includes('unpkg.com/@walletconnect'); } catch (_) { return false; } })());
 t('v42.3 js has wcLoadBundle', js.includes('function wcLoadBundle'));
 t('WC bundle is lazy-loaded on demand (script inject, never a page-load tag)', js.includes("s.src = 'wc-provider.bundle.js'") && js.includes("document.createElement('script')") && !html.includes('src="wc-provider.bundle.js"'));
-t('wcGetProvider lazy-loads the bundle when EthereumProvider is missing', js.includes('await wcLoadBundle()'));
+t('wcGetProvider lazy-loads the bundle when EthereumProvider is missing', js.includes('await wcLoadBundle(bundleTimeoutMs'));
+t('v42.5.2 FIX 3: restore waits 60 s for the bundle + never shows a modal (showQrModal: !forRestore)', js.includes('wcGetProvider(60000, true)') && js.includes('showQrModal: !forRestore') && js.includes('if (!forRestore) wcProvider = p;'));
+t('v42.5.2 FIX 3: bundle preloaded at page load only when a wc@2: session key exists', js.includes("if (!window.ethereum && hasWcSessionKey()) wcLoadBundle(60000);"));
+t('v42.5.2 FIX 3: restore re-activates a stored session via enable() only when p.session exists', js.includes('if (!addr && p.session)') && js.includes('const enabled = await p.enable();'));
+t('v42.5.2 FIX 3: restore failure reasons recorded + shown under the wallet card', js.includes("function setWcRestoreNote(reason)") && js.includes("msgf('wcRestoreNoteTpl', { reason })") && html.includes('id="wcRestoreNote"'));
+t('v42.5.2 FIX 3: wcRestoreNoteTpl i18n EN + ID', js.includes("wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason}") && js.includes("wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason}"));
 t('setTab clears stale say() messages (v42.3)', /function setTab\(name\) \{\n  say\(''\);/.test(js));
 t('ID Card dialog has NO auto-open path (openCard only from explicit buttons)', (js.match(/openCard\(/g) || []).length === 4 && !/finish\(\)[\s\S]{0,2000}?openCard\(/.test(js));
 t('CONFIG has WC_PROJECT_ID + WC_CHAINS', js.includes("CONFIG.WC_PROJECT_ID = '1f186dd3221f938c4e0b8c72c233a3be'") && js.includes('CONFIG.WC_CHAINS = [11155111]'));
 ['getEth', 'sqkChainIdHex', 'ensureSepoliaChain', 'wcGetProvider', 'connectWalletConnect', 'restoreWalletConnectSession'].forEach(f => t('v42.2 js has ' + f, js.includes('function ' + f)));
-t('WC init uses the verified API (projectId, chains, showQrModal, rpcMap, metadata)', js.includes('window.EthereumProvider.init({') && js.includes('projectId: CONFIG.WC_PROJECT_ID') && js.includes('chains: CONFIG.WC_CHAINS') && js.includes('showQrModal: true') && js.includes('rpcMap: { 11155111: CONFIG.SEPOLIA_RPC }') && js.includes("name: 'Squeek Pixel ID'") && js.includes("url: 'https://squeekpixel.web.id/'"));
+t('WC init uses the verified API (projectId, chains, showQrModal, rpcMap, metadata)', js.includes('window.EthereumProvider.init({') && js.includes('projectId: CONFIG.WC_PROJECT_ID') && js.includes('chains: CONFIG.WC_CHAINS') && js.includes('showQrModal: !forRestore') && js.includes('rpcMap: { 11155111: CONFIG.SEPOLIA_RPC }') && js.includes("name: 'Squeek Pixel ID'") && js.includes("url: 'https://squeekpixel.web.id/'"));
+t('WC manual connect still uses the modal (wcGetProvider() defaults: 15 s, showQrModal true)', js.includes('await wcGetProvider();') && js.includes("await p.connect()")); // v42.5.2 FIX 3: connectWalletConnect calls wcGetProvider() with no args -> forRestore falsy -> showQrModal true
 t('WC connect opens the modal then requests accounts', js.includes('await p.connect()') && js.includes("await p.request({ method: 'eth_requestAccounts' })"));
 t('connectWallet has both paths (injected first, WC fallback)', js.includes('await connectWalletConnect()') && js.includes("const eth = window.ethereum;"));
 t('WC load failure is fail-soft (message, no crash)', js.includes("typeof window.EthereumProvider === 'undefined'") && js.includes("msg('wcLoadFail')"));
@@ -1502,7 +1508,7 @@ t('v42.5 recheckVerifyOnLeague exists and is called from setTab(league)', js.inc
 // P2-5 analytics.
 t('v42.5 analytics: allowlist + fire-and-forget POST /analytics', js.includes("const ANALYTICS_EVENTS = ['visit', 'play', 'mode_free'") && js.includes("tfetch(CONFIG.LB_URL + '/analytics'") && js.includes("analyticsEvent('visit');") && js.includes("analyticsEvent('shop_open');"));
 // Worker v10: version + new endpoints + helpers.
-t('worker v11: version 11', worker.includes('version: 11'));
+t('worker v12: version 12', worker.includes('version: 12'));
 t('worker v10: rateLimitAllowed helper (count first, insert only if allowed)', worker.includes('async function rateLimitAllowed(env, table, wallet, ip, walletMax, ipMax)'));
 t('worker v10: resolve uses its own resolve_log table', worker.includes('rateLimitAllowed(env, "resolve_log"'));
 t('worker v10: scores 429 carries retryAfterSec', worker.includes('return json({ error: "rate_limited", retryAfterSec: rlScores.retryAfterSec }, 429);'));
@@ -1512,7 +1518,7 @@ t('worker v10: ghost header validation + checkOppDist ghost branch', worker.incl
 t('worker v10: /dream/harvest + /analytics endpoints', worker.includes('url.pathname === "/dream/harvest"') && worker.includes('url.pathname === "/analytics"'));
 t('worker v10: dreamReward helper (25/50/75)', worker.includes('function dreamReward(stage)'));
 t('migrate-v10.sql exists and covers all 5 new objects', (() => { try { const m = fs.readFileSync('migrate-v10.sql', 'utf8'); return m.includes('resolve_log') && m.includes('session_wallets') && m.includes('dream_harvests') && m.includes('idx_cheese_ledger_dream') && m.includes('analytics_daily'); } catch (_) { return false; } })());
-t('build-worker.sh points at v42.5.1', (() => { try { const b = fs.readFileSync('build-worker.sh', 'utf8'); return b.includes('squeekchain-v42.5.1') && b.includes('/tmp/v42.5.1-build') && b.includes('Worker v11'); } catch (_) { return false; } })());
+t('build-worker.sh points at v42.5.2', (() => { try { const b = fs.readFileSync('build-worker.sh', 'utf8'); return b.includes('squeekchain-v42.5.2') && b.includes('/tmp/v42.5.2-build') && b.includes('Worker v12'); } catch (_) { return false; } })());
 
 runVerifyPollTests().then(() => {
   console.log(`\n${pass} passed, ${fail} failed`);

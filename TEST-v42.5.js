@@ -3,7 +3,10 @@
 // validation (worker), rate-limit v10, dreamReward, shop previews,
 // wallet UX harness (status card + disconnect + txWallet), Dream Seeds,
 // Lullaby seedKey, v42.5.1 two-source skins (BUG 1), Lullaby submit button
-// (BUG 2), Lullaby mode color (BUG 3). Static v42.5 checks live in TEST-v34-neo.js.
+// (BUG 2), Lullaby mode color (BUG 3), v42.5.2 UNEQUIP (FIX 1) + submit
+// tahan koneksi lambat: timeout 30/20 detik + 1 retry otomatis (FIX 2),
+// WalletConnect restore: enable() + preload bundle 60 detik + alasan
+// gagal terlihat (FIX 3). Static v42.5 checks live in TEST-v34-neo.js.
 const fs = require('fs');
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
@@ -409,9 +412,9 @@ async function runDreamTests42() {
   t('v42.5.1 og:image -> Worker /og.png', html.includes('<meta property="og:image" content="' + W + '/og.png">'));
   t('v42.5.1 twitter:image -> Worker /og.png', html.includes('<meta name="twitter:image" content="' + W + '/og.png">'));
   t('v42.5.1 favicon + apple-touch-icon -> Worker /icon.png', html.includes('<link rel="icon" type="image/png" href="' + W + '/icon.png">') && html.includes('<link rel="apple-touch-icon" href="' + W + '/icon.png">'));
-  t('v42.5.1 gameVersion v42.5.1', js.includes("gameVersion: 'v42.5.1'"));
+  t('v42.5.2 gameVersion v42.5.2', js.includes("gameVersion: 'v42.5.2'"));
   t('v42.5.1 worker routes /icon.png + /og.png exist', worker.includes('"/icon.png"') && worker.includes('"/og.png"') && worker.includes('function pngResponse('));
-  t('v42.5.1 worker version 11', worker.includes('version: 11'));
+  t('v42.5.2 worker version 12', worker.includes('version: 12'));
   t('v42.5.1 no stale headline-simple.png URL in client', !html.includes('squeekchain-headline-simple.png') && !js.includes('squeekchain-headline-simple.png'));
 })();
 
@@ -489,11 +492,320 @@ async function runBugFixTests4251() {
     !js.includes('HAS NOT SETTLED YET — TRY AGAIN IN A FEW MINUTES.') && !js.includes('BELUM SETTLED — COBA LAGI BEBERAPA MENIT LAGI.'));
 }
 
+// --- 12. v42.5.2: UNEQUIP (FIX 1) + submit tahan koneksi lambat (FIX 2) ---
+async function runBugFixTests4252() {
+  const ADDR = '0x88538a82143065664232422e2dec4309038fcf9a';
+  const store = {};
+  const loadJSON = (k, d) => { try { const v = store[k]; return v === undefined ? d : JSON.parse(v); } catch { return d; } };
+  const saveJSON = (k, v) => { store[k] = JSON.stringify(v); };
+  const resetSkins = () => { delete store['sqk41:skin-keju']; delete store['sqk41:skin-sqk']; delete store['sqk41:skin-last']; };
+  const skinFns = new Function('loadJSON', 'saveJSON',
+    fnSrcJ('shopSkin') + '\n' + fnSrcJ('saveKejuSkin') + '\n' + fnSrcJ('saveSqkSkin') + '\n' + fnSrcJ('saveSkinLast') +
+    '\nreturn { shopSkin, saveKejuSkin, saveSqkSkin, saveSkinLast };')(loadJSON, saveJSON);
+  const { shopSkin, saveKejuSkin, saveSqkSkin, saveSkinLast } = skinFns;
+
+  // --- FIX 1a: unequip SQK (lokal) — fungsi asli + skenario state ---
+  const sqkCatalog = [
+    { id: 1, name: 'Skin Rare', skin: 'note-sqk-rare', slot: 'note', priceSqk: 5 },
+    { id: 3, name: 'Bingkai Animasi', skin: 'frame-sqk', slot: 'frame', priceSqk: 15 },
+  ];
+  let sqkMsgLog = [];
+  const unequipSqkH = new Function('sqkShopItem', 'loadJSON', 'saveSqkSkin', 'saveSkinLast', 'applyResultFrame', 'sqkShopMsg', 'msg', 'msgf', 'renderSqkShop',
+    fnSrcJ('unequipSqkItem') + '\nreturn unequipSqkItem;')(
+    id => sqkCatalog.find(c => c.id === id) || null, loadJSON, saveSqkSkin, saveSkinLast,
+    () => {}, t => { sqkMsgLog.push(t); }, k => k, (k, v) => k, () => {});
+  resetSkins();
+  saveSqkSkin({ note: 'note-sqk-rare', frame: null }); saveSkinLast('note', 'sqk');
+  t('v42.5.2 FIX 1: equip SQK -> terpasang', shopSkin().note === 'note-sqk-rare');
+  unequipSqkH(1);
+  t('v42.5.2 FIX 1: unequip SQK -> not kembali default', shopSkin().note === null);
+  t('v42.5.2 FIX 1: unequip SQK -> pesan dilepas', sqkMsgLog.includes('sqkUnequipped'));
+  // Skenario: Keju -> SQK -> unequip SQK -> Keju tampil lagi.
+  resetSkins();
+  saveKejuSkin({ note: 'note-mint', frame: null }); saveSkinLast('note', 'keju');
+  saveSqkSkin({ note: 'note-sqk-rare', frame: null }); saveSkinLast('note', 'sqk');
+  t('v42.5.2 FIX 1: equip Keju lalu SQK -> SQK menang', shopSkin().note === 'note-sqk-rare');
+  unequipSqkH(1);
+  t('v42.5.2 FIX 1: unequip SQK -> Keju tampil lagi', shopSkin().note === 'note-mint');
+
+  // --- FIX 1b: unequip Keju (server) — fungsi asli + mock server/D1 ---
+  let serverEquipped = { note: 'note-mint', frame: null };
+  const shopStateH = { balance: 50, items: [{ id: 'note-mint', slot: 'note', equipped: true }], catalog: [{ id: 'note-mint', name: 'Mint Notes', slot: 'note', rarity: 'common', price: 300 }] };
+  let shopMsgLog = [];
+  const tfetchUnequip = async url => {
+    if (String(url).endsWith('/cheese/unequip')) { serverEquipped = { note: null, frame: null }; return { ok: true, json: async () => ({ ok: true, slot: 'note' }) }; }
+    throw new Error('unexpected url ' + url);
+  };
+  const fetchShopMock = async () => { // tiruan fetchShop: sync flag equipped dari "server"
+    shopStateH.items = [{ id: 'note-mint', slot: 'note', equipped: serverEquipped.note === 'note-mint' }];
+    saveKejuSkin({ note: serverEquipped.note, frame: serverEquipped.frame });
+  };
+  const unequipH = new Function('currentWallet', 'isAddr', 'tfetch', 'CONFIG', 'shopMsg', 'msg', 'msgf', 'loadJSON', 'saveKejuSkin', 'saveSkinLast', 'applyResultFrame', 'fetchShop', 'shopState',
+    fnSrcJ('unequipItem') + '\nreturn unequipItem;')(
+    () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''), tfetchUnequip, { LB_URL: 'https://lb.test' },
+    tt => { shopMsgLog.push(tt); }, k => k, (k, v) => k,
+    loadJSON, saveKejuSkin, saveSkinLast, () => {}, fetchShopMock, shopStateH);
+  resetSkins();
+  serverEquipped = { note: 'note-mint', frame: null };
+  saveKejuSkin({ note: 'note-mint', frame: null }); saveSkinLast('note', 'keju');
+  t('v42.5.2 FIX 1: equip Keju -> terpasang', shopSkin().note === 'note-mint');
+  await unequipH('note');
+  t('v42.5.2 FIX 1: unequip Keju -> not kembali default', shopSkin().note === null);
+  t('v42.5.2 FIX 1: unequip Keju -> fetchShop TIDAK mengembalikannya', shopStateH.items[0].equipped === false && shopSkin().note === null);
+  t('v42.5.2 FIX 1: unequip Keju -> item TETAP dimiliki (bukan dihapus)', shopStateH.items.length === 1 && shopStateH.items[0].id === 'note-mint');
+  t('v42.5.2 FIX 1: unequip Keju -> pesan dilepas', shopMsgLog.includes('shopUnequipped'));
+  // Skenario: SQK -> Keju -> unequip Keju -> SQK tampil lagi.
+  resetSkins();
+  saveSqkSkin({ note: 'note-sqk-rare', frame: null }); saveSkinLast('note', 'sqk');
+  saveKejuSkin({ note: 'note-mint', frame: null }); saveSkinLast('note', 'keju');
+  serverEquipped = { note: 'note-mint', frame: null };
+  shopStateH.items = [{ id: 'note-mint', slot: 'note', equipped: true }];
+  t('v42.5.2 FIX 1: equip SQK lalu Keju -> Keju menang', shopSkin().note === 'note-mint');
+  await unequipH('note');
+  t('v42.5.2 FIX 1: unequip Keju -> SQK tampil lagi', shopSkin().note === 'note-sqk-rare');
+
+  // --- FIX 1c: render — tombol UNEQUIP muncul saat terpasang, EQUIP kembali setelah dilepas ---
+  const fakeEl = () => ({ textContent: '', innerHTML: '', disabled: false, classList: mockClassList(), querySelectorAll: () => [] });
+  // Toko SQK (fungsi render asli).
+  const sqkEls = {};
+  ['sqkShopSoon', 'sqkShopPool', 'sqkShopSeason', 'sqkShopBalance', 'sqkShopCatalog', 'sqkCapsulePreview', 'sqkCapsulePity', 'sqkCommitBtn', 'sqkResolveBtn'].forEach(id => { sqkEls[id] = fakeEl(); });
+  const msgStub = { sqkEquippedTpl: 'EQUIPPED ✓', sqkEquipBtn: '[ EQUIP ]', sqkUnequipBtn: '[ UNEQUIP ]', sqkBuyTpl: '[ BUY — {price} SQK ]', sqkOwnedTpl: 'OWNED ×{n}', sqkPoolTpl: '🏆 PRIZE POOL: {pool} SQK', sqkSeasonTpl: 'SEASON ENDS: {date}', sqkSweepTpl: 'sweep {date}', sqkSwept: 'SWEPT', sqkBalanceTpl: 'SQK BALANCE: {n}', sqkPityTpl: 'PITY: {n} / 20', sqkResolveBtn: '[ RESOLVE CAPSULE ]' };
+  const msgFn = k => (msgStub[k] !== undefined ? msgStub[k] : k);
+  const msgfFn = (k, vars) => { let s = msgFn(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; };
+  const escHtmlH = new Function(fnSrcJ('escHtml') + '\nreturn escHtml;')();
+  const sqkStateH = { pool: null, seasonEnd: null, sweepAt: null, swept: false, sqkBalance: null, owned: { 1: 1, 3: 0 }, pity: null };
+  const renderSqkH = new Function('$', 'sqkShopDeployed', 'sqkState', 'msg', 'msgf', 'fmt', 'escHtml', 'skinPreviewHtml', 'capsulePreviewHtml', 'sqkPendingCapsule', 'sqkIsEquipped', 'shopSkin', 'SQK_SHOP_CATALOG', 'buySqkItem', 'equipSqkItem', 'unequipSqkItem', 'currentWallet', 'isAddr',
+    fnSrcJ('renderSqkShop') + '\nreturn renderSqkShop;')(
+    id => sqkEls[id] || null, () => true, sqkStateH, msgFn, msgfFn, () => '2.1', escHtmlH,
+    () => '', () => '', () => null,
+    new Function('shopSkin', fnSrcJ('sqkIsEquipped') + '\nreturn sqkIsEquipped;')(shopSkin),
+    shopSkin, sqkCatalog, () => {}, () => {}, () => {}, () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''));
+  resetSkins();
+  saveSqkSkin({ note: 'note-sqk-rare', frame: null }); saveSkinLast('note', 'sqk');
+  renderSqkH();
+  t('v42.5.2 FIX 1 (render SQK): terpasang -> tombol UNEQUIP tampil', sqkEls.sqkShopCatalog.innerHTML.includes('data-sqk-unequip="1"') && !sqkEls.sqkShopCatalog.innerHTML.includes('data-sqk-equip="1"'));
+  unequipSqkH(1);
+  renderSqkH();
+  t('v42.5.2 FIX 1 (render SQK): setelah dilepas -> tombol EQUIP kembali + OWNED tetap', sqkEls.sqkShopCatalog.innerHTML.includes('data-sqk-equip="1"') && !sqkEls.sqkShopCatalog.innerHTML.includes('data-sqk-unequip="1"') && sqkEls.sqkShopCatalog.innerHTML.includes('OWNED ×1'));
+  // Toko Keju (fungsi render asli).
+  const kejuEls = {};
+  ['cheeseBalance', 'shopCatalog', 'capsulePreview'].forEach(id => { kejuEls[id] = fakeEl(); });
+  const I18NStub = { en: { equippedLbl: 'EQUIPPED ✓', unequipBtn: '[ UNEQUIP ]', equipBtn: '[ EQUIP ]', ownedLbl: 'OWNED', capsuleOnlyLbl: 'CAPSULE ONLY' } };
+  const msgKeju = k => ({ shopBalanceTpl: '🧀 BALANCE: {n}', shopOffline: 'SHOP OFFLINE — CHECK YOUR CONNECTION.', shopBuyTpl: '[ BUY — {price} 🧀 ]' }[k] || k);
+  const msgfKeju = (k, vars) => { let s = msgKeju(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; };
+  const shopStateR = { balance: 50, items: [{ id: 'note-mint', slot: 'note', equipped: true }], catalog: [{ id: 'note-mint', name: 'Mint Notes', slot: 'note', rarity: 'common', price: 300 }] };
+  const shopOwnedH = new Function('shopState', fnSrcJ('shopOwned') + '\nreturn shopOwned;')(shopStateR);
+  const shopEquippedH = new Function('shopState', fnSrcJ('shopEquipped') + '\nreturn shopEquipped;')(shopStateR);
+  const renderShopH = new Function('$', 'shopState', 'currentWallet', 'isAddr', 'msg', 'msgf', 'I18N', 'lang', 'escHtml', 'skinPreviewHtml', 'capsulePreviewHtml', 'shopOwned', 'shopEquipped', 'buyItem', 'equipItem', 'unequipItem',
+    fnSrcJ('renderShop') + '\nreturn renderShop;')(
+    id => kejuEls[id] || null, shopStateR, () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''),
+    msgKeju, msgfKeju, I18NStub, 'en', escHtmlH,
+    () => '', () => '', shopOwnedH, shopEquippedH, () => {}, () => {}, () => {});
+  renderShopH();
+  t('v42.5.2 FIX 1 (render Keju): terpasang -> tombol UNEQUIP tampil', kejuEls.shopCatalog.innerHTML.includes('data-unequip="note"') && !kejuEls.shopCatalog.innerHTML.includes('data-equip="note-mint"'));
+  shopStateR.items[0].equipped = false;
+  renderShopH();
+  t('v42.5.2 FIX 1 (render Keju): setelah dilepas -> tombol EQUIP kembali + OWNED tetap', kejuEls.shopCatalog.innerHTML.includes('data-equip="note-mint"') && !kejuEls.shopCatalog.innerHTML.includes('data-unequip="note"') && kejuEls.shopCatalog.innerHTML.includes('OWNED'));
+
+  // --- FIX 2: submit tahan koneksi lambat — fungsi submitLb asli ---
+  const MSG = new Function(js.slice(js.indexOf('const MSG = {'), js.indexOf('function msg(k)')) + '\nreturn MSG;')();
+  const msgReal = new Function('MSG', 'lang', fnSrcJ('msg') + '\n' + fnSrcJ('msgf') + '\nreturn { msg, msgf };')(MSG, 'id');
+  const verifyBadgeTextH = new Function(fnSrcJ('verifyBadgeText') + '\nreturn verifyBadgeText;')();
+  const verifyRejectedTextH = new Function('msgf', fnSrcJ('verifyRejectedText') + '\nreturn verifyRejectedText;')(msgReal.msgf);
+  const isTimeoutH = new Function(fnSrcJ('isTimeoutError') + '\nreturn isTimeoutError;')();
+  const mkSubmit = (tfetchMock, pollVerifyMock) => {
+    const msgEl = { textContent: '', classList: mockClassList() };
+    const btnEl = { disabled: false, classList: mockClassList() };
+    const $s = id => (id === 'lbSubmitMsg' ? msgEl : id === 'lbSubmitBtn' ? btnEl : null);
+    const lastResult = { score: 61495, acc: 73.05, mode: 'live', sessionId: 's1', notes: 235, taps: 200, durationMs: 60000, replay: { header: {}, events: {} }, replayHash: '0xabc123', lullaby: false, practice: false };
+    const submit = new Function('lastResult', 'currentWallet', 'isAddr', 'lbName', 'lbMode', 'analyticsEvent', 'fetchLb', 'fetchShop', 'fetchLeagueWeekly', 'pollVerify', 'saveJSON', 'renderLbModes', '$', 'stopVerifyPoll', 'msg', 'msgf', 'CONFIG', 'tfetch', 'lbState', 'verifyBadgeText', 'verifyRejectedText', 'isTimeoutError',
+      fnSrcJ('submitLb') + '\nreturn submitLb;')(
+      lastResult, () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''), () => 'TEST', m => m, () => {}, () => {}, () => {}, () => {},
+      pollVerifyMock, () => {}, () => {}, $s, () => {}, msgReal.msg, msgReal.msgf, { LB_URL: 'https://lb.test' }, tfetchMock, { mode: 'live' },
+      verifyBadgeTextH, verifyRejectedTextH, isTimeoutH);
+    return { submit, msgEl, btnEl };
+  };
+  const pollOk = (hash, onStatus) => { onStatus('verified', { replayHash: hash, signature: '0x12345678' }); };
+  // (a) gagal sekali (timeout) lalu berhasil -> retry otomatis, skor terverifikasi.
+  let callsA = 0;
+  const tfetchA = async () => {
+    callsA++;
+    if (callsA === 1) { const e = new Error('aborted'); e.name = 'AbortError'; throw e; }
+    return { status: 202, ok: true, json: async () => ({ ok: true, pending: true, replayHash: '0xabc123' }) };
+  };
+  const hA = mkSubmit(tfetchA, pollOk);
+  await hA.submit();
+  t('v42.5.2 FIX 2: submit gagal timeout sekali -> retry otomatis (2 percobaan)', callsA === 2);
+  t('v42.5.2 FIX 2: retry berhasil -> skor TERVERIFIKASI', hA.msgEl.textContent.includes('TERVERIFIKASI ✓'));
+  // (b) selalu timeout -> 2 percobaan lalu pesan KONEKSI LAMBAT, tombol aktif lagi.
+  let callsB = 0;
+  const tfetchB = async () => { callsB++; const e = new Error('aborted'); e.name = 'AbortError'; throw e; };
+  const hB = mkSubmit(tfetchB, pollOk);
+  await hB.submit();
+  t('v42.5.2 FIX 2: selalu timeout -> tepat 2 percobaan (1 retry)', callsB === 2);
+  t('v42.5.2 FIX 2: selalu timeout -> pesan KONEKSI LAMBAT (bukan offline generik)', hB.msgEl.textContent.includes('KONEKSI LAMBAT'));
+  t('v42.5.2 FIX 2: selalu timeout -> tombol SUBMIT aktif lagi', hB.btnEl.disabled === false);
+  // (c) 429 -> TIDAK di-retry, pesan rate limit.
+  let callsC = 0;
+  const tfetchC = async () => { callsC++; return { status: 429, ok: false, json: async () => ({ error: 'rate_limited', retryAfterSec: 600 }) }; };
+  const hC = mkSubmit(tfetchC, pollOk);
+  await hC.submit();
+  t('v42.5.2 FIX 2: 429 -> TIDAK di-retry (1 percobaan)', callsC === 1);
+  t('v42.5.2 FIX 2: 429 -> pesan TERLALU SERING', hC.msgEl.textContent.includes('TERLALU SERING'));
+  // (d) 422 -> TIDAK di-retry.
+  let callsD = 0;
+  const tfetchD = async () => { callsD++; return { status: 422, ok: false, json: async () => ({ error: 'bad replay' }) }; };
+  const hD = mkSubmit(tfetchD, pollOk);
+  await hD.submit();
+  t('v42.5.2 FIX 2: 422 -> TIDAK di-retry (1 percobaan)', callsD === 1);
+  // isTimeoutError unit.
+  t('v42.5.2 FIX 2: isTimeoutError AbortError -> true', isTimeoutH({ name: 'AbortError' }) === true);
+  t('v42.5.2 FIX 2: isTimeoutError TimeoutError -> true', isTimeoutH({ name: 'TimeoutError' }) === true);
+  t('v42.5.2 FIX 2: isTimeoutError TypeError -> false', isTimeoutH({ name: 'TypeError' }) === false);
+  t('v42.5.2 FIX 2: isTimeoutError null -> false', isTimeoutH(null) === false);
+  // Statis: timeout baru + gameVersion + kunci i18n + Worker v12.
+  t('v42.5.2 FIX 2: POST /scores timeout 30 detik', js.includes('body: JSON.stringify(body) }, 30000)'));
+  t('v42.5.2 FIX 2: GET /scores, /rank, /verify timeout 20 detik', js.includes("'/scores?mode=' + lbState.mode + '&limit=10', null, 20000)") && js.includes("'/rank?wallet=' + w + '&mode=' + lbState.mode, null, 20000)") && js.includes('encodeURIComponent(replayHash), null, 20000)') && js.includes('encodeURIComponent(lastVerifyHash), null, 20000)'));
+  t('v42.5.2 FIX 2: gameVersion v42.5.2', js.includes("gameVersion: 'v42.5.2'"));
+  t('v42.5.2 FIX 1: kunci i18n UNEQUIP EN+ID ada', js.includes("sqkUnequipBtn: '[ UNEQUIP ]'") && js.includes("sqkUnequipped: 'UNEQUIPPED: {item} ✓ — BACK TO DEFAULT.'") && js.includes("sqkUnequipBtn: '[ LEPAS ]'") && js.includes("sqkUnequipped: 'DILEPAS: {item} ✓ — KEMBALI KE DEFAULT.'") && js.includes("shopUnequipped: 'UNEQUIPPED {item} ✓'") && js.includes("shopUnequipped: 'DILEPAS {item} ✓'") && js.includes("unequipBtn: '[ UNEQUIP ]'") && js.includes("unequipBtn: '[ LEPAS ]'"));
+  t('v42.5.2 FIX 1: Worker v12 punya POST /cheese/unequip + UPDATE equipped=0', worker.includes('"/cheese/unequip"') && worker.includes('UPDATE cheese_inventory SET equipped = 0') && worker.includes('version: 12'));
+  t('v42.5.2 FIX 1: render toko memakai data-unequip / data-sqk-unequip', js.includes('data-unequip=') && js.includes('data-sqk-unequip='));
+  t('v42.5.2: index.html judul v42.5.2', html.includes('<title>SQUEEKCHAIN // v42.5.2</title>') && html.includes('PIXEL ID // v42.5.2'));
+}
+
+// --- 13. v42.5.2 FIX 3: WalletConnect session restore ---
+async function runWcRestoreTests4252() {
+  const ADDR = '0x88538a82143065664232422e2dec4309038fcf9a';
+  const isAddrH = s => /^0x[a-fA-F0-9]{40}$/.test(s || '');
+  const msgfH = (k, vars) => k === 'wcRestoreNoteTpl' ? ('WC RESTORE FAILED: ' + (vars && vars.reason) + ' — TAP [ CONNECT WALLET ] TO RECONNECT.') : k;
+  const mkStore = (keys) => ({ _k: keys.slice(), get length() { return this._k.length; }, key(i) { return this._k[i]; } });
+  const mkProvider = (opts) => {
+    const calls = [];
+    return { calls,
+      accounts: opts.accounts || [],
+      session: ('session' in opts) ? opts.session : null,
+      connected: true,
+      on: () => {},
+      request: async ({ method }) => { calls.push(['request', method]); if (method === 'eth_accounts') return opts.ethAccounts || []; return []; },
+      enable: async () => { calls.push(['enable']); if (opts.enableReject) throw new Error('rejected'); return opts.enableAccounts || []; },
+      connect: async () => { calls.push(['connect']); },
+      disconnect: async () => { calls.push(['disconnect']); },
+    };
+  };
+  // Harness: fungsi WC asli diekstrak dengan local bersama. setTimeout
+  // dibayangi fake supaya watchdog 60 detik tidak menahan proses tes;
+  // fake mencatat durasi watchdog sehingga tes bisa membuktikan 60 s.
+  const mkHarness = (deps) => {
+    const timers = [];
+    const fakeSetTimeout = (fn, ms) => { const rec = { fn, ms }; timers.push(rec); return rec; };
+    const mockWindow = deps.window;
+    const mockDoc = deps.document;
+    const noteEl = mockEl();
+    let connectedAddr = null;
+    const walletEl = { value: '' };
+    const src = ['hasWcSessionKey', 'wcLoadBundle', 'wcGetProvider', 'restoreWalletConnectSession', 'setWcRestoreNote'].map(fnSrcJ).join('\n');
+    const fn = new Function('window', 'document', 'localStorage', 'CONFIG', '$', 'walletEl', 'saveWallet38', 'preview', 'setConnected', 'isAddr', 'msg', 'msgf', 'say', 'fakeSetTimeout',
+      'const setTimeout = fakeSetTimeout;\nlet wcProvider = null;\nlet wcBundlePromise = null;\nlet wcRestoreReason = null;\n' + src +
+      '\nreturn { hasWcSessionKey, wcLoadBundle, wcGetProvider, restoreWalletConnectSession, setWcRestoreNote, getWcProvider: () => wcProvider, getReason: () => wcRestoreReason };');
+    const api = fn(mockWindow, mockDoc, deps.localStorage,
+      { WC_PROJECT_ID: 'x', WC_CHAINS: [11155111], SEPOLIA_RPC: 'https://rpc.test' },
+      id => (id === 'wcRestoreNote' ? noteEl : null), walletEl, () => {}, () => {},
+      (a) => { connectedAddr = a; }, isAddrH, k => k, msgfH, () => {}, fakeSetTimeout);
+    return { api, timers, noteEl, mockWindow, getConnected: () => connectedAddr, walletEl };
+  };
+  const mkWindow = (ethProvider) => { const w = {}; if (ethProvider) w.EthereumProvider = ethProvider; return w; };
+
+  // 1. Sesi tersimpan + passive kosong -> enable() mengembalikan akun -> TERHUBUNG, tanpa modal.
+  {
+    let initOpts = null;
+    const p = mkProvider({ accounts: [], session: { topic: 't1' }, ethAccounts: [], enableAccounts: [ADDR] });
+    const h = mkHarness({ window: mkWindow({ init: async (opts) => { initOpts = opts; return p; } }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore(['wc@2:client:0.3//session']) });
+    await h.api.restoreWalletConnectSession();
+    t('v42.5.2 FIX 3: sesi + enable() -> TERHUBUNG', h.getConnected() === ADDR && h.walletEl.value === ADDR);
+    t('v42.5.2 FIX 3: restore memanggil enable() (bukan hanya baca pasif)', p.calls.some(c => c[0] === 'enable'));
+    t('v42.5.2 FIX 3: restore TIDAK memanggil connect() (tanpa modal)', !p.calls.some(c => c[0] === 'connect'));
+    t('v42.5.2 FIX 3: restore init memakai showQrModal:false', initOpts && initOpts.showQrModal === false);
+    t('v42.5.2 FIX 3: restore sukses -> provider di-cache + note bersih', h.api.getWcProvider() === p && h.api.getReason() === null && h.noteEl.classList.contains('hidden'));
+  }
+  // 2. Tanpa kunci sesi -> enable() TIDAK dipanggil, provider TIDAK dibuat.
+  {
+    let inits = 0;
+    const p = mkProvider({ accounts: [], session: { topic: 't1' }, enableAccounts: [ADDR] });
+    const h = mkHarness({ window: mkWindow({ init: async () => { inits++; return p; } }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore([]) });
+    await h.api.restoreWalletConnectSession();
+    t('v42.5.2 FIX 3: tanpa kunci sesi -> enable() TIDAK dipanggil + init TIDAK jalan', !p.calls.some(c => c[0] === 'enable') && inits === 0 && h.getConnected() === null);
+    t('v42.5.2 FIX 3: tanpa kunci sesi -> alasan no-session-key, note tetap tersembunyi', h.api.getReason() === 'no-session-key' && h.noteEl.classList.contains('hidden'));
+  }
+  // 3. Bundle lambat -> restore menunggu (watchdog 60 s) dan berhasil.
+  {
+    let initOpts = null;
+    const p = mkProvider({ accounts: [], session: { topic: 't1' }, ethAccounts: [], enableAccounts: [ADDR] });
+    let scriptEl = null;
+    const mockWindow = mkWindow(undefined); // bundle belum dimuat
+    const h = mkHarness({ window: mockWindow, document: { createElement: () => { scriptEl = { src: '', onload: null, onerror: null }; return scriptEl; }, head: { appendChild: () => {} } }, localStorage: mkStore(['wc@2:client:0.3//session']) });
+    const restoreP = h.api.restoreWalletConnectSession();
+    await new Promise(r => setTimeout(r, 50)); // bundle "diunduh" 50 ms kemudian
+    mockWindow.EthereumProvider = { init: async (opts) => { initOpts = opts; return p; } };
+    scriptEl.onload();
+    await restoreP;
+    t('v42.5.2 FIX 3: bundle lambat -> restore menunggu dan TERHUBUNG', h.getConnected() === ADDR);
+    t('v42.5.2 FIX 3: watchdog restore 60 detik (bukan 15)', h.timers.some(rec => rec.ms === 60000));
+    t('v42.5.2 FIX 3: restore init showQrModal:false saat bundle lambat', initOpts && initOpts.showQrModal === false);
+  }
+  // 4. enable() reject -> tanpa modal, tetap disconnected, alasan terlihat.
+  {
+    const p = mkProvider({ accounts: [], session: { topic: 't1' }, ethAccounts: [], enableReject: true });
+    const h = mkHarness({ window: mkWindow({ init: async () => p }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore(['wc@2:client:0.3//session']) });
+    await h.api.restoreWalletConnectSession();
+    t('v42.5.2 FIX 3: enable() reject -> tetap disconnected, tanpa modal', h.getConnected() === null && !p.calls.some(c => c[0] === 'connect') && h.api.getWcProvider() === null);
+    t('v42.5.2 FIX 3: enable() reject -> alasan enable-rejected tampil di note', h.api.getReason() === 'enable-rejected' && !h.noteEl.classList.contains('hidden') && h.noteEl.textContent.includes('enable-rejected'));
+  }
+  // 5. Passive read berhasil -> enable() TIDAK dipanggil.
+  {
+    const p = mkProvider({ accounts: [ADDR], session: { topic: 't1' } });
+    const h = mkHarness({ window: mkWindow({ init: async () => p }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore(['wc@2:client:0.3//session']) });
+    await h.api.restoreWalletConnectSession();
+    t('v42.5.2 FIX 3: akun pasif ada -> TERHUBUNG tanpa enable()', h.getConnected() === ADDR && !p.calls.some(c => c[0] === 'enable'));
+  }
+  // 6. Kunci ada tapi p.session kosong -> enable() TIDAK dipanggil (tidak ada yang diaktifkan).
+  {
+    const p = mkProvider({ accounts: [], session: null, ethAccounts: [] });
+    const h = mkHarness({ window: mkWindow({ init: async () => p }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore(['wc@2:client:0.3//session']) });
+    await h.api.restoreWalletConnectSession();
+    t('v42.5.2 FIX 3: tanpa p.session -> enable() TIDAK dipanggil, alasan no-accounts', !p.calls.some(c => c[0] === 'enable') && !p.calls.some(c => c[0] === 'connect') && h.api.getReason() === 'no-accounts' && h.getConnected() === null);
+    t('v42.5.2 FIX 3: no-accounts tampil di note', !h.noteEl.classList.contains('hidden') && h.noteEl.textContent.includes('no-accounts'));
+  }
+  // 7. Connect manual tetap memakai modal (wcGetProvider() default).
+  {
+    let initOpts = null;
+    const p = mkProvider({ accounts: [ADDR] });
+    const h = mkHarness({ window: mkWindow({ init: async (opts) => { initOpts = opts; return p; } }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore([]) });
+    await h.api.wcGetProvider();
+    t('v42.5.2 FIX 3: connect manual -> showQrModal:true', initOpts && initOpts.showQrModal === true);
+  }
+  // 8. Bundle gagal total (onerror) -> alasan bundle-timeout, tetap disconnected.
+  {
+    let scriptEl = null;
+    const mockWindow = mkWindow(undefined);
+    const h = mkHarness({ window: mockWindow, document: { createElement: () => { scriptEl = { src: '', onload: null, onerror: null }; return scriptEl; }, head: { appendChild: () => {} } }, localStorage: mkStore(['wc@2:client:0.3//session']) });
+    const restoreP = h.api.restoreWalletConnectSession();
+    await new Promise(r => setTimeout(r, 10));
+    scriptEl.onerror();
+    await restoreP;
+    t('v42.5.2 FIX 3: bundle gagal -> alasan bundle-timeout, note tampil', h.api.getReason() === 'bundle-timeout' && h.getConnected() === null && !h.noteEl.classList.contains('hidden') && h.noteEl.textContent.includes('bundle-timeout'));
+  }
+  // Statis.
+  t('v42.5.2 FIX 3: preload bundle di page load hanya bila kunci sesi ada', js.includes("if (!window.ethereum && hasWcSessionKey()) wcLoadBundle(60000);"));
+  t('v42.5.2 FIX 3: elemen note ada di HTML + i18n EN/ID', html.includes('id="wcRestoreNote"') && js.includes("wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason}") && js.includes("wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason}"));
+}
+
 (async () => {
   await runRateLimitTests();
   await runWalletTests42();
   await runDreamTests42();
   await runBugFixTests4251();
+  await runBugFixTests4252();
+  await runWcRestoreTests4252();
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })();

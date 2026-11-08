@@ -164,7 +164,7 @@
 // It already exists since v3 — do NOT rotate or re-enter it.
 //
 // Endpoints (all JSON, CORS open):
-//   GET  /                  -> { service, version: 11 }
+//   GET  /                  -> { service, version: 12 }
 //   GET  /icon.png           -> 512x512 app icon PNG (WalletConnect/OKX, favicon)
 //   GET  /og.png             -> 1600x900 banner PNG (og:image / twitter:image)
 //   GET  /cheese?wallet=0x...   -> { wallet, balance, items: [{id, slot,
@@ -177,6 +177,13 @@
 //                             (100 Keju, server RNG, weighted 70/22/7/1)
 //   POST /cheese/equip {wallet, item_id}
 //                          -> { ok, equipped, slot }
+//   POST /cheese/unequip {wallet, slot}
+//                          -> { ok, slot } — clears the equipped flag for
+//                             every item in that slot (v12). No D1 schema
+//                             change: the equipped column already exists.
+//                             Without this, unequip lokal saja tidak cukup:
+//                             fetchShop() menyinkronkan flag equipped dari
+//                             server dan akan mengembalikan skin yang dicopot.
 //   POST /capsule-resolve {wallet, pullId, targetRound}
 //                          -> { pullId, targetRound, dataHash, deadline,
 //                             signature } or 409 (round not settled yet)
@@ -1331,7 +1338,7 @@ export default {
 
     try {
       if (url.pathname === "/" && request.method === "GET") {
-        return json({ service: "squeekchain-leaderboard", version: 11 });
+        return json({ service: "squeekchain-leaderboard", version: 12 });
       }
 
       // --- v42.5.1: app icon (WalletConnect/OKX) + OG image ---
@@ -1480,6 +1487,31 @@ export default {
           ).bind(wallet, item.id),
         ]);
         return json({ ok: true, equipped: item.id, slot: item.slot });
+      }
+
+      // v12: UNEQUIP Keju — POST /cheese/unequip {wallet, slot}: clears the
+      // equipped flag for every item in that slot. The client alone cannot
+      // unequip Keju: GET /cheese reports the server flag and fetchShop()
+      // re-syncs it, so a local-only unequip would be restored on the next
+      // shop refresh (the v42.5.1 equip-revert bug in reverse). Ownership
+      // is untouched: the row stays in cheese_inventory, only equipped=0.
+      if (url.pathname === "/cheese/unequip" && request.method === "POST") {
+        const body = await request.json().catch(() => null);
+        if (!body || !isWallet(body.wallet)) {
+          return json({ error: "wallet address is not valid" }, 400);
+        }
+        const wallet = body.wallet.toLowerCase();
+        const slot = String(body.slot || "");
+        if (slot !== "note" && slot !== "frame") {
+          return json({ error: "slot is not valid" }, 400);
+        }
+        const slotIds = CHEESE_CATALOG.filter((c) => c.slot === slot).map((c) => c.id);
+        await env.DB.prepare(
+          "UPDATE cheese_inventory SET equipped = 0 WHERE wallet = ? AND item_id IN (" +
+            slotIds.map(() => "?").join(",") +
+            ")"
+        ).bind(wallet, ...slotIds).run();
+        return json({ ok: true, slot });
       }
 
       // --- v7: SQK shop capsule — resolve signature + duplicate credit ---
