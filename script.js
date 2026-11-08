@@ -612,12 +612,13 @@ bindToggle('genreRow', 'genre', v => { currentGenre = v; preview(); }, v => {
   return true;
 });
 
-function cyrb53(str, seed = 0) { let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed; for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677) } h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909); return 4294967296 * (2097151 & h2) + (h1 >>> 0) }
-function rng(seed) { let a = seed >>> 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 } }
+// v40: cyrb53 + rng (Mulberry32) kini hidup di engine.js (SqueekEngine) —
+// satu sumber kebenaran untuk client dan Worker (verifikasi replay).
+// Alias ini menjaga semua pemakaian lama (dailySpec, dailyMissions,
+// avatar, headerSeed, makeAnthem) tetap jalan tanpa perubahan.
+const cyrb53 = SqueekEngine.cyrb53;
+const rng = SqueekEngine.mulberry32;
 const seedOf = w => cyrb53((w || 'GUEST').toLowerCase());
-const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const SCALES = { 'Minor Pentatonic': [0, 3, 5, 7, 10], 'Dorian': [0, 2, 3, 5, 7, 9, 10], 'Phrygian': [0, 1, 3, 5, 7, 8, 10], 'Major Pentatonic': [0, 2, 4, 7, 9], 'Harmonic Minor': [0, 2, 3, 5, 7, 8, 11], 'Lydian': [0, 2, 4, 6, 7, 9, 11], 'Mixolydian': [0, 2, 4, 5, 7, 9, 10], 'Aeolian': [0, 2, 3, 5, 7, 8, 10], 'Blues': [0, 3, 5, 6, 7, 10], 'Major': [0, 2, 4, 5, 7, 9, 11] }; // v33: 10 scales (was 5)
-const SONG_MOODS = { 'Phrygian': 'Void', 'Harmonic Minor': 'Ember', 'Minor Pentatonic': 'Blues', 'Dorian': 'Neon', 'Major Pentatonic': 'Sunny', 'Lydian': 'Sky', 'Mixolydian': 'Groove', 'Aeolian': 'Dusk', 'Blues': 'Smoky', 'Major': 'Bright' }; // v33.1: every song gets a name from its scale + mood ("Neon Dorian")
 // v34 THEMES — one look per mode, so no two modes feel the same. Reference:
 // the official Squeekchain pixel art (blue pixel grid, yellow pixel hamster,
 // chunky pixel font) — the grid + the hamster note carry that language in-game.
@@ -632,49 +633,17 @@ const THEMES = {
 };
 function themeKeyFor(mode, boss) { if (boss) return 'void'; if (mode === 'daily') return 'sunrise'; if (mode === 'live') return 'wheel'; if (mode === 'race') return 'versus'; if (mode === 'challenge') return 'gold'; return 'cyber'; }
 
-function makeAnthem(wallet, randomize = false, seedOverride = null, lanes = 3, mirror = false) {
-  let seed = seedOverride ? cyrb53(seedOverride) : seedOf(wallet);
-  if (randomize && !seedOverride) seed += Math.floor(Math.random() * 999999);
-  lanes = lanes === 4 ? 4 : 3; // v28: 4-lane mode (LV6)
-  const r = rng(seed), genreInfo = GENRES[currentGenre];
-  const scaleName = genreInfo.scales[Math.floor(r() * genreInfo.scales.length)];
-  const scale = SCALES[scaleName], root = Math.floor(r() * 12);
-  // v27 LIVE: a LIVE seed encodes the hamster BPM (LIVE-YYYY-MM-DD-<bpm>) — the
-  // tempo comes from the wheel, not the genre. Skipping the bpm rng draw here
-  // keeps the song identical when a duel link replays the same seed.
-  const liveBpmMatch = seedOverride ? String(seedOverride).match(/^LIVE-\d{4}-\d{2}-\d{2}-(\d{2,3})$/) : null;
-  const bpm = liveBpmMatch ? parseInt(liveBpmMatch[1], 10) : genreInfo.bpm + Math.floor(r() * 20) - 10;
-  const step = 60 / bpm / 4, span = scale.length * 2;
-  const chart = [], drums = [], diff = DIFFICULTIES[currentDiff]; let lastT = -1;
-  // v33.1 MOTIF: a 2-bar phrase repeats every 2 bars (with small variations),
-  // so the song has a recognizable phrase instead of random notes. Every draw
-  // comes from r() in fixed order, so the same seed replays the same song
-  // (duel links, daily anthem) — determinism is tested, not assumed.
-  const motif = [[], []];
-  for (let mb = 0; mb < 2; mb++) for (let s = 0; s < 16; s++) {
-    const onBeat = s % 4 === 0, onEighth = s % 2 === 0;
-    const on = (onEighth && r() < diff.density) || (onBeat && r() < diff.density * 1.2);
-    motif[mb][s] = { on, deg: Math.floor(r() * span) };
-  }
-  for (let bar = 0; bar < CONFIG.BARS; bar++) {
-    for (let s = 0; s < 16; s++) {
-      const t = (bar * 16 + s) * step;
-      drums.push({ t, kick: s % 4 === 0 || (s === 10 && r() < .3), hat: s % 2 === 0, snare: s === 4 || s === 12, bass: s % 8 === 0 ? [0, 3, 4, 5, 2][Math.floor(r() * 5)] % scale.length : null });
-      const m = motif[bar % 2][s];
-      let want = m.on, deg = m.deg;
-      if (bar < 2) want = s % 8 === 0; // intro stays sparse (first 2 bars)
-      else { if (want && r() < 0.15) want = false; else if (want && r() < 0.15) deg = Math.max(0, Math.min(span - 1, deg + (r() < 0.5 ? -1 : 1))); } // variation on repeats
-      if (want && (t - lastT > 0.25)) {
-        const midi = 60 + root + scale[deg % scale.length] + 12 * Math.floor(deg / scale.length);
-        const lane = Math.min(lanes - 1, Math.floor(deg / span * lanes));
-        chart.push({ t, lane, midi, judged: null }); lastT = t;
-        if (s % 4 === 0 && r() < diff.chord) chart.push({ t, lane: (lane + 1 + Math.floor(r() * 2)) % lanes, midi: midi - 12, judged: null });
-      }
-    }
-  }
-  chart.sort((a, b) => a.t - b.t);
-  if (mirror) chart.forEach(n => { n.lane = lanes - 1 - n.lane; }); // v28: Mirror mode (LV7) — flip the chart
-  return { bpm, step, scaleName, name: (SONG_MOODS[scaleName] || scaleName) + ' ' + scaleName, key: NOTE_NAMES[root], root, scale, chart, drums, duration: CONFIG.BARS * 16 * step, hue: Math.floor(r() * 360), lanes, mirror };
+// v40: lagu + chart dibangun oleh engine.js (SqueekEngine.buildChart) —
+// satu sumber kebenaran untuk client dan Worker (verifikasi replay).
+// Audio (drums -> tone/kick/noise di schedule()) tetap di script.js.
+// seedKey di sini adalah string sumber seed chart (seed sesi TIDAK dipakai
+// untuk chart — lihat engine.js aturan 1). practice=true menerapkan
+// penskalaan tempo 60% di dalam buildChart (dulu blok manual di play()).
+function makeAnthem(wallet, randomize = false, seedOverride = null, lanes = 3, mirror = false, practice = false) {
+  const seedKey = seedOverride || (wallet || 'GUEST').toLowerCase();
+  const header = { seedKey, genre: currentGenre, diff: currentDiff, lanes: lanes === 4 ? 4 : 3, mirror: !!mirror, practice: !!practice };
+  if (randomize && !seedOverride) header.seedNum = cyrb53(seedKey) + Math.floor(Math.random() * 999999);
+  return SqueekEngine.buildChart(header);
 }
 
 // ==========================================
@@ -886,10 +855,12 @@ async function play() {
   if (playMode === 'daily') applyDailySpec(); // v28: daily genre+diff come from the date, not the selection
   if (playMode === 'boss') { const bs = weeklySpec(); currentGenre = bs.genre; currentDiff = 'hard'; syncGenreDiffButtons(); } // v29: weekly boss is always HARD
   const lanes = lanesForSong(), mirror = mirrorForSong();
-  anthem = makeAnthem(w, false, seedKey, lanes, mirror); lastAnthem = anthem; hitOffsets = []; CONFIG.SPEED = DIFFICULTIES[currentDiff].speed; applyHue(anthem.hue);
+  anthem = makeAnthem(w, false, seedKey, lanes, mirror, practiceMode); lastAnthem = anthem; hitOffsets = []; CONFIG.SPEED = DIFFICULTIES[currentDiff].speed; applyHue(anthem.hue);
   const lh0 = $('lastHit'), ah0 = $('avgHit'), hd0 = $('hitDir'); if (lh0) lh0.textContent = '-- ms'; if (ah0) ah0.textContent = '-- ms'; if (hd0) hd0.textContent = '—'; // v36.1: the precision readout reset with the game — the previous game's last/avg offsets no longer linger until the first tap (smoke test 2026-11-07)
-  // v29 PRACTICE: 60% tempo, no XP/streak/history — scale every time value.
-  if (practiceMode) { const k = 1 / 0.6; anthem.bpm = Math.round(anthem.bpm * 0.6); anthem.step *= k; anthem.duration *= k; anthem.chart.forEach(n => { n.t *= k; }); anthem.drums.forEach(d => { d.t *= k; }); CONFIG.SPEED = Math.round(CONFIG.SPEED * 0.6); }
+  // v29 PRACTICE: 60% tempo, no XP/streak/history. v40: penskalaan waktu
+  // (bpm/step/durasi/chart/drums) kini di dalam buildChart (practice=true
+  // di atas) — di sini tinggal SPEED, yang hanya soal rendering.
+  if (practiceMode) { CONFIG.SPEED = Math.round(CONFIG.SPEED * 0.6); }
   LW = GW / lanes; // v28: 4-lane mode widens the highway per lane
   const kh = document.querySelector('.kbd-hint'); if (kh) kh.textContent = lanes === 4 ? msg('kbd4') : msg('kbd3');
   glSeed = w ? Math.abs(cyrb53(w) % 1000) / 100 : Math.random() * 10;
@@ -1421,6 +1392,13 @@ async function refreshLive() {
   // preview() re-rolls the accent hue, which must not change mid-song.
   if (!G) preview();
   if (G && !G.ended && G.mode === 'live') updateLiveHud();
+  // v40 DETERMINISME: di mode RACE, ZOOMIES ikut flip TEPAT saat poll
+  // mendarat (bukan hanya lewat tick 500 ms di startRaceTick). Sebelumnya
+  // flip bisa tertunda 0-500 ms sesudah poll — selisih itu tidak terekam di
+  // replay, jadi simulate() tidak bisa mereproduksi skornya secara exact.
+  // Poll tercatat di recordReplayPoll tepat sesudah baris ini, jadi waktu
+  // flip == waktu poll. Tidak mengubah HUD (tetap di tick) atau rumus skor.
+  if (G && !G.ended && G.mode === 'race') computeZoomies();
   recordReplayPoll(s); // v39: tiap poll live direkam (termasuk yang gagal)
   return s;
 }
@@ -2241,7 +2219,7 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 8000);
   try {
-    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v39' } : bodyBase);
+    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v40' } : bodyBase);
     if (!r.ok && r.status === 400 && lastResult.replay) r = await postScores(bodyBase);
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();

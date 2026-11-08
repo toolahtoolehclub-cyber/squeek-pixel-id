@@ -5,27 +5,38 @@
 // addresses truncated (0x1234...abcd).
 //
 // Fase 0 (v2, Batch 1): server-issued play sessions + plausibility checks.
-// The game asks POST /session for a server seed before a run and sends the
-// sessionId back with the score. A score is stored as verified=1 ONLY when
-// the session was valid (exists, unexpired, unused) AND the run's numbers
-// pass the plausibility checks. Anything else is still stored (if it beats
-// the wallet's best, as before) but marked verified=0. Nothing here proves
-// a human played; it only makes blind score spam measurably harder.
-//
 // Fase 1 (v3, Batch 2): EIP-712 attestations over deterministic replays.
-// When the client sends a valid v1 replay together with a valid session,
-// the server signs an EIP-712 Attestation for that run and stores the
-// signature + replay hash on the score row, and the replay itself in D1.
-// NO ENFORCEMENT yet: scores without a replay (or with an invalid one)
-// behave exactly as in v2 (verified 0/1 by session+plausibility, no
-// signature). Enforcement (rejecting scores without a replay) is Batch 3.
+//   No enforcement: scores without a replay behaved exactly as in v2.
+//
+// Fase 2 (v4, Batch 3) — ASYNC REPLAY VERIFICATION + ENFORCEMENT.
+//   POST /scores now REQUIRES a valid v1 replay, or it is rejected 422.
+//   A replay that passes the cheap synchronous checks (shape, bounds,
+//   hash, session, wall-clock) is stored as pending and verified by a
+//   Cron Trigger (every minute) that replays it through the SAME chart +
+//   judge logic the game uses (engine.js, single source of truth — this
+//   file NEVER re-implements chart generation or judging):
+//     buildChart(header) -> chart, simulate(chart, replay) -> result.
+//   Only a replay whose simulated score/counts/maxCombo match the claim
+//   EXACTLY (acc within 0.01) gets verified=1 + an EIP-712 attestation and
+//   appears on the board. Anything else is marked rejected (GET /verify
+//   reports it as 422 with the reason). verified=1 exists ONLY for a
+//   replay that passed simulation + attestation. Legacy rows (TEST 3000,
+//   race 66805) stay verified=0, untouched.
+//
+//   Why async: Worker Free = 10 ms CPU/request. buildChart + simulate for
+//   a full song is small but the queue + scheduled trigger keeps the
+//   submit path cheap and lets verification run outside the request.
+//   Cron Triggers ARE available on the free tier (verified live 2026-11-08:
+//   GET .../workers/scripts/squeekchain-leaderboard/schedules works).
+//   This is genuinely async: POST returns 202 pending, the cron verifies,
+//   GET /verify reports pending -> verified (200) or rejected (422).
 //
 // Signer (server-only key, held as Worker secret SIGNING_KEY, never in any
 // file or repo): 0x69f24c0598c8e6b6b938527d84141dd04ec2b3e3
 // EIP-712 domain: { name: "Squeek Pixel ID", version: "1",
 //   chainId: 11155111 (Sepolia), verifyingContract: <signer address> }
 // Attestation: player (address), score (uint256), accuracy (uint256 =
-//   Math.round(acc*100)), songId (string), gameVersion (string, e.g. "v39"),
+//   Math.round(acc*100)), songId (string), gameVersion (string, e.g. "v40"),
 //   seed (uint256), replayHash (bytes32), nonce (uint256), deadline
 //   (uint256, epoch seconds, now+600).
 // songId is FROZEN: mode + "|" + genre + "|" + diff + "|" + seedKey,
@@ -35,21 +46,43 @@
 // NOT keccak — the EIP-712 struct just carries the 32 SHA-256 bytes.
 // Nonce is per-wallet monotonic in D1 table `nonces`, +1 per attestation
 // the server signs. A replay_hash already in D1 table `replays` is never
-// stored twice: the stored signature is returned with duplicate:true.
-// A replay already attested to a DIFFERENT wallet is rejected (400) so a
-// run cannot be replayed under someone else's address.
+// stored twice: the stored status is returned (verified -> signature,
+// pending -> 202, rejected -> 422). A replay already attested to a
+// DIFFERENT wallet is rejected (422) so a run cannot be replayed under
+// someone else's address.
 //
-// BUILD: this file imports @noble/curves + @noble/hashes, which Workers
-// cannot resolve at deploy time. Bundle first, then deploy the bundle:
-//   cd /tmp/v39-build && npx esbuild <path>/worker.js --bundle \
-//     --format=esm --outfile=dist/worker.js
+// What verification proves (honest scope): the claimed score is achievable
+// by the recorded inputs on the deterministic chart for that seedKey, the
+// run started inside a fresh server-issued session window, and the run
+// took at least the song's duration in wall time. It does NOT prove a
+// human played in real time: a bot that fetches a session, derives the
+// public chart and waits out the song could still fabricate a run. The
+// session + wall-clock checks bound that to one fresh session per run;
+// blind score spam (invented numbers) is dead.
+//
+// BUILD: this file imports @noble/curves + @noble/hashes and ./engine.js,
+// which Workers cannot resolve at deploy time. Bundle first (esbuild
+// resolves ./engine.js into the bundle; the repo keeps the import), then
+// deploy the bundle:
+//   cd /tmp/v40-build && cp <repo-v40>/worker.js <repo-v40>/engine.js . \
+//     && npx esbuild worker.js --bundle --format=esm --outfile=dist/worker.js
 //   python3 ~/workspace/custom-connectors/custom.cloudflare/bin/upload_worker.py \
 //     squeekchain-leaderboard dist/worker.js cd6920f3-3efb-491d-ae0c-b287069c8052
+// D1 migration (once, before deploy — see migrate-v4.sql):
+//   CREATE TABLE verify_queue (...); ALTER TABLE replays ADD COLUMN
+//   verification_status TEXT NOT NULL DEFAULT 'unverified';
+//   UPDATE replays SET verification_status='verified' WHERE signature IS NOT NULL;
+// Cron schedule (after deploy):
+//   PUT /client/v4/accounts/256be9628bc7256755a2f9d0a7780621/workers/scripts/squeekchain-leaderboard/schedules
+//   [{"cron": "* * * * *"}]   (array body — a bare {"cron": ...} object is
+//   rejected 400 "Could not parse request body"; then GET the same path
+//   to confirm)
 // The secret must exist first (PUT .../workers/scripts/squeekchain-leaderboard/secrets
 // {"name":"SIGNING_KEY","text":"<64-hex>","type":"secret_text"}).
+// It already exists since v3 — do NOT rotate or re-enter it.
 //
 // Endpoints (all JSON, CORS open):
-//   GET  /                  -> { service, version }
+//   GET  /                  -> { service, version: 4 }
 //   GET  /scores?mode=free&limit=20
 //                          -> { mode, count, scores: [{rank, wallet, name,
 //                             score, acc, verified, updated_at}] }
@@ -57,18 +90,34 @@
 //                             (seed is server-issued, valid 30 minutes,
 //                             single use)
 //   POST /scores {wallet, name, score, acc, mode,
-//                 sessionId?, notes?, taps?, durationMs?,
-//                 replay?, replayHash?, gameVersion?}
-//                          -> upserts ONLY when the new score beats the
-//                             wallet's stored best for that mode;
-//                             rate limit 10/wallet/hour, 30/IP/hour (429);
+//                 sessionId (REQUIRED in v4), notes?, taps?, durationMs?,
+//                 replay (REQUIRED in v4), replayHash?, gameVersion?}
+//                          -> 202 { ok, pending:true,
+//                             verification_status:"pending", replayHash,
+//                             wallet, mode, score } when the replay passes
+//                             the synchronous checks and is queued;
+//                             200 { ok, duplicate:true, verified:1,
+//                             signature, ... } when the same replay was
+//                             already verified for this wallet;
+//                             202 { ok, pending:true, ... } when the same
+//                             replay is still pending for this wallet;
+//                             422 for every replay/session failure:
+//                             missing replay, practice mode, shape/bounds,
+//                             hash mismatch, replay of another wallet,
+//                             missing/invalid/expired/used session, seed
+//                             mismatch, wall-clock violation.
+//                             Rate limit 10/wallet/hour, 30/IP/hour (429);
 //                             plausibility failure -> 400, not stored.
-//                             With a valid replay + valid session:
-//                             { ok, improved, verified:1, signature,
-//                               replayHash, nonce, deadline, wallet, mode,
-//                               score }. Duplicate replay:
-//                             { ok, duplicate:true, improved:false,
-//                               verified:1, signature, replayHash, ... }.
+//                             Scores appear on the board ONLY after the
+//                             cron verifies them (verified=1 + attestation).
+//   GET  /verify?replayHash=0x...
+//                          -> 202 { verification_status:"pending"|
+//                             "processing", replayHash } while queued;
+//                             200 { verification_status:"verified",
+//                             signature, nonce, deadline, replayHash,
+//                             wallet, mode, score } once verified;
+//                             422 { verification_status:"rejected",
+//                             reason, replayHash } when verification failed.
 //   GET  /rank?wallet=0x...&mode=free
 //                          -> { wallet, mode, rank, score, total }
 
@@ -76,8 +125,22 @@ import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
+// Single source of truth for chart + judge logic (extracted from
+// script.js). buildChart(header) rebuilds the exact chart the game played;
+// simulate(chart, replay) replays the recorded inputs through the exact
+// judge rules and returns { score, acc, maxCombo, counts, grade,
+// playerDistM, oppDistM, win, goldenHits, goldenChecks, oppDistMDerived,
+// oppDistMMatch } — see the contract in AUDIT-v40.md §2. This file never
+// duplicates that logic.
+// engine.js is UMD (no ESM `export`, so it still loads as a classic
+// <script> in the browser): the bundle inlines it for its side effect
+// (it sets globalThis.SqueekEngine) and this file reads the API off there.
+import "./engine.js";
+const { buildChart, simulate } = globalThis.SqueekEngine;
 
 const MODES = ["free", "daily", "live", "race", "boss", "challenge"];
+const GENRES = ["cyber", "synth", "chip", "void"];
+const DIFFS = ["easy", "normal", "hard"];
 const MAX_SCORE = 5000000;
 const MAX_NAME = 16;
 const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -95,6 +158,18 @@ const MAX_DURATION_MS = 300000;
 const MAX_POLLS = 600;
 const MAX_REPLAY_BYTES = 256 * 1024;
 const MAX_GAME_VERSION = 16;
+// Verification (v4).
+const VERIFY_BATCH = 3; // rows per cron run — keeps one scheduled
+// invocation comfortably inside the 10 ms free-tier CPU budget.
+const VERIFY_MAX_ATTEMPTS = 3; // transient failures, then rejected.
+const VERIFY_STALE_MS = 5 * 60 * 1000; // 'processing' older than this is
+// presumed dead (invocation died mid-run) and reset to pending.
+const ACC_TOL = 0.01; // simulated acc must match the claim within this.
+const CHART_DURATION_TOL = 0.011; // header.duration is toFixed(3).
+const W_GOOD = 0.135; // judge window, seconds (CONFIG.W.good).
+const GOLDEN_MAX = 2; // a <=300 s song crosses at most one 10-minute
+// round boundary; +1 slack for a long pause mid-song.
+const REALTIME_SKEW_MS = 5000; // wall-clock vs audio-clock tolerance.
 
 // --- EIP-712 (Fase 1) ---
 const SIGNER_ADDRESS = "0x69f24c0598c8e6b6b938527d84141dd04ec2b3e3";
@@ -271,8 +346,69 @@ function isInt(v) {
   return typeof v === "number" && Number.isInteger(v);
 }
 
-// Validate a v1 replay against the submitted score/acc/mode/notes.
-// Returns { ok: true } or { ok: false, error }.
+function isFiniteNumber(v) {
+  return typeof v === "number" && Number.isFinite(v);
+}
+
+// --- Determinism check 4a: finish.oppDistM (race) vs the poll log ---
+// raceOppDist() in the game is max(0, (lastLiveSnapshot.dist -
+// startDistKm) * 1000), where the snapshot is the LAST refreshLive result
+// and every refreshLive is recorded as a poll. So:
+//   - outside race mode, oppDistM must be null (the game writes null);
+//   - race + last recorded poll failed (or no polls): the snapshot at
+//     finish was not ok -> oppDistM must be 0;
+//   - race + last recorded poll ok: oppDistM must lie in
+//     [base - 2, base + rateMax * gap * 1000 * 1.5 + 2], where base is the
+//     last ok poll's distance minus the start distance (metres) and gap is
+//     finish.t minus the last poll's t (the wheel keeps moving after the
+//     last poll; rateMax is the fastest rate observed in the log, floored
+//     at 2 m/s so a hamster sprint in the gap still passes).
+//   - startDistKm == 0 is ambiguous: the wheel may have been offline at
+//     song start (G.race.offline forces oppDistM = 0 even if polls later
+//     succeed), so 0 is also accepted in that case.
+// oppDistM carries no score, so this is a consistency check, not a score
+// gate — but a gross fabrication still fails it.
+function checkOppDist(replay) {
+  const h = replay.header;
+  const fin = replay.events.finish;
+  if (h.mode !== "race") {
+    if (fin.oppDistM !== null) return "finish.oppDistM must be null outside race mode";
+    return null;
+  }
+  const opp = fin.oppDistM;
+  if (!isFiniteNumber(opp) || opp < 0) return "finish.oppDistM is not valid";
+  const polls = replay.events.polls;
+  const lastPoll = polls.length ? polls[polls.length - 1] : null;
+  if (!lastPoll || !lastPoll.ok) {
+    if (Math.abs(opp) > 0.05) return "finish.oppDistM must be 0 when the last poll failed";
+    return null;
+  }
+  // Offline-at-start ambiguity (see header comment): 0 is acceptable
+  // when the start distance is 0.
+  if (h.initialDistKm === 0 && Math.abs(opp) <= 0.05) return null;
+  const okPolls = polls.filter((p) => p.ok);
+  const lastOk = okPolls[okPolls.length - 1];
+  const base = Math.max(0, (lastOk.dist - h.initialDistKm) * 1000);
+  let rateMax = 0.002; // km/s floor (2 m/s)
+  for (let i = 1; i < okPolls.length; i++) {
+    const dt = okPolls[i].t - okPolls[i - 1].t;
+    if (dt > 0.001) {
+      rateMax = Math.max(rateMax, (okPolls[i].dist - okPolls[i - 1].dist) / dt);
+    }
+  }
+  const gap = Math.max(0, fin.t - lastPoll.t);
+  const maxOpp = base + rateMax * gap * 1000 * 1.5 + 2;
+  if (opp < base - 2 || opp > maxOpp) {
+    return "finish.oppDistM inconsistent with poll log";
+  }
+  return null;
+}
+
+// Validate a v1 replay: shape + bounds + the determinism checks that do
+// NOT need the chart (4a, 4c, 4d-by-construction). The chart-dependent
+// checks (duration, counts, golden 4b, simulated score) run in the cron
+// via verifySimulated(). Returns { ok: true } or { ok: false, error }.
+// Every failure here is a 422: the replay failed verification.
 function validateReplay(replay, body, mode, score, acc) {
   if (!replay || typeof replay !== "object" || Array.isArray(replay)) {
     return { ok: false, error: "replay is not valid" };
@@ -281,21 +417,128 @@ function validateReplay(replay, body, mode, score, acc) {
   const h = replay.header;
   if (!h || typeof h !== "object") return { ok: false, error: "replay header is missing" };
   if (h.mode !== mode) return { ok: false, error: "replay header mode mismatch" };
-  if (!isNonEmptyString(h.genre)) return { ok: false, error: "replay header genre is missing" };
-  if (!isNonEmptyString(h.diff)) return { ok: false, error: "replay header diff is missing" };
+  if (!GENRES.includes(h.genre)) return { ok: false, error: "replay header genre is not valid" };
+  if (!DIFFS.includes(h.diff)) return { ok: false, error: "replay header diff is not valid" };
   if (!isNonEmptyString(h.seedKey)) return { ok: false, error: "replay header seedKey is missing" };
+  // seedNum is the legacy randomize path (makeAnthem randomize=true) that
+  // gameplay never uses: the chart seed MUST come from seedKey, or a
+  // forged replay could pick an arbitrary chart seed.
+  if (h.seedNum !== undefined) {
+    return { ok: false, error: "replay header seedNum is not allowed" };
+  }
   if (!isInt(h.seed) || h.seed < 0 || h.seed > 4294967295) {
     return { ok: false, error: "replay header seed is not valid" };
+  }
+  if (!isInt(h.lanes) || (h.lanes !== 3 && h.lanes !== 4)) {
+    return { ok: false, error: "replay header lanes is not valid" };
+  }
+  if (typeof h.mirror !== "boolean") {
+    return { ok: false, error: "replay header mirror is not valid" };
+  }
+  if (typeof h.practice !== "boolean") {
+    return { ok: false, error: "replay header practice is not valid" };
+  }
+  // Enforcement: practice runs can never be submitted.
+  if (h.practice) return { ok: false, error: "practice mode cannot submit" };
+  if (!isInt(h.offsetMs) || h.offsetMs < -150 || h.offsetMs > 150) {
+    return { ok: false, error: "replay header offsetMs out of range" };
+  }
+  if (!isInt(h.wallStartMs) || h.wallStartMs <= 0) {
+    return { ok: false, error: "replay header wallStartMs is not valid" };
+  }
+  if (!isFiniteNumber(h.duration) || h.duration < 1 || h.duration > 300) {
+    return { ok: false, error: "replay header duration out of range" };
+  }
+  if (typeof h.initialZoomies !== "boolean") {
+    return { ok: false, error: "replay header initialZoomies is not valid" };
+  }
+  if (!isFiniteNumber(h.initialDistKm) || h.initialDistKm < 0) {
+    return { ok: false, error: "replay header initialDistKm is not valid" };
   }
   const ev = replay.events;
   if (!ev || typeof ev !== "object") return { ok: false, error: "replay events are missing" };
   for (const f of ["inputs", "polls", "golden"]) {
     if (!Array.isArray(ev[f])) return { ok: false, error: `replay events.${f} is not an array` };
-    for (const e of ev[f]) {
-      if (!e || typeof e !== "object") return { ok: false, error: `replay events.${f} entry is not valid` };
+  }
+  // (4d) ZOOMIES comes only from the poll log (rpm >= 70) — and the
+  // initial snapshot, which only exists for live/race. Outside live/race
+  // the game never sets zoomies, so the header must say so; simulate()
+  // enforces the same rule (zoomies is always false outside live/race).
+  if (h.mode !== "live" && h.mode !== "race") {
+    if (h.initialZoomies !== false) {
+      return { ok: false, error: "initialZoomies must be false outside live/race" };
+    }
+    if (h.initialDistKm !== 0) {
+      return { ok: false, error: "initialDistKm must be 0 outside live/race" };
+    }
+    if (ev.golden.length !== 0) {
+      return { ok: false, error: "golden notes only exist in race mode" };
     }
   }
+  // Inputs: recorded in time order, lane inside the chart, t inside the
+  // song (+2 s slack for the finish frame).
+  let prevT = -Infinity;
+  for (const inp of ev.inputs) {
+    if (!inp || typeof inp !== "object") return { ok: false, error: "replay events.inputs entry is not valid" };
+    if (!isFiniteNumber(inp.t) || inp.t < 0 || inp.t > h.duration + 2) {
+      return { ok: false, error: "replay input t out of range" };
+    }
+    if (inp.t < prevT) return { ok: false, error: "replay inputs not in time order" };
+    prevT = inp.t;
+    if (!isInt(inp.lane) || inp.lane < 0 || inp.lane >= h.lanes) {
+      return { ok: false, error: "replay input lane out of range" };
+    }
+  }
+  // (4c) Polls: non-decreasing in t, inside the song; a failed poll
+  // (ok:false) must carry null rpm/dist — a failed poll kills zoomies.
   if (ev.polls.length > MAX_POLLS) return { ok: false, error: "replay polls exceed 600" };
+  prevT = -Infinity;
+  for (const p of ev.polls) {
+    if (!p || typeof p !== "object") return { ok: false, error: "replay events.polls entry is not valid" };
+    if (!isFiniteNumber(p.t) || p.t < 0 || p.t > h.duration + 2) {
+      return { ok: false, error: "replay poll t out of range" };
+    }
+    if (p.t < prevT) return { ok: false, error: "replay polls not in time order" };
+    prevT = p.t;
+    if (typeof p.ok !== "boolean") return { ok: false, error: "replay poll ok is not valid" };
+    if (p.ok) {
+      if (!isFiniteNumber(p.rpm) || p.rpm < 0) return { ok: false, error: "replay poll rpm is not valid" };
+      if (!isFiniteNumber(p.dist) || p.dist < 0) return { ok: false, error: "replay poll dist is not valid" };
+    } else if (p.rpm !== null || p.dist !== null) {
+      return { ok: false, error: "replay failed poll must have null rpm/dist" };
+    }
+  }
+  // Golden: at most 2, strictly increasing t, distinct indices.
+  // (Index bounds + check 4b need the chart — cron.)
+  if (ev.golden.length > GOLDEN_MAX) return { ok: false, error: "replay golden exceeds 2" };
+  prevT = -Infinity;
+  const seenGolden = new Set();
+  for (const g of ev.golden) {
+    if (!g || typeof g !== "object") return { ok: false, error: "replay events.golden entry is not valid" };
+    if (!isFiniteNumber(g.t) || g.t < 0 || g.t > h.duration + 1) {
+      return { ok: false, error: "replay golden t out of range" };
+    }
+    if (g.t <= prevT) return { ok: false, error: "replay golden not strictly increasing" };
+    prevT = g.t;
+    if (!isInt(g.index) || g.index < 0) {
+      return { ok: false, error: "replay golden index is not valid" };
+    }
+    if (seenGolden.has(g.index)) return { ok: false, error: "replay golden index repeats" };
+    seenGolden.add(g.index);
+  }
+  // finish: present (the game only submits after finish()), t just past
+  // the song end (finish triggers at st > duration + 0.8).
+  const fin = ev.finish;
+  if (!fin || typeof fin !== "object") return { ok: false, error: "replay finish is missing" };
+  if (!isFiniteNumber(fin.t) || fin.t < h.duration + 0.5 || fin.t > h.duration + 2) {
+    return { ok: false, error: "replay finish t out of range" };
+  }
+  if (!(fin.oppDistM === null || isFiniteNumber(fin.oppDistM))) {
+    return { ok: false, error: "replay finish oppDistM is not valid" };
+  }
+  // (4a) finish.oppDistM vs the poll log.
+  const oppErr = checkOppDist(replay);
+  if (oppErr) return { ok: false, error: oppErr };
   const claim = replay.claim;
   if (!claim || typeof claim !== "object") return { ok: false, error: "replay claim is missing" };
   if (!isInt(claim.score) || claim.score !== score) {
@@ -316,6 +559,9 @@ function validateReplay(replay, body, mode, score, acc) {
     if (!isInt(v) || v < 0) return { ok: false, error: "replay claim counts are not valid" };
     totalNotes += v;
   }
+  if (claim.maxCombo > totalNotes) {
+    return { ok: false, error: "replay claim maxCombo exceeds notes" };
+  }
   // Note count for the inputs cap: body.notes when sent, else the sum of
   // the claim counts.
   const notes = body.notes !== undefined && body.notes !== null ? Number(body.notes) : totalNotes;
@@ -323,6 +569,211 @@ function validateReplay(replay, body, mode, score, acc) {
     return { ok: false, error: "replay inputs exceed notes + 50" };
   }
   return { ok: true };
+}
+
+// --- Chart-dependent verification (cron) ---
+//
+// verifySimulated(replay, chart, sim) compares the engine's re-simulation
+// against the claim. Pure function (no I/O) so it is unit-testable.
+//   chart: buildChart(header) — the full anthem object ({ duration,
+//     chart: [{t, lane, midi}, ...] sorted by t, ... }); a raw notes array
+//     is also accepted.
+//   sim: simulate(chart, replay) — { score, acc, maxCombo,
+//     counts: {perfect, great, good, miss}, grade, playerDistM, oppDistM,
+//     win, goldenHits, goldenChecks: [{t, index, expected, ok}],
+//     oppDistMDerived, oppDistMMatch }.
+// Checks, in order: chart duration matches the header; claim counts sum
+// to the chart length; every golden event passes check 4b — the engine
+// itself recomputes, for each recorded golden pick, whether the note at
+// `index` was the first unjudged note with n.t > t at that moment
+// (goldenChecks[].ok); simulated score / maxCombo / counts match EXACTLY;
+// simulated acc matches within ACC_TOL (the claim is rounded to 2
+// decimals by the client, so 0.005 of the tolerance is rounding).
+// NOTE: sim.oppDistMMatch is deliberately NOT a rejection gate here —
+// the engine documents that it is false for races that started while the
+// wheel was offline (recorded oppDistM 0 is correct there, the derived
+// value differs). Check 4a (checkOppDist, synchronous) already covers
+// oppDistM with the offline-start exception.
+function verifySimulated(replay, chart, sim) {
+  const notes = Array.isArray(chart) ? chart : chart && chart.chart;
+  if (!chart || typeof chart.duration !== "number" || !Array.isArray(notes)) {
+    return { ok: false, reason: "engine returned an incomplete chart" };
+  }
+  if (Math.abs(chart.duration - replay.header.duration) > CHART_DURATION_TOL) {
+    return { ok: false, reason: "chart duration mismatch" };
+  }
+  if (
+    !sim ||
+    typeof sim.score !== "number" ||
+    typeof sim.maxCombo !== "number" ||
+    typeof sim.acc !== "number" ||
+    !sim.counts ||
+    !Array.isArray(sim.goldenChecks)
+  ) {
+    return { ok: false, reason: "simulate result incomplete" };
+  }
+  const counts = replay.claim.counts;
+  const total = counts.perfect + counts.great + counts.good + counts.miss;
+  if (total !== notes.length) {
+    return { ok: false, reason: "claim counts do not match chart" };
+  }
+  // (4b) Golden-note consistency, recomputed by the engine from chart +
+  // inputs (see engine.js rule 5): each recorded pick must be the first
+  // unjudged note with n.t > t at the pick time.
+  if (sim.goldenChecks.length !== replay.events.golden.length) {
+    return { ok: false, reason: "golden checks do not match golden events" };
+  }
+  for (const c of sim.goldenChecks) {
+    if (!c.ok) {
+      return { ok: false, reason: "golden note inconsistent with chart and inputs" };
+    }
+  }
+  if (sim.score !== replay.claim.score) {
+    return { ok: false, reason: "simulated score mismatch" };
+  }
+  if (sim.maxCombo !== replay.claim.maxCombo) {
+    return { ok: false, reason: "simulated maxCombo mismatch" };
+  }
+  for (const k of ["perfect", "great", "good", "miss"]) {
+    if (sim.counts[k] !== counts[k]) {
+      return { ok: false, reason: "simulated counts mismatch" };
+    }
+  }
+  if (Math.abs(sim.acc - replay.claim.acc) > ACC_TOL + 1e-9) {
+    return { ok: false, reason: "simulated accuracy mismatch" };
+  }
+  return { ok: true };
+}
+
+// Mark one queue row + its replays row rejected, with the reason.
+async function markRejected(env, replayHash, reason, now) {
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE verify_queue SET status = 'rejected', reason = ?, updated_at = ? WHERE replay_hash = ?"
+    ).bind(reason, now, replayHash),
+    env.DB.prepare(
+      "UPDATE replays SET verification_status = 'rejected' WHERE replay_hash = ?"
+    ).bind(replayHash),
+  ]);
+}
+
+// Verify ONE queued replay: build the chart, simulate, compare, and on a
+// pass sign the attestation and upsert the score. Returns
+// { ok: true } on pass, { ok: false, reason } on a deterministic failure
+// (rejected), and THROWS on transient errors (engine/D1 failure) so the
+// caller can leave the row pending for a retry.
+async function verifyOne(env, row, now) {
+  const replay = JSON.parse(row.replay);
+  const chart = buildChart(replay.header);
+  const sim = simulate(chart, replay);
+  const v = verifySimulated(replay, chart, sim);
+  if (!v.ok) {
+    await markRejected(env, row.replay_hash, v.reason, now);
+    return { ok: false, reason: v.reason };
+  }
+  const privHex = env.SIGNING_KEY;
+  if (typeof privHex !== "string" || !/^[0-9a-fA-F]{64}$/.test(privHex)) {
+    throw new Error("signing unavailable");
+  }
+  const wallet = row.wallet;
+  const mode = row.mode;
+  const score = row.score;
+  const acc = row.acc;
+  const songId =
+    replay.header.mode +
+    "|" +
+    replay.header.genre +
+    "|" +
+    replay.header.diff +
+    "|" +
+    replay.header.seedKey;
+  const prevNonce = await env.DB.prepare(
+    "SELECT nonce FROM nonces WHERE wallet = ?"
+  )
+    .bind(wallet)
+    .first();
+  const nonce = (prevNonce ? prevNonce.nonce : 0) + 1;
+  const deadline = Math.floor(now / 1000) + ATTESTATION_TTL_S;
+  const signature = signAttestation(privHex, {
+    player: wallet,
+    score,
+    accuracy: Math.round(acc * 100),
+    songId,
+    gameVersion: row.game_version,
+    seed: replay.header.seed,
+    replayHash: row.replay_hash,
+    nonce,
+    deadline,
+  });
+  // One D1 batch = one transaction: either everything lands (queue,
+  // replays, nonce, score) or nothing does, so a retry can never sign
+  // twice for the same replay.
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE verify_queue SET status = 'verified', signature = ?, nonce = ?, deadline = ?, updated_at = ? WHERE replay_hash = ?"
+    ).bind(signature, nonce, deadline, now, row.replay_hash),
+    env.DB.prepare(
+      "UPDATE replays SET verification_status = 'verified', signature = ? WHERE replay_hash = ?"
+    ).bind(signature, row.replay_hash),
+    env.DB.prepare(
+      "INSERT INTO nonces (wallet, nonce) VALUES (?, ?) ON CONFLICT(wallet) DO UPDATE SET nonce = excluded.nonce"
+    ).bind(wallet, nonce),
+    env.DB.prepare(
+      "INSERT INTO scores (wallet, mode, name, score, acc, verified, updated_at, signature, replay_hash) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?) " +
+        "ON CONFLICT(wallet, mode) DO UPDATE SET name = excluded.name, score = excluded.score, acc = excluded.acc, verified = excluded.verified, updated_at = excluded.updated_at, signature = excluded.signature, replay_hash = excluded.replay_hash " +
+        "WHERE excluded.score > scores.score"
+    ).bind(wallet, mode, row.name, score, acc, now, signature, row.replay_hash),
+  ]);
+  return { ok: true, signature, nonce, deadline };
+}
+
+// Cron Trigger handler: verify pending replays, a few per run.
+// Rows are claimed (pending -> processing) so two overlapping invocations
+// never verify the same replay twice; a row stuck in 'processing' longer
+// than VERIFY_STALE_MS is presumed orphaned and reset to pending.
+async function processVerifyQueue(env) {
+  const now = Date.now();
+  await env.DB.prepare(
+    "UPDATE verify_queue SET status = 'pending', updated_at = ? WHERE status = 'processing' AND updated_at < ?"
+  )
+    .bind(now, now - VERIFY_STALE_MS)
+    .run();
+  const { results } = await env.DB.prepare(
+    "SELECT * FROM verify_queue WHERE status = 'pending' ORDER BY created_at ASC LIMIT ?"
+  )
+    .bind(VERIFY_BATCH)
+    .all();
+  let verified = 0;
+  let rejected = 0;
+  for (const row of results) {
+    const claimed = await env.DB.prepare(
+      "UPDATE verify_queue SET status = 'processing', updated_at = ? WHERE replay_hash = ? AND status = 'pending'"
+    )
+      .bind(now, row.replay_hash)
+      .run();
+    if ((claimed.meta.changes || 0) === 0) continue; // claimed by another run
+    try {
+      const out = await verifyOne(env, row, Date.now());
+      if (out.ok) verified++;
+      else rejected++;
+    } catch (e) {
+      // Transient (engine threw, D1 hiccup, CPU pressure): bump attempts
+      // and leave the row to be retried; after VERIFY_MAX_ATTEMPTS it is
+      // rejected as a verification error rather than stuck forever.
+      const attempts = (row.attempts || 0) + 1;
+      if (attempts >= VERIFY_MAX_ATTEMPTS) {
+        await markRejected(env, row.replay_hash, "verification error", Date.now());
+        rejected++;
+      } else {
+        await env.DB.prepare(
+          "UPDATE verify_queue SET status = 'pending', attempts = ?, updated_at = ? WHERE replay_hash = ?"
+        )
+          .bind(attempts, Date.now(), row.replay_hash)
+          .run();
+      }
+    }
+  }
+  return { verified, rejected, examined: results.length };
 }
 
 export default {
@@ -334,7 +785,7 @@ export default {
 
     try {
       if (url.pathname === "/" && request.method === "GET") {
-        return json({ service: "squeekchain-leaderboard", version: 3 });
+        return json({ service: "squeekchain-leaderboard", version: 4 });
       }
 
       if (url.pathname === "/scores" && request.method === "GET") {
@@ -373,6 +824,61 @@ export default {
           .bind(sessionId, seed, nonce, expiresAt)
           .run();
         return json({ sessionId, seed, nonce, expiresAt });
+      }
+
+      if (url.pathname === "/verify" && request.method === "GET") {
+        const hash = (url.searchParams.get("replayHash") || "").toLowerCase();
+        if (!/^0x[0-9a-f]{64}$/.test(hash)) {
+          return json({ error: "replayHash is not valid" }, 400);
+        }
+        const q = await env.DB.prepare(
+          "SELECT wallet, mode, score, status, reason, signature, nonce, deadline FROM verify_queue WHERE replay_hash = ?"
+        )
+          .bind(hash)
+          .first();
+        if (q) {
+          if (q.status === "verified") {
+            return json({
+              verification_status: "verified",
+              signature: q.signature,
+              nonce: q.nonce,
+              deadline: q.deadline,
+              replayHash: hash,
+              wallet: q.wallet,
+              mode: q.mode,
+              score: q.score,
+            });
+          }
+          if (q.status === "rejected") {
+            return json(
+              { verification_status: "rejected", reason: q.reason, replayHash: hash },
+              422
+            );
+          }
+          return json({ verification_status: q.status, replayHash: hash }, 202);
+        }
+        // Legacy v3 rows live in replays without a queue row.
+        const r = await env.DB.prepare(
+          "SELECT wallet, mode, signature, verification_status FROM replays WHERE replay_hash = ?"
+        )
+          .bind(hash)
+          .first();
+        if (r && r.verification_status === "verified") {
+          return json({
+            verification_status: "verified",
+            signature: r.signature,
+            replayHash: hash,
+            wallet: r.wallet,
+            mode: r.mode,
+          });
+        }
+        if (r) {
+          return json(
+            { verification_status: r.verification_status || "unverified", replayHash: hash },
+            202
+          );
+        }
+        return json({ error: "replay not found" }, 404);
       }
 
       if (url.pathname === "/scores" && request.method === "POST") {
@@ -440,62 +946,67 @@ export default {
         ) {
           return json({ error: "durationMs out of range (30000-300000)" }, 400);
         }
-        const plausible = true;
 
-        // --- Replay v1 (Fase 1): shape + hash check, BEFORE the session
-        // is consumed, so a bad replay never burns a session.
+        // --- ENFORCEMENT (v4): a score without a valid replay is rejected
+        // 422. There is no longer an unverified submit path.
         const hasReplay = body.replay !== undefined && body.replay !== null;
+        if (!hasReplay) {
+          return json({ error: "replay required" }, 422);
+        }
         let replay = null;
-        let serverHash = null;
-        let gameVersion = "v39";
-        if (hasReplay) {
-          if (typeof body.replay === "string") {
-            if (body.replay.length > MAX_REPLAY_BYTES) {
-              return json({ error: "replay too large" }, 400);
-            }
-            try {
-              replay = JSON.parse(body.replay);
-            } catch {
-              return json({ error: "replay is not valid JSON" }, 400);
-            }
-          } else {
-            replay = body.replay;
-            if (JSON.stringify(replay).length > MAX_REPLAY_BYTES) {
-              return json({ error: "replay too large" }, 400);
-            }
+        if (typeof body.replay === "string") {
+          if (body.replay.length > MAX_REPLAY_BYTES) {
+            return json({ error: "replay too large" }, 422);
           }
-          const v = validateReplay(replay, body, mode, score, acc);
-          if (!v.ok) return json({ error: v.error }, 400);
-          serverHash = replayHashOf(replay);
-          if (body.replayHash !== undefined && body.replayHash !== null) {
-            const claimed = String(body.replayHash).toLowerCase();
-            if (!/^0x[0-9a-f]{64}$/.test(claimed) && !/^[0-9a-f]{64}$/.test(claimed)) {
-              return json({ error: "replayHash is not valid" }, 400);
-            }
-            if (claimed.replace(/^0x/, "") !== serverHash.slice(2)) {
-              return json({ error: "replayHash mismatch" }, 400);
-            }
+          try {
+            replay = JSON.parse(body.replay);
+          } catch {
+            return json({ error: "replay is not valid JSON" }, 422);
           }
-          if (typeof body.gameVersion === "string" && body.gameVersion) {
-            gameVersion = body.gameVersion.slice(0, MAX_GAME_VERSION);
-          } else if (isNonEmptyString(replay.header.gameVersion)) {
-            gameVersion = String(replay.header.gameVersion).slice(0, MAX_GAME_VERSION);
+        } else {
+          replay = body.replay;
+          if (JSON.stringify(replay).length > MAX_REPLAY_BYTES) {
+            return json({ error: "replay too large" }, 422);
           }
         }
+        // Synchronous replay checks (shape/bounds + determinism checks
+        // 4a/4c/4d that need no chart). The chart-dependent checks run in
+        // the cron. A bad replay never burns a session: the session is
+        // only consumed after every check below passes.
+        const v = validateReplay(replay, body, mode, score, acc);
+        if (!v.ok) return json({ error: v.error }, 422);
+        const serverHash = replayHashOf(replay);
+        if (body.replayHash !== undefined && body.replayHash !== null) {
+          const claimed = String(body.replayHash).toLowerCase();
+          if (!/^0x[0-9a-f]{64}$/.test(claimed) && !/^[0-9a-f]{64}$/.test(claimed)) {
+            return json({ error: "replayHash is not valid" }, 422);
+          }
+          if (claimed.replace(/^0x/, "") !== serverHash.slice(2)) {
+            return json({ error: "replayHash mismatch" }, 422);
+          }
+        }
+        let gameVersion = "v40";
+        if (typeof body.gameVersion === "string" && body.gameVersion) {
+          gameVersion = body.gameVersion.slice(0, MAX_GAME_VERSION);
+        } else if (isNonEmptyString(replay.header.gameVersion)) {
+          gameVersion = String(replay.header.gameVersion).slice(0, MAX_GAME_VERSION);
+        }
 
-        // --- Dedupe: a replay_hash already in D1 is never stored twice.
-        // Same wallet -> return the stored signature. Different wallet ->
-        // reject: a run cannot be replayed under someone else's address.
-        if (hasReplay) {
-          const prev = await env.DB.prepare(
-            "SELECT wallet, signature FROM replays WHERE replay_hash = ?"
-          )
-            .bind(serverHash)
-            .first();
-          if (prev) {
-            if (prev.wallet !== wallet) {
-              return json({ error: "replay already submitted by another wallet" }, 400);
-            }
+        // --- Dedupe (BEFORE the session is touched, so a retry of the
+        // same replay never burns a new session). A replay_hash already
+        // in D1 returns its current status: verified -> stored signature,
+        // pending/processing -> 202, rejected -> 422 with the reason.
+        // A replay already submitted by a DIFFERENT wallet is rejected.
+        const prev = await env.DB.prepare(
+          "SELECT wallet, signature, verification_status FROM replays WHERE replay_hash = ?"
+        )
+          .bind(serverHash)
+          .first();
+        if (prev) {
+          if (prev.wallet !== wallet) {
+            return json({ error: "replay already submitted by another wallet" }, 422);
+          }
+          if (prev.verification_status === "verified") {
             return json({
               ok: true,
               duplicate: true,
@@ -508,108 +1019,135 @@ export default {
               score,
             });
           }
-        }
-
-        // --- Session validation (only when the client sent one). An
-        // invalid/expired/used session does NOT reject the score; it only
-        // keeps verified=0. A valid session is consumed (used=1) exactly once.
-        // With a replay, the header seed must match the session seed;
-        // a mismatch is rejected BEFORE consuming the session.
-        let sessionValid = false;
-        let sessionSeed = null;
-        if (typeof body.sessionId === "string" && body.sessionId) {
-          const s = await env.DB.prepare(
-            "SELECT session_id, seed, expires_at, used FROM sessions WHERE session_id = ?"
-          )
-            .bind(body.sessionId)
-            .first();
-          if (s && s.used === 0 && s.expires_at > now) {
-            if (hasReplay && s.seed !== replay.header.seed) {
-              return json({ error: "replay seed mismatch" }, 400);
-            }
-            const claimed = await env.DB.prepare(
-              "UPDATE sessions SET used = 1 WHERE session_id = ? AND used = 0"
+          if (prev.verification_status === "rejected") {
+            const q = await env.DB.prepare(
+              "SELECT reason FROM verify_queue WHERE replay_hash = ?"
             )
-              .bind(body.sessionId)
-              .run();
-            sessionValid = (claimed.meta.changes || 0) > 0;
-            if (sessionValid) sessionSeed = s.seed;
+              .bind(serverHash)
+              .first();
+            return json(
+              {
+                error: "replay rejected",
+                reason: q ? q.reason : "verification failed",
+                replayHash: serverHash,
+              },
+              422
+            );
           }
-        }
-
-        const verified = sessionValid && plausible ? 1 : 0;
-
-        // --- Attestation (Fase 1): only when session valid + plausibility
-        // + replay valid. No enforcement: without a replay the v2 path
-        // below runs unchanged.
-        let signature = null;
-        let replayHash = null;
-        let nonce = null;
-        let deadline = null;
-        if (hasReplay && verified === 1) {
-          const privHex = env.SIGNING_KEY;
-          if (typeof privHex !== "string" || !/^[0-9a-fA-F]{64}$/.test(privHex)) {
-            return json({ error: "signing unavailable" }, 500);
-          }
-          const songId =
-            replay.header.mode +
-            "|" +
-            replay.header.genre +
-            "|" +
-            replay.header.diff +
-            "|" +
-            replay.header.seedKey;
-          const prevNonce = await env.DB.prepare(
-            "SELECT nonce FROM nonces WHERE wallet = ?"
-          )
-            .bind(wallet)
-            .first();
-          nonce = (prevNonce ? prevNonce.nonce : 0) + 1;
-          await env.DB.prepare(
-            "INSERT INTO nonces (wallet, nonce) VALUES (?, ?) ON CONFLICT(wallet) DO UPDATE SET nonce = excluded.nonce"
-          )
-            .bind(wallet, nonce)
-            .run();
-          deadline = Math.floor(now / 1000) + ATTESTATION_TTL_S;
-          replayHash = serverHash;
-          signature = signAttestation(privHex, {
-            player: wallet,
+          return json({
+            ok: true,
+            pending: true,
+            verification_status: prev.verification_status || "pending",
+            replayHash: serverHash,
+            wallet,
+            mode,
             score,
-            accuracy: Math.round(acc * 100),
-            songId,
-            gameVersion,
-            seed: sessionSeed !== null ? sessionSeed : replay.header.seed,
-            replayHash,
-            nonce,
-            deadline,
-          });
-          await env.DB.prepare(
-            "INSERT INTO replays (replay_hash, wallet, mode, replay, signature, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-          )
-            .bind(replayHash, wallet, mode, JSON.stringify(replay), signature, now)
-            .run();
+          }, 202);
         }
 
-        const res = await env.DB.prepare(
-          "INSERT INTO scores (wallet, mode, name, score, acc, verified, updated_at, signature, replay_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " +
-            "ON CONFLICT(wallet, mode) DO UPDATE SET name = excluded.name, score = excluded.score, acc = excluded.acc, verified = excluded.verified, updated_at = excluded.updated_at, signature = excluded.signature, replay_hash = excluded.replay_hash " +
-            "WHERE excluded.score > scores.score"
-        )
-          .bind(wallet, mode, name, score, acc, verified, now, signature, replayHash)
-          .run();
-        const improved = (res.meta.changes || 0) > 0;
-        // A signed attestation is only stored on the score row when the
-        // run improved the wallet's best; otherwise the signature still
-        // lives in the replays table (and in this response) but the row
-        // keeps the attestation of its stored best score.
-        const out = { ok: true, improved, verified, wallet, mode, score };
-        if (signature) {
-          out.signature = signature;
-          out.replayHash = replayHash;
-          out.nonce = nonce;
-          out.deadline = deadline;
+        // --- Session (v4): REQUIRED. The v3 rules are unchanged (exists,
+        // unexpired, unused, consumed exactly once; header.seed must equal
+        // the session seed) but an invalid session now REJECTS the score
+        // instead of merely keeping verified=0 — there is no unverified
+        // submit path anymore. The wall-clock checks bind the run to the
+        // session window and to real time: the run must have started after
+        // the session was issued, and the submit must arrive at least the
+        // song's duration after the run started (a replay "played" in
+        // zero wall time is fabricated).
+        if (typeof body.sessionId !== "string" || !body.sessionId) {
+          return json({ error: "session required" }, 422);
         }
-        return json(out);
+        const s = await env.DB.prepare(
+          "SELECT session_id, seed, expires_at, used FROM sessions WHERE session_id = ?"
+        )
+          .bind(body.sessionId)
+          .first();
+        if (!s) return json({ error: "session not found" }, 422);
+        if (s.used !== 0) return json({ error: "session already used" }, 422);
+        if (s.expires_at <= now) return json({ error: "session expired" }, 422);
+        if (s.seed !== replay.header.seed) {
+          return json({ error: "replay seed mismatch" }, 422);
+        }
+        const sessionCreated = s.expires_at - SESSION_TTL_MS;
+        const wallStart = replay.header.wallStartMs;
+        if (wallStart < sessionCreated - REALTIME_SKEW_MS || wallStart > s.expires_at) {
+          return json({ error: "replay wallStartMs outside session window" }, 422);
+        }
+        if (wallStart > now + REALTIME_SKEW_MS) {
+          return json({ error: "replay wallStartMs is in the future" }, 422);
+        }
+        if (now < wallStart + replay.header.duration * 1000 - REALTIME_SKEW_MS) {
+          return json({ error: "replay finished faster than the song duration" }, 422);
+        }
+        const claimed = await env.DB.prepare(
+          "UPDATE sessions SET used = 1 WHERE session_id = ? AND used = 0"
+        )
+          .bind(body.sessionId)
+          .run();
+        if ((claimed.meta.changes || 0) === 0) {
+          return json({ error: "session already used" }, 422);
+        }
+
+        // --- Queue for async verification. The score does NOT touch the
+        // board yet: verified=1 + attestation + upsert happen in the cron
+        // (verifyOne) only for replays that pass simulation.
+        const replayJson = JSON.stringify(replay);
+        const inserted = await env.DB.prepare(
+          "INSERT INTO replays (replay_hash, wallet, mode, replay, signature, created_at, verification_status) VALUES (?, ?, ?, ?, NULL, ?, 'pending')"
+        )
+          .bind(serverHash, wallet, mode, replayJson, now)
+          .run()
+          .catch(() => null);
+        if (!inserted || (inserted.meta.changes || 0) === 0) {
+          // Lost a race with a concurrent identical submit: return the
+          // stored status instead of failing.
+          const again = await env.DB.prepare(
+            "SELECT wallet, signature, verification_status FROM replays WHERE replay_hash = ?"
+          )
+            .bind(serverHash)
+            .first();
+          if (again && again.wallet === wallet) {
+            return json(
+              {
+                ok: true,
+                pending: true,
+                verification_status: again.verification_status || "pending",
+                replayHash: serverHash,
+                wallet,
+                mode,
+                score,
+              },
+              202
+            );
+          }
+          return json({ error: "replay already submitted by another wallet" }, 422);
+        }
+        await env.DB.prepare(
+          "INSERT INTO verify_queue (replay_hash, wallet, mode, name, score, acc, replay, game_version, session_id, status, attempts, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0, ?, ?)"
+        )
+          .bind(
+            serverHash,
+            wallet,
+            mode,
+            name,
+            score,
+            acc,
+            replayJson,
+            gameVersion,
+            body.sessionId,
+            now,
+            now
+          )
+          .run();
+        return json({
+          ok: true,
+          pending: true,
+          verification_status: "pending",
+          replayHash: serverHash,
+          wallet,
+          mode,
+          score,
+        }, 202);
       }
 
       if (url.pathname === "/rank" && request.method === "GET") {
@@ -650,4 +1188,20 @@ export default {
       return json({ error: "server error" }, 500);
     }
   },
+
+  // Cron Trigger (every minute): verify queued replays. Runs outside any
+  // user request; failures are swallowed here so one bad row never kills
+  // the whole run — the row is retried (see processVerifyQueue).
+  async scheduled(event, env, ctx) {
+    try {
+      await processVerifyQueue(env);
+    } catch (_) {
+      // Never throw from scheduled: a failed run must not poison the
+      // trigger. Pending rows are picked up by the next minute's run.
+    }
+  },
 };
+
+// Named exports for local unit tests (the Worker runtime only uses
+// `default`; esbuild keeps these in the bundle).
+export { canonical, replayHashOf, validateReplay, checkOppDist, verifySimulated };

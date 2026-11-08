@@ -1,9 +1,11 @@
-// v39 tests — run: node TEST-v34-neo.js  (cwd = the v39 folder)
+// v40 tests — run: node TEST-v34-neo.js  (cwd = the v40 folder)
 const fs = require('fs');
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
 const js = fs.readFileSync('script.js', 'utf8');
 const readme = fs.readFileSync('README.md', 'utf8');
+const engineSrc = fs.readFileSync('engine.js', 'utf8');
+const SqueekEngine = require('./engine.js');
 let pass = 0, fail = 0;
 function t(name, ok) { if (ok) { pass++; } else { fail++; console.log('FAIL:', name); } }
 
@@ -36,8 +38,8 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v39', (html.match(/v39/g) || []).length >= 2);
-t('browser tab title is v39', html.includes('<title>SQUEEKCHAIN // v39</title>'));
+t('html says v40', (html.match(/v40/g) || []).length >= 2);
+t('browser tab title is v40', html.includes('<title>SQUEEKCHAIN // v40</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -119,7 +121,7 @@ t('worst case fits the 200px column', 30 * 10 * 0.6 < 200 && 22 * 14 * 0.6 < 200
 t('setTab refreshes LIVE on open', js.includes("if (name === 'live') refreshLive();"));
 // --- v37.1 precision readout resets with the game ---
 t('game start resets the precision readout', js.includes("if (lh0) lh0.textContent = '-- ms';") && js.includes("if (ah0) ah0.textContent = '-- ms';") && js.includes("if (hd0) hd0.textContent = '—';"));
-t('precision readout reset sits next to the hitOffsets reset', (() => { const a = js.indexOf("anthem = makeAnthem(w, false, seedKey, lanes, mirror); lastAnthem = anthem; hitOffsets = [];"); const b = js.indexOf("lh0.textContent = '-- ms'"); return a > 0 && b > a && b - a < 400; })());
+t('precision readout reset sits next to the hitOffsets reset', (() => { const a = js.indexOf("anthem = makeAnthem(w, false, seedKey, lanes, mirror, practiceMode); lastAnthem = anthem; hitOffsets = [];"); const b = js.indexOf("lh0.textContent = '-- ms'"); return a > 0 && b > a && b - a < 400; })());
 t('Genesis meta present', html.includes('<meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">'));
 t('README proof last line', readme.trimEnd().split('\n').pop().trim() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 // --- 4. CSS: NEO layer present ---
@@ -205,9 +207,11 @@ t('tutorial cannot abandon a running song', js.includes("if (G && !G.ended) { cl
 
 // --- 6c. v33.1 wiring ---
 t('card error line exists in the result panel', html.indexOf('id="cardErrMsg"') > html.indexOf('id="resultPanel"'));
-['cardErrMsg', "state: 'paused'", "state: 'running'", "document.body.classList.add('cardbar')", "document.body.classList.remove('cardbar')", 'SONG_MOODS', 'const motif', 'motif[bar % 2][s]', 'lastResultIsNew', '★ NEW BEST! ★', 'Math.pow(1 - p, 3)', '"${a.name}"'].forEach(s => t('js has ' + s, js.includes(s)));
+['cardErrMsg', "state: 'paused'", "state: 'running'", "document.body.classList.add('cardbar')", "document.body.classList.remove('cardbar')", 'lastResultIsNew', '★ NEW BEST! ★', 'Math.pow(1 - p, 3)', '"${a.name}"'].forEach(s => t('js has ' + s, js.includes(s)));
+// v40: SONG_MOODS + motif hidup di engine.js (buildChart), bukan lagi di script.js.
+['SONG_MOODS', 'const motif', 'motif[bar % 2][s]'].forEach(s => t('engine has ' + s, engineSrc.includes(s)));
 t('generateCard shows the error on the result panel', js.includes("if (em && !$('resultPanel').classList.contains('hidden'))"));
-t('makeAnthem returns a song name', js.includes("name: (SONG_MOODS[scaleName]"));
+t('buildChart returns a song name (v40: in engine.js)', engineSrc.includes("name: (SONG_MOODS[scaleName]")); // v40: makeAnthem() di script.js kini mendelegasikan ke SqueekEngine.buildChart()
 // v39 (Batch 2): the result card no longer reads the score from G with a
 // val(0) fallback — drawResultCard() reads STATE (lastResult + G): the score
 // comes from G.score with a lastResult.score fallback, and every other number
@@ -391,7 +395,7 @@ t('Genesis meta tag is line 8, byte-identical', htmlLines[7] === '<meta name="sq
 t('README last line is the Genesis proof', readme.trimEnd().split('\n').pop() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 t('OG image is absolute on the live domain', html.includes('og:image" content="https://squeekpixel.web.id/squeekchain-headline-simple.png"'));
 t('Twitter card is summary_large_image', html.includes('twitter:card" content="summary_large_image"'));
-t('meta description is v39, not v32 NEO', html.includes('SQUEEKCHAIN v39') && !html.includes('v32 NEO'));
+t('meta description is v40, not v32 NEO', html.includes('SQUEEKCHAIN v40') && !html.includes('v32 NEO'));
 t('README documents 11 achievements', readme.includes('11 named achievements'));
 t('README documents the v38 XP economy', readme.includes('54,000 total XP') && readme.includes('[0, 700, 2000, 4300, 8500, 16000, 29500, 54000]'));
 t('README documents the 19:00 WIB Squeek-day reset', readme.includes('19:00 WIB'));
@@ -480,7 +484,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v39', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v39'"));
+t('submit sends replay + hash + gameVersion v40', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v40'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -506,8 +510,271 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v39', readme.startsWith('# Squeekchain v39'));
-t('README documents the v39 Batch 2 upgrade', readme.includes('**v39**') && readme.includes('EIP-712'));
+t('README title is v40', readme.startsWith('# Squeekchain v40'));
+t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
+t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
+
+// --- 14. v40: engine.js extraction + determinism ---
+// 14a. Wiring: engine.js dimuat SEBELUM script.js; script.js mendelegasikan.
+t('engine.js is loaded before script.js', html.indexOf('<script src="engine.js"') > 0 && html.indexOf('<script src="engine.js"') < html.indexOf('<script src="script.js"'));
+t('script.js aliases cyrb53/rng to the engine (single source of truth)', js.includes('const cyrb53 = SqueekEngine.cyrb53;') && js.includes('const rng = SqueekEngine.mulberry32;'));
+t('script.js has no second cyrb53/rng implementation', !js.includes('function cyrb53(') && !js.includes('function rng('));
+t('makeAnthem delegates to SqueekEngine.buildChart', js.includes('return SqueekEngine.buildChart(header);'));
+t('play() passes practiceMode into makeAnthem', js.includes('makeAnthem(w, false, seedKey, lanes, mirror, practiceMode)'));
+t('play() no longer scales the anthem by hand', !js.includes('anthem.bpm = Math.round(anthem.bpm * 0.6)'));
+t('race ZOOMIES flips at poll time in refreshLive (v40 determinism fix)', js.includes("if (G && !G.ended && G.mode === 'race') computeZoomies();"));
+t('liveZoomies is still reset at the start of play() (v39 fix kept)', js.includes('liveZoomies = false; replay = null;'));
+t('engine exports the four required functions', ['cyrb53', 'mulberry32', 'buildChart', 'simulate'].every(k => typeof SqueekEngine[k] === 'function'));
+function stripComments(s) { return s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '$1'); }
+const engineCode = stripComments(engineSrc);
+t('engine is pure (no DOM, network, Date, Math.random, storage, timers)', !/document\.|window\.|fetch\(|XMLHttpRequest|new Date|Date\.now|Date\.parse|Math\.random|localStorage|sessionStorage|setTimeout|setInterval|requestAnimationFrame/.test(engineCode));
+t('engine has no bare global cyrb53/rng (UMD namespace only)', !/^function cyrb53/m.test(engineCode) && !/^function rng/m.test(engineCode));
+
+// 14b. cyrb53 / mulberry32 — known vectors (diukur dari implementasi v39
+// sebelum refactor; nilai ini mengunci hash + RNG agar tidak bergeser).
+t('cyrb53("") = 3338908027751811', SqueekEngine.cyrb53('') === 3338908027751811);
+t('cyrb53("a") = 7929297801672961', SqueekEngine.cyrb53('a') === 7929297801672961);
+t('cyrb53("FREE-123456789") = 5616028065809105', SqueekEngine.cyrb53('FREE-123456789') === 5616028065809105);
+t('cyrb53("DAILY-2026-11-08") = 3139317285301407', SqueekEngine.cyrb53('DAILY-2026-11-08') === 3139317285301407);
+t('cyrb53 seed param changes the hash', SqueekEngine.cyrb53('x', 7) === 7806563198393042 && SqueekEngine.cyrb53('x', 7) !== SqueekEngine.cyrb53('x'));
+t('mulberry32(0) first outputs', (() => { const r = SqueekEngine.mulberry32(0); return r() === 0.26642920868471265 && r() === 0.0003297457005828619 && r() === 0.2232720274478197; })());
+t('mulberry32(12345) first output', SqueekEngine.mulberry32(12345)() === 0.9797282677609473);
+t('mulberry32 is deterministic per seed', SqueekEngine.mulberry32(99)() === SqueekEngine.mulberry32(99)());
+t('mulberry32 differs per seed', SqueekEngine.mulberry32(1)() !== SqueekEngine.mulberry32(2)());
+
+// 14c. Golden charts: buildChart == makeAnthem v39 ASLI, byte-per-byte.
+// Fixture diambil dari script.js v39 SEBELUM refactor (14 header: semua
+// genre/diff, LIVE/RACE/DAILY/BOSS/DUEL, wallet, 4-lane, mirror, practice).
+const golden = JSON.parse(fs.readFileSync('TEST-v40-golden-charts.json', 'utf8'));
+t('golden fixture has 14 cases', golden.length === 14);
+golden.forEach((c, i) => t('golden chart ' + i + ' (' + c.header.seedKey + ' ' + c.header.genre + '/' + c.header.diff + (c.header.practice ? ' practice' : '') + ') matches buildChart', JSON.stringify(SqueekEngine.buildChart(c.header)) === JSON.stringify(c.anthem)));
+
+// 14d. Tabel data engine == tabel script.js (GENRES/DIFFICULTIES dipakai
+// juga di luar makeAnthem, jadi tetap ada di script.js — keduanya harus sama).
+function tableLine(src, marker) { const l = src.split('\n').find(x => x.trimStart().startsWith(marker)); return l.split('//')[0].trim(); }
+t('engine GENRES == script.js GENRES', tableLine(engineSrc, 'const GENRES =') === tableLine(js, 'const GENRES ='));
+t('engine DIFFICULTIES == script.js DIFFICULTIES', tableLine(engineSrc, 'const DIFFICULTIES =') === tableLine(js, 'const DIFFICULTIES ='));
+
+// 14e. buildChart determinism + wrapper makeAnthem (script.js) == buildChart.
+const W40 = '0x372D48abe5eDccCcDE9BD914a6dE30Dc53e3a1Db';
+const mkSrc40 = fnSrc38('makeAnthem');
+const makeAnthem40 = new Function('SqueekEngine', 'currentGenre', 'currentDiff', 'cyrb53', mkSrc40 + '\nreturn makeAnthem;')(SqueekEngine, 'cyber', 'normal', SqueekEngine.cyrb53);
+const hdrCN = { seedKey: 'FREE-123456789', genre: 'cyber', diff: 'normal', lanes: 3, mirror: false };
+t('buildChart is deterministic (same header -> identical chart)', JSON.stringify(SqueekEngine.buildChart(hdrCN)) === JSON.stringify(SqueekEngine.buildChart(hdrCN)));
+t('buildChart differs per seedKey', JSON.stringify(SqueekEngine.buildChart(hdrCN)) !== JSON.stringify(SqueekEngine.buildChart({ ...hdrCN, seedKey: 'FREE-123456790' })));
+t('buildChart LIVE bpm comes from the seedKey', SqueekEngine.buildChart({ seedKey: 'LIVE-2026-11-08-128', genre: 'cyber', diff: 'normal', lanes: 3, mirror: false }).bpm === 128);
+t('buildChart RACE bpm comes from rng (LIVE regex does not match RACE)', SqueekEngine.buildChart({ seedKey: 'RACE-2026-11-08-145', genre: 'cyber', diff: 'normal', lanes: 3, mirror: false }).bpm !== 145);
+t('buildChart practice scales duration by 1/0.6', SqueekEngine.buildChart({ ...hdrCN, practice: true }).duration === SqueekEngine.buildChart(hdrCN).duration * (1 / 0.6));
+t('buildChart practice rounds bpm to 60%', SqueekEngine.buildChart({ ...hdrCN, practice: true }).bpm === Math.round(SqueekEngine.buildChart(hdrCN).bpm * 0.6));
+t('buildChart mirror flips every lane', (() => { const a = SqueekEngine.buildChart(hdrCN), b = SqueekEngine.buildChart({ ...hdrCN, mirror: true }); return a.chart.every((n, i) => b.chart[i].lane === 2 - n.lane && b.chart[i].t === n.t); })());
+t('buildChart rejects an unknown genre/diff', (() => { try { SqueekEngine.buildChart({ seedKey: 'X', genre: 'nope', diff: 'normal', lanes: 3 }); return false; } catch (_) { try { SqueekEngine.buildChart({ seedKey: 'X', genre: 'cyber', diff: 'nope', lanes: 3 }); return false; } catch (_) { return true; } } })());
+t('wrapper makeAnthem == buildChart (free/normal)', JSON.stringify(makeAnthem40(W40, false, 'FREE-123456789', 3, false)) === JSON.stringify(SqueekEngine.buildChart(hdrCN)));
+t('wrapper makeAnthem == buildChart (practice)', JSON.stringify(makeAnthem40(W40, false, 'FREE-123456789', 3, false, true)) === JSON.stringify(SqueekEngine.buildChart({ ...hdrCN, practice: true })));
+t('wrapper makeAnthem == buildChart (wallet seed, mirror 4-lane)', JSON.stringify(makeAnthem40(W40, false, null, 4, true)) === JSON.stringify(SqueekEngine.buildChart({ seedKey: W40.toLowerCase(), genre: 'cyber', diff: 'normal', lanes: 4, mirror: true })));
+t('wrapper makeAnthem == buildChart (LIVE seedKey)', JSON.stringify(makeAnthem40(W40, false, 'LIVE-2026-11-08-128', 3, false)) === JSON.stringify(SqueekEngine.buildChart({ seedKey: 'LIVE-2026-11-08-128', genre: 'cyber', diff: 'normal', lanes: 3, mirror: false })));
+
+// 14f. simulate() vs judge() CLIENT ASLI — driver menjalankan judge()
+// yang diekstrak verbatim dari script.js (dengan stub DOM/audio), lalu
+// hasilnya dibandingkan EXACT dengan SqueekEngine.simulate() untuk replay
+// yang sama. Driver BUKAN engine: ia memakai kode client, bukan salinan.
+// (Lihat AUDIT-v40 §3.3 untuk corner-case yang sengaja dihindari: tap yang
+// jatuh dalam 1 frame sesudah note kedaluwarsa + tie input/golden di ms
+// yang sama — keduanya ambigu di client sendiri.)
+const judgeSrc40 = fnSrc38('judge');
+function runClientGame(chartNotes, replay) {
+  const W = { perfect: 0.045, great: 0.09, good: 0.135 };
+  const CONFIG = { W };
+  const anthem = { chart: chartNotes.map(n => ({ t: n.t, lane: n.lane, midi: n.midi === undefined ? 60 : n.midi, judged: null })) };
+  const offsetMs = replay.header.offsetMs || 0;
+  const isRace = replay.header.mode === 'race';
+  // Client: di luar live/race, liveZoomies tidak pernah menyala (reset di
+  // awal play(), snapZoom + updateLiveHud/computeZoomies hanya jalan di
+  // live/race) — driver memodelkan itu, sama seperti simulate().
+  const zoomiesApplies = replay.header.mode === 'live' || replay.header.mode === 'race';
+  let liveZoomies = zoomiesApplies && !!replay.header.initialZoomies;
+  let glShockwave = 0;
+  let LW = 360 / (replay.header.lanes || 3); // lebar jalur (script.js: LW = GW / lanes)
+  const ac = { currentTime: 0 };
+  const G = {
+    start: 0, taps: 0, score: 0, combo: 0, maxCombo: 0,
+    counts: { perfect: 0, great: 0, good: 0, miss: 0 },
+    fever: false, ended: false, paused: false, lanes: replay.header.lanes,
+    flash: [0, 0, 0, 0], fx: [], glitchT: 0,
+    race: isRace ? { playerDist: 0, goldenNote: null } : null,
+  };
+  const songTime = () => ac.currentTime - G.start;
+  const noop = () => {};
+  const recordReplayInput = noop, updatePrecision = noop, tone = noop, addFloatText = noop, hud = noop, juiceHit = noop;
+  const navigator = { vibrate: noop };
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  eval(judgeSrc40); // judge() asli client, menutup atas G/anthem/liveZoomies di atas
+  const timeline = [];
+  (replay.events.inputs || []).forEach((e, i) => timeline.push({ kind: 'input', t: e.t, lane: e.lane, i }));
+  (replay.events.golden || []).forEach((e, i) => timeline.push({ kind: 'golden', t: e.t, index: e.index, i }));
+  timeline.sort((a, b) => (a.t - b.t) || (a.kind === b.kind ? a.i - b.i : (a.kind === 'input' ? -1 : 1)));
+  const polls = (replay.events.polls || []).slice().sort((a, b) => a.t - b.t);
+  let pollIdx = 0;
+  function syncZoomies(uptoT) { if (!zoomiesApplies) return; while (pollIdx < polls.length && polls[pollIdx].t <= uptoT) { const p = polls[pollIdx++]; liveZoomies = !!(p.ok && p.rpm >= 70); } }
+  let missIdx = 0;
+  function expireNotes(uptoT) {
+    while (missIdx < anthem.chart.length) {
+      const n = anthem.chart[missIdx];
+      if (n.judged) { missIdx++; continue; }
+      if (uptoT - n.t > W.good) {
+        n.judged = 'miss'; G.counts.miss++; G.combo = 0; G.fever = false;
+        if (G.race && G.race.goldenNote === n) G.race.goldenNote = null;
+        missIdx++; continue;
+      }
+      break;
+    }
+  }
+  for (const ev of timeline) {
+    syncZoomies(ev.t);
+    expireNotes(ev.t);
+    ac.currentTime = ev.t;
+    if (ev.kind === 'input') judge(ev.lane);
+    else { const note = anthem.chart[ev.index]; if (G.race && note && !note.judged) G.race.goldenNote = note; }
+  }
+  expireNotes(Infinity);
+  const tot = G.counts.perfect + G.counts.great + G.counts.good + G.counts.miss;
+  const acc = tot ? (G.counts.perfect * 300 + G.counts.great * 200 + G.counts.good * 100) / (tot * 300) * 100 : 100;
+  return { score: G.score, acc, maxCombo: G.maxCombo, counts: { ...G.counts }, playerDistM: G.race ? G.race.playerDist : 0 };
+}
+function handChart(n, stepS) { const out = []; for (let i = 0; i < n; i++) out.push({ t: +(1 + i * stepS).toFixed(3), lane: i % 3, midi: 60 + i }); return out; }
+function handReplay(header, inputs, polls, goldens, finish) {
+  return { v: 1, header, events: { inputs, polls: polls || [], golden: goldens || [], finish: finish || { t: 60, oppDistM: null } }, claim: null };
+}
+function tapsPerfect(chart, off) { return chart.map(n => ({ t: +(n.t + off).toFixed(3), lane: n.lane })); }
+function expectSimEqualsClient(name, chart, replay) {
+  const client = runClientGame(chart, replay);
+  replay.claim = { score: client.score, acc: +client.acc.toFixed(2), maxCombo: client.maxCombo, counts: { ...client.counts } };
+  const sim = SqueekEngine.simulate(chart, replay);
+  const same = sim.score === client.score && sim.acc === client.acc && sim.maxCombo === client.maxCombo &&
+    sim.counts.perfect === client.counts.perfect && sim.counts.great === client.counts.great &&
+    sim.counts.good === client.counts.good && sim.counts.miss === client.counts.miss &&
+    sim.playerDistM === client.playerDistM;
+  t(name + ' — simulate == client judge EXACT (score ' + client.score + ')', same);
+  if (!same) console.log('  client:', JSON.stringify(client), '\n  sim:', JSON.stringify({ score: sim.score, acc: sim.acc, maxCombo: sim.maxCombo, counts: sim.counts, playerDistM: sim.playerDistM }));
+  t(name + ' — simulate == replay.claim', sim.score === replay.claim.score && sim.maxCombo === replay.claim.maxCombo && +sim.acc.toFixed(2) === replay.claim.acc && JSON.stringify(sim.counts) === JSON.stringify(replay.claim.counts));
+  return sim;
+}
+// Kasus tangan (angka dihitung manual, bukan dari engine):
+const HC12 = handChart(12, 1); // 12 note, t=1..12, lane 0,1,2 berputar
+const H_FREE = { wallet: '0xabc', mode: 'free', seedKey: 'HAND-12', seed: 1, genre: 'cyber', diff: 'easy', lanes: 3, mirror: false, practice: false, offsetMs: 0, wallStartMs: 1700000000000, duration: 60, initialZoomies: false, initialDistKm: 0 };
+const sHand1 = expectSimEqualsClient('hand: 12x PERFECT', HC12, handReplay(H_FREE, tapsPerfect(HC12, 0)));
+t('hand: 12x PERFECT score 3690 (dihitung manual)', sHand1.score === 3690 && sHand1.acc === 100 && sHand1.maxCombo === 12 && sHand1.grade === 'SS');
+const HC35 = handChart(35, 1);
+const sHand2 = expectSimEqualsClient('hand: 35x PERFECT (fever)', HC35, handReplay(H_FREE, tapsPerfect(HC35, 0)));
+t('hand: 35x PERFECT score 13110 incl. FEVER x1.5 (dihitung manual)', sHand2.score === 13110 && sHand2.maxCombo === 35);
+const mixedTaps = HC12.map((n, i) => {
+  const d = [0, 0.06, 0.11, 0, 0.06, 0.11, 0, 0, 0, 0, 0, 0][i];
+  return { t: +(n.t + d).toFixed(3), lane: n.lane };
+});
+const sHand3 = expectSimEqualsClient('hand: mixed P/G/Go', HC12, handReplay(H_FREE, mixedTaps));
+t('hand: mixed P/G/Go score 3090, acc 83.33 (dihitung manual)', sHand3.score === 3090 && sHand3.counts.perfect === 8 && sHand3.counts.great === 2 && sHand3.counts.good === 2 && Math.abs(sHand3.acc - 83.33333333333333) < 1e-9);
+// Offset +50 ms: tap di note.t + 0,05 -> st = note.t -> PERFECT.
+const sHand4 = expectSimEqualsClient('hand: offset +50ms, tap di note.t+0.05', HC12, handReplay({ ...H_FREE, offsetMs: 50 }, tapsPerfect(HC12, 0.05)));
+t('hand: offset +50ms tetap PERFECT semua', sHand4.score === 3690 && sHand4.counts.perfect === 12);
+// Offset +50 ms tapi tap TEPAT di note.t -> st = note.t - 0,05 -> GREAT semua.
+const sHand5 = expectSimEqualsClient('hand: offset +50ms, tap di note.t', HC12, handReplay({ ...H_FREE, offsetMs: 50 }, tapsPerfect(HC12, 0)));
+t('hand: offset +50ms tap di note.t = GREAT semua, skor 2460', sHand5.score === 2460 && sHand5.counts.great === 12 && Math.abs(sHand5.acc - 66.66666666666667) < 1e-9);
+// Tap kosong + tap telat + miss: note 6 tidak kena, kombo putus.
+const gapTaps = tapsPerfect(HC12, 0).filter((_, i) => i !== 5);
+gapTaps.splice(5, 0, { t: 5.5, lane: 0 }); // tap kosong (note lane 0 terdekat di t=4 dan t=7)
+gapTaps.splice(6, 0, { t: 6.2, lane: 2 }); // tap telat di note 6 (dt 0,2 > 0,135)
+const sHand6 = expectSimEqualsClient('hand: tap kosong + tap telat + miss', HC12, handReplay(H_FREE, gapTaps));
+t('hand: tap kosong/telat tidak menambah skor, miss 1, maxCombo 6', sHand6.score === 3300 && sHand6.counts.miss === 1 && sHand6.maxCombo === 6 && Math.abs(sHand6.acc - 91.66666666666667) < 1e-9);
+// ZOOMIES dari log poll saja: poll gagal tidak menyalakan, rpm 80 nyala 5,5-8,5.
+const zoomPolls = [{ t: 0, rpm: 0, dist: 0, ok: true }, { t: 3, rpm: 90, dist: 0, ok: false }, { t: 5.5, rpm: 80, dist: 0, ok: true }, { t: 8.5, rpm: 0, dist: 0, ok: true }];
+const sHand7 = expectSimEqualsClient('hand: ZOOMIES x2 dari polls (5.5-8.5)', HC12, handReplay({ ...H_FREE, mode: 'live' }, tapsPerfect(HC12, 0), zoomPolls));
+t('hand: ZOOMIES skor 4590 (dihitung manual)', sHand7.score === 4590);
+// ZOOMIES dari initialZoomies bila belum ada poll.
+const sHand8 = expectSimEqualsClient('hand: initialZoomies=true (tanpa poll)', HC12, handReplay({ ...H_FREE, mode: 'live', initialZoomies: true }, tapsPerfect(HC12, 0), []));
+t('hand: initialZoomies x2 semua tap (3690x2=7380)', sHand8.score === 7380);
+// ZOOMIES TIDAK berlaku di luar live/race: replay free yang mengklaim
+// initialZoomies=true + poll rpm 80 harus tetap dihitung tanpa x2 (client
+// tidak pernah menyalakan zoomies di mode free — tidak ada poll, snapZoom
+// hanya untuk live/race). Driver di atas memakai judge() asli, jadi ini
+// juga mengunci perilaku client, bukan hanya engine.
+const sHand8b = expectSimEqualsClient('hand: zoomies diabaikan di mode free', HC12, handReplay({ ...H_FREE, mode: 'free', initialZoomies: true }, tapsPerfect(HC12, 0), [{ t: 5, rpm: 80, dist: 0, ok: true }]));
+t('hand: free + initialZoomies + poll 80rpm tetap skor normal 3690', sHand8b.score === 3690);
+// GOLDEN race: event t=5,5, index 5 (note t=6) — kena PERFECT -> +1000, +5 m.
+const H_RACE = { ...H_FREE, mode: 'race', initialDistKm: 12.5 };
+const racePolls = [{ t: 0, rpm: 0, dist: 12.5, ok: true }, { t: 5, rpm: 0, dist: 12.505, ok: true }, { t: 10, rpm: 0, dist: 12.51, ok: true }];
+const sHand9 = expectSimEqualsClient('hand: GOLDEN kena (+1000, +5m)', HC12, handReplay(H_RACE, tapsPerfect(HC12, 0), racePolls, [{ t: 5.5, index: 5 }], { t: 60, oppDistM: 10 }));
+t('hand: GOLDEN skor 4690, playerDist 17 m, menang vs 10 m', sHand9.score === 4690 && sHand9.playerDistM === 17 && sHand9.win === true && sHand9.goldenHits === 1);
+t('hand: GOLDEN pick valid (expected index 5)', sHand9.goldenChecks.length === 1 && sHand9.goldenChecks[0].ok === true && sHand9.goldenChecks[0].expected === 5);
+t('hand: oppDistM dari poll = 10 m, cocok dengan finish', sHand9.oppDistMDerived === 10 && sHand9.oppDistMMatch === true);
+// GOLDEN dilewatkan (tidak ada tap di note 6): tanpa bonus, note jadi miss.
+const goldMissTaps = tapsPerfect(HC12, 0).filter((_, i) => i !== 5);
+const sHand10 = expectSimEqualsClient('hand: GOLDEN dilewatkan (miss)', HC12, handReplay(H_RACE, goldMissTaps, racePolls, [{ t: 5.5, index: 5 }], { t: 60, oppDistM: 10 }));
+t('hand: GOLDEN dilewatkan skor 3300, playerDist 11 m, tanpa bonus', sHand10.score === 3300 && sHand10.playerDistM === 11 && sHand10.goldenHits === 0 && sHand10.counts.miss === 1);
+// GOLDEN kena GREAT (dt 0,06): bonus tetap jatuh.
+const goldGreatTaps = tapsPerfect(HC12, 0).map((tp, i) => i === 5 ? { t: 6.06, lane: tp.lane } : tp);
+const sHand11 = expectSimEqualsClient('hand: GOLDEN kena GREAT', HC12, handReplay(H_RACE, goldGreatTaps, racePolls, [{ t: 5.5, index: 5 }], { t: 60, oppDistM: 10 }));
+t('hand: GOLDEN GREAT skor 4590 (3590+1000), playerDist 16.7 m', sHand11.score === 4590 && Math.abs(sHand11.playerDistM - 16.7) < 1e-9 && sHand11.goldenHits === 1);
+// GOLDEN pick yang SALAH (index 6 padahal yang pertama belum di-judge
+// adalah 5): skor tetap direproduksi, tapi check melaporkannya.
+const sHand12 = SqueekEngine.simulate(HC12, handReplay(H_RACE, tapsPerfect(HC12, 0), racePolls, [{ t: 5.5, index: 6 }], { t: 60, oppDistM: 10 }));
+t('hand: GOLDEN pick salah tetap direproduksi skornya, tapi check gagal', sHand12.score === 4690 && sHand12.goldenChecks[0].ok === false && sHand12.goldenChecks[0].expected === 5);
+// simulate tidak memutasi chart pemanggil + idempotent.
+const hcCopy = JSON.parse(JSON.stringify(HC12));
+SqueekEngine.simulate(HC12, handReplay(H_FREE, tapsPerfect(HC12, 0)));
+t('simulate tidak memutasi chart pemanggil', JSON.stringify(HC12) === JSON.stringify(hcCopy));
+t('simulate idempotent (dua kali = hasil sama)', JSON.stringify(SqueekEngine.simulate(HC12, handReplay(H_FREE, tapsPerfect(HC12, 0)))) === JSON.stringify(SqueekEngine.simulate(HC12, handReplay(H_FREE, tapsPerfect(HC12, 0)))));
+// 14g. Lagu ASLI (buildChart) + tap script acak deterministik (LCG) —
+// driver client vs simulate harus EXACT di semua mode.
+function lcg(seed) { let a = seed >>> 0; return () => { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; }; }
+function makeTapScript(chart, offsetMs, rand) {
+  const off = offsetMs / 1000, taps = [];
+  for (const n of chart) {
+    const u = rand();
+    // Tap dicatat max(0, ...) — persis replaySongT() client: tap di LEAD_IN
+    // (song-time negatif) terekam sebagai t=0.
+    // Offset +20 ms dipilih untuk live test supaya tap GOOD (dt 0,11) tidak
+    // jatuh di zona ambigu sub-frame (T - n.t dalam (0,135, 0,151] — lihat
+    // AUDIT-v40 §3.4); semua offset lain di bawah juga aman dari zona itu.
+    if (u < 0.55) taps.push({ t: Math.max(0, +(n.t + off).toFixed(3)), lane: n.lane });
+    else if (u < 0.72) taps.push({ t: Math.max(0, +(n.t + 0.06 + off).toFixed(3)), lane: n.lane });
+    else if (u < 0.82) taps.push({ t: Math.max(0, +(n.t + 0.11 + off).toFixed(3)), lane: n.lane });
+    else if (u < 0.90) { /* miss: tanpa tap */ }
+    else taps.push({ t: Math.max(0, +(n.t + 0.2 + off).toFixed(3)), lane: n.lane }); // tap telat
+  }
+  return taps;
+}
+const realAnthem = SqueekEngine.buildChart({ seedKey: 'FREE-123456789', genre: 'cyber', diff: 'normal', lanes: 3, mirror: false });
+const realChart = realAnthem.chart;
+const livePolls = [{ t: 5, rpm: 0, dist: 0, ok: true }, { t: 15, rpm: 80, dist: 0, ok: true }, { t: 25, rpm: 0, dist: 0, ok: true }, { t: 35, rpm: 90, dist: 0, ok: false }, { t: 45, rpm: 75, dist: 0, ok: true }];
+expectSimEqualsClient('real: FREE cyber/normal, offset +20ms, polls zoomies', realChart,
+  handReplay({ ...H_FREE, mode: 'live', seedKey: 'FREE-123456789', genre: 'cyber', diff: 'normal', offsetMs: 20, duration: +realAnthem.duration.toFixed(3) }, makeTapScript(realChart, 20, lcg(7)), livePolls));
+const raceAnthem = SqueekEngine.buildChart({ seedKey: 'RACE-2026-11-08-145', genre: 'cyber', diff: 'normal', lanes: 3, mirror: false });
+const raceChart = raceAnthem.chart;
+const goldIdx = raceChart.findIndex(n => n.t > 0.5); // event di t=0,5, sebelum tap pertama
+const racePolls2 = [{ t: 5, rpm: 0, dist: 12.5, ok: true }, { t: 10, rpm: 80, dist: 12.52, ok: true }, { t: 20, rpm: 0, dist: 12.55, ok: true }, { t: 30, rpm: 85, dist: 12.58, ok: true }, { t: 40, rpm: 0, dist: 12.6, ok: true }];
+const raceOpp = +((12.6 - 12.5) * 1000).toFixed(1);
+expectSimEqualsClient('real: RACE + golden + zoomies + offset -30ms', raceChart,
+  handReplay({ ...H_FREE, mode: 'race', seedKey: 'RACE-2026-11-08-145', genre: 'cyber', diff: 'normal', offsetMs: -30, initialZoomies: true, initialDistKm: 12.5, duration: +raceAnthem.duration.toFixed(3) }, makeTapScript(raceChart, -30, lcg(21)), racePolls2, [{ t: 0.5, index: goldIdx }], { t: 60, oppDistM: raceOpp }));
+const pracAnthem = SqueekEngine.buildChart({ seedKey: 'FREE-999', genre: 'cyber', diff: 'normal', lanes: 3, mirror: false, practice: true });
+expectSimEqualsClient('real: PRACTICE (tempo 60%)', pracAnthem.chart,
+  handReplay({ ...H_FREE, mode: 'free', seedKey: 'FREE-999', genre: 'cyber', diff: 'normal', practice: true, offsetMs: 0, duration: +pracAnthem.duration.toFixed(3) }, makeTapScript(pracAnthem.chart, 0, lcg(99)), []));
+const mirAnthem = SqueekEngine.buildChart({ seedKey: 'FREE-123456789', genre: 'synth', diff: 'hard', lanes: 4, mirror: true });
+expectSimEqualsClient('real: 4-lane MIRROR hard', mirAnthem.chart,
+  handReplay({ ...H_FREE, mode: 'free', seedKey: 'FREE-123456789', genre: 'synth', diff: 'hard', lanes: 4, mirror: true, offsetMs: -80, duration: +mirAnthem.duration.toFixed(3) }, makeTapScript(mirAnthem.chart, -80, lcg(5)), []));
+// Fuzz: 5 seed berbeda, driver vs simulate harus EXACT semua.
+for (let f = 0; f < 5; f++) {
+  const fa = SqueekEngine.buildChart({ seedKey: 'FUZZ-' + f, genre: ['cyber', 'synth', 'chip', 'void'][f % 4], diff: ['easy', 'normal', 'hard'][f % 3], lanes: 3, mirror: f % 2 === 0 });
+  const off = [-100, -40, 0, 60, 120][f];
+  expectSimEqualsClient('fuzz seed ' + f + ' (offset ' + off + 'ms)', fa.chart,
+    handReplay({ ...H_FREE, mode: 'free', seedKey: 'FUZZ-' + f, offsetMs: off, duration: +fa.duration.toFixed(3) }, makeTapScript(fa.chart, off, lcg(1000 + f)), []));
+}
+// 14h. Determinisme race (b): oppDistM terekam == nilai keputusan di
+// finish() — satu variabel oppDist (baris 1100-1101 dipakai ulang di 1148) —
+// dan playerDist hanya ditulis di judge() (hit + golden).
+t('finish() memakai SATU oppDist untuk menang/kalah DAN replay.finish', js.includes('if (G.race) { oppDist = raceOppDist(); raceWin = G.race.playerDist > oppDist; }') && js.includes('oppDistM: G.race ? +oppDist.toFixed(1) : null'));
+t('playerDist hanya bertambah di judge() (hit + golden)', (js.match(/playerDist \+=/g) || []).length === 2 && js.includes("G.race.playerDist += { perfect: 1.0, great: 0.7, good: 0.4 }[k];") && js.includes('G.race.playerDist += 5;'));
+t('deriveOppDistM: poll ok terakhir - initialDistKm', SqueekEngine.deriveOppDistM({ initialDistKm: 12.5 }, [{ t: 0, dist: 12.5, ok: true }, { t: 10, dist: 12.51, ok: true }]) === 10);
+t('deriveOppDistM: tanpa poll ok -> 0', SqueekEngine.deriveOppDistM({ initialDistKm: 12.5 }, [{ t: 0, dist: 12.5, ok: false }]) === 0);
+t('deriveOppDistM: tidak pernah negatif', SqueekEngine.deriveOppDistM({ initialDistKm: 12.5 }, [{ t: 0, dist: 12.4, ok: true }]) === 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

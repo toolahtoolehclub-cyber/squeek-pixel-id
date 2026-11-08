@@ -1,28 +1,23 @@
-// Motif determinism test — run: node TEST-motif.js (cwd = the v37 folder)
-// Extracts the pure song engine (CONFIG..makeAnthem) from script.js and runs it in Node.
-// The motif must be deterministic: same seed -> same chart, same name, same BPM.
-// It must also actually repeat: bars 2/4 and 3/5 share most of their notes.
+// Motif determinism test — run: node TEST-motif.js (cwd = the v40 folder)
+// v40: the song engine now lives in engine.js (SqueekEngine.buildChart);
+// script.js makeAnthem() is a thin wrapper delegating to it. This test
+// checks the motif through the wrapper (the path the game actually uses)
+// AND that the wrapper agrees with buildChart directly.
 const fs = require('fs');
 const src = fs.readFileSync('script.js', 'utf8');
+const SqueekEngine = require('./engine.js');
 const lines = src.split('\n');
-function oneLine(marker) { const i = lines.findIndex(l => l.startsWith(marker)); if (i < 0) throw new Error('marker not found: ' + marker); return lines[i]; }
-const head = [
-  oneLine('const CONFIG ='),
-  oneLine('const DIFFICULTIES ='),
-  oneLine('const GENRES ='),
-  oneLine('let currentDiff ='),
-  oneLine('function cyrb53('),
-  oneLine('function rng('),
-  oneLine('const seedOf ='),
-  oneLine('const NOTE_NAMES ='),
-  oneLine('const SCALES ='),
-  oneLine('const SONG_MOODS ='),
-].join('\n');
-const start = lines.findIndex(l => l.startsWith('function makeAnthem('));
-let depth = 0, end = start;
-for (let i = start; i < lines.length; i++) { for (const ch of lines[i]) { if (ch === '{') depth++; if (ch === '}') depth--; } if (i > start && depth === 0) { end = i; break; } }
-const engine = head + '\n' + lines.slice(start, end + 1).join('\n');
-eval(engine);
+function fnSrc(name) {
+  const start = lines.findIndex(l => l.startsWith('function ' + name + '('));
+  if (start < 0) throw new Error('fn not found: ' + name);
+  let depth = 0, end = start;
+  for (let i = start; i < lines.length; i++) { for (const ch of lines[i]) { if (ch === '{') depth++; if (ch === '}') depth--; } if (i > start && depth === 0) { end = i; break; } }
+  return lines.slice(start, end + 1).join('\n');
+}
+// The wrapper closes over SqueekEngine + currentGenre/currentDiff (+ cyrb53
+// in the randomize branch, never taken here) — pass them as Function params.
+const makeAnthem = new Function('SqueekEngine', 'currentGenre', 'currentDiff', 'cyrb53',
+  fnSrc('makeAnthem') + '\nreturn makeAnthem;')(SqueekEngine, 'cyber', 'easy', SqueekEngine.cyrb53);
 let pass = 0, fail = 0;
 function t(name, ok) { if (ok) { pass++; } else { fail++; console.log('FAIL:', name); } }
 
@@ -57,5 +52,8 @@ function matchRate(a, b1, b2) {
 const r04 = matchRate(a1, 2, 4), r15 = matchRate(a1, 3, 5);
 t('motif repeats bar 2 -> bar 4 (>=50% same notes)', r04 >= 0.5, console.log('  bar2->4 match:', r04.toFixed(2)));
 t('motif repeats bar 3 -> bar 5 (>=50% same notes)', r15 >= 0.5, console.log('  bar3->5 match:', r15.toFixed(2)));
+// v40: the wrapper must agree with the engine directly.
+const b1 = SqueekEngine.buildChart({ seedKey: 'TEST-SEED-1', genre: 'cyber', diff: 'easy', lanes: 3, mirror: false });
+t('wrapper makeAnthem == engine.buildChart', JSON.stringify(a1) === JSON.stringify(b1));
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
