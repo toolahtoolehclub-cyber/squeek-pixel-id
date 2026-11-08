@@ -39,8 +39,8 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v42.3', (html.match(/v42\.3/g) || []).length >= 2);
-t('browser tab title is v42.3', html.includes('<title>SQUEEKCHAIN // v42.3</title>'));
+t('html says v42.4', (html.match(/v42\.4/g) || []).length >= 2);
+t('browser tab title is v42.4', html.includes('<title>SQUEEKCHAIN // v42.4</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -317,7 +317,7 @@ t('v37.2 LEAGUE mode buttons are centered', /#lbModes\s*\{[^}]*justify-content:\
 // --- 12. v38: XP economy, Squeek day, remembered wallet, LEGACY LV8, pause, sessions ---
 const jsLines = js.split('\n');
 function fnSrc38(name) {
-  const start = jsLines.findIndex(l => l.startsWith('function ' + name + '('));
+  const start = jsLines.findIndex(l => l.startsWith('function ' + name + '(') || l.startsWith('async function ' + name + '('));
   if (start < 0) throw new Error('function not found: ' + name);
   let depth = 0, end = start;
   for (let i = start; i < jsLines.length; i++) { for (const ch of jsLines[i]) { if (ch === '{') depth++; if (ch === '}') depth--; } if (i > start && depth === 0) { end = i; break; } }
@@ -396,7 +396,7 @@ t('Genesis meta tag is line 8, byte-identical', htmlLines[7] === '<meta name="sq
 t('README last line is the Genesis proof', readme.trimEnd().split('\n').pop() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 t('OG image is absolute on the live domain', html.includes('og:image" content="https://squeekpixel.web.id/squeekchain-headline-simple.png"'));
 t('Twitter card is summary_large_image', html.includes('twitter:card" content="summary_large_image"'));
-t('meta description is v42.3, not v32 NEO', html.includes('SQUEEKCHAIN v42.3') && !html.includes('v32 NEO'));
+t('meta description is v42.4, not v32 NEO', html.includes('SQUEEKCHAIN v42.4') && !html.includes('v32 NEO'));
 t('README documents 11 achievements', readme.includes('11 named achievements'));
 t('README documents the v38 XP economy', readme.includes('54,000 total XP') && readme.includes('[0, 700, 2000, 4300, 8500, 16000, 29500, 54000]'));
 t('README documents the 19:00 WIB Squeek-day reset', readme.includes('19:00 WIB'));
@@ -485,7 +485,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v42.3', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.3'"));
+t('submit sends replay + hash + gameVersion v42.4', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.4'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -511,7 +511,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v42.3', readme.startsWith('# Squeekchain v42.3'));
+t('README title is v42.4', readme.startsWith('# Squeekchain v42.4'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -730,16 +730,18 @@ function makeTapScript(chart, offsetMs, rand) {
   const off = offsetMs / 1000, taps = [];
   for (const n of chart) {
     const u = rand();
-    // Tap dicatat max(0, ...) — persis replaySongT() client: tap di LEAD_IN
-    // (song-time negatif) terekam sebagai t=0.
+    // v42.4: rekaman MENTAH (tanpa Math.max(0, ...), 4 desimal) — persis
+    // replaySongT() client yang baru: tap di LEAD_IN (song-time negatif)
+    // terekam negatif. Dulu dijepit 0 — itulah yang membuat replay user
+    // 0xcafb… ditolak (tap lead-in jadi PERFECT di simulasi, MISS live).
     // Offset +20 ms dipilih untuk live test supaya tap GOOD (dt 0,11) tidak
     // jatuh di zona ambigu sub-frame (T - n.t dalam (0,135, 0,151] — lihat
     // AUDIT-v40 §3.4); semua offset lain di bawah juga aman dari zona itu.
-    if (u < 0.55) taps.push({ t: Math.max(0, +(n.t + off).toFixed(3)), lane: n.lane });
-    else if (u < 0.72) taps.push({ t: Math.max(0, +(n.t + 0.06 + off).toFixed(3)), lane: n.lane });
-    else if (u < 0.82) taps.push({ t: Math.max(0, +(n.t + 0.11 + off).toFixed(3)), lane: n.lane });
+    if (u < 0.55) taps.push({ t: +(n.t + off).toFixed(4), lane: n.lane });
+    else if (u < 0.72) taps.push({ t: +(n.t + 0.06 + off).toFixed(4), lane: n.lane });
+    else if (u < 0.82) taps.push({ t: +(n.t + 0.11 + off).toFixed(4), lane: n.lane });
     else if (u < 0.90) { /* miss: tanpa tap */ }
-    else taps.push({ t: Math.max(0, +(n.t + 0.2 + off).toFixed(3)), lane: n.lane }); // tap telat
+    else taps.push({ t: +(n.t + 0.2 + off).toFixed(4), lane: n.lane }); // tap telat
   }
   return taps;
 }
@@ -768,6 +770,287 @@ for (let f = 0; f < 5; f++) {
   expectSimEqualsClient('fuzz seed ' + f + ' (offset ' + off + 'ms)', fa.chart,
     handReplay({ ...H_FREE, mode: 'free', seedKey: 'FUZZ-' + f, offsetMs: off, duration: +fa.duration.toFixed(3) }, makeTapScript(fa.chart, off, lcg(1000 + f)), []));
 }
+// --- v42.4: BUG 1 (tap lead-in), BUG 1b (alasan penolakan), BUG 2 (tombol
+// connect), BUG 3 (equip skin SQK) — lihat AUDIT-v42.4.md.
+// (1) replaySongT() + recordReplayInput() dari sumber ASLI script.js:
+// driver men-stub songTime() (bisa negatif saat lead-in) dan memeriksa
+// rekaman mentahnya. Inilah jalur yang TIDAK pernah diuji sebelum v42.4
+// (driver 14f memberi makan judge+simulate dengan t yang SUDAH direkam,
+// jadi clamp Math.max(0, ...) tidak pernah terlihat).
+(function () {
+  let songTimeVal = 0;
+  const songTime = () => songTimeVal;
+  let replay = null, G = null, anthem = null;
+  const REPLAY_MAX_EXTRA_INPUTS = 50;
+  eval(fnSrc38('replaySongT') + '\n' + fnSrc38('recordReplayInput'));
+  t('v42.4 replaySongT: songTime -0.1 -> -0.1 (BUKAN 0 — bug v42.3)', (songTimeVal = -0.1, replaySongT() === -0.1));
+  t('v42.4 replaySongT: -0.123456 -> -0.1235 (presisi 4 desimal)', (songTimeVal = -0.123456, replaySongT() === -0.1235));
+  t('v42.4 replaySongT: 5.67891 -> 5.6789', (songTimeVal = 5.67891, replaySongT() === 5.6789));
+  t('v42.4 replaySongT: 0 -> 0', (songTimeVal = 0, replaySongT() === 0));
+  replay = { events: { inputs: [] } }; G = { ended: false }; anthem = { chart: new Array(10) };
+  songTimeVal = -0.1; recordReplayInput(1);
+  songTimeVal = 2.5; recordReplayInput(2);
+  t('v42.4 recordReplayInput: tap lead-in terekam {t:-0.1, lane:1}', JSON.stringify(replay.events.inputs[0]) === '{"t":-0.1,"lane":1}');
+  t('v42.4 recordReplayInput: tap biasa terekam {t:2.5, lane:2}', JSON.stringify(replay.events.inputs[1]) === '{"t":2.5,"lane":2}');
+  G.ended = true; recordReplayInput(0);
+  t('v42.4 recordReplayInput: tidak merekam setelah game berakhir', replay.events.inputs.length === 2);
+})();
+// (2) Parity lead-in: driver (judge asli) vs simulate HARUS EXACT.
+// Chart tangan dengan not pertama di t=0 (handChart mulai di t=1).
+function handChart0(n, stepS) { const out = []; for (let i = 0; i < n; i++) out.push({ t: +(i * stepS).toFixed(3), lane: i % 3, midi: 60 + i }); return out; }
+const HC0 = handChart0(12, 1); // not 0: t=0, lane 0
+const sLeadA = expectSimEqualsClient('v42.4 lead-in: offset +40ms, tap t=-0.10 (KASUS USER) -> tap kosong, not 0 MISS', HC0,
+  handReplay({ ...H_FREE, offsetMs: 40 }, [{ t: -0.10, lane: 0 }].concat(HC0.slice(1).map(n => ({ t: n.t, lane: n.lane })))));
+t('v42.4 lead-in A skor 3360, 11 PERFECT + 1 MISS, maxCombo 11', sLeadA.score === 3360 && sLeadA.counts.perfect === 11 && sLeadA.counts.miss === 1 && sLeadA.maxCombo === 11);
+const sLeadB = expectSimEqualsClient('v42.4 lead-in: offset 0, tap t=-0.04 -> PERFECT (dt 0.04)', HC0,
+  handReplay({ ...H_FREE, offsetMs: 0 }, [{ t: -0.04, lane: 0 }].concat(HC0.slice(1).map(n => ({ t: n.t, lane: n.lane })))));
+t('v42.4 lead-in B skor 3690, 12 PERFECT, maxCombo 12, SS', sLeadB.score === 3690 && sLeadB.counts.perfect === 12 && sLeadB.maxCombo === 12 && sLeadB.grade === 'SS');
+const sLeadB2 = expectSimEqualsClient('v42.4 lead-in: offset +40ms, tap t=-0.06 -> GOOD (dt 0.10)', HC0,
+  handReplay({ ...H_FREE, offsetMs: 40 }, [{ t: -0.06, lane: 0 }].concat(HC0.slice(1).map(n => ({ t: n.t, lane: n.lane })))));
+t('v42.4 lead-in B2 skor 3490, 11 PERFECT + 1 GOOD, maxCombo 12', sLeadB2.score === 3490 && sLeadB2.counts.perfect === 11 && sLeadB2.counts.good === 1 && sLeadB2.maxCombo === 12);
+// (3) Lagu DAILY ASLI user (148 not) + tap lead-in + kombo 147 (FEVER aktif):
+// inilah game user yang ditolak — dengan rekaman mentah, simulate HARUS
+// sama persis dengan client.
+const dailyAnthem42 = SqueekEngine.buildChart({ seedKey: 'DAILY-2026-11-08', genre: 'synth', diff: 'easy', lanes: 3, mirror: false });
+const dailyTaps42 = [{ t: -0.10, lane: dailyAnthem42.chart[0].lane }].concat(dailyAnthem42.chart.slice(1).map(n => ({ t: n.t, lane: n.lane })));
+const sLeadC = expectSimEqualsClient('v42.4 lead-in: DAILY asli + tap lead-in + kombo 147 (FEVER)', dailyAnthem42.chart,
+  handReplay({ ...H_FREE, mode: 'daily', seedKey: 'DAILY-2026-11-08', seed: 3544430337, genre: 'synth', diff: 'easy', offsetMs: 40, duration: +dailyAnthem42.duration.toFixed(3) }, dailyTaps42));
+t('v42.4 lead-in C skor 103200, 147 PERFECT + 1 MISS, maxCombo 147, grade S', sLeadC.score === 103200 && sLeadC.counts.perfect === 147 && sLeadC.counts.miss === 1 && sLeadC.maxCombo === 147 && sLeadC.grade === 'S');
+// (4) Replay ASLI user 0xcafb… (fixture): yang lama TIDAK BISA diselamatkan
+// (mismatch didokumentasikan, bukan disembunyikan); dengan t pertama
+// dikoreksi ke -0.10 (waktu asli tap lead-in), sim == claim EXACT.
+const userRep42 = JSON.parse(fs.readFileSync('TEST-user-replay-0xcafb.json', 'utf8'));
+const userChart42 = SqueekEngine.buildChart(userRep42.header).chart;
+const userSim42 = SqueekEngine.simulate(userChart42, userRep42);
+t('v42.4 replay user 0xcafb ASLI tetap mismatch 34975 vs claim 34675 (data lama lossy)', userSim42.score === 34975 && userSim42.counts.perfect === 8 && userSim42.counts.miss === 5 && userRep42.claim.score === 34675);
+const userFixed42 = JSON.parse(JSON.stringify(userRep42));
+userFixed42.events.inputs[0].t = -0.10;
+const userSimFixed42 = SqueekEngine.simulate(userChart42, userFixed42);
+t('v42.4 replay user 0xcafb t=-0.10 == claim EXACT (34675/7/74/61/6, maxCombo 79)', userSimFixed42.score === 34675 && userSimFixed42.maxCombo === 79 && JSON.stringify(userSimFixed42.counts) === JSON.stringify(userRep42.claim.counts) && Math.abs(userSimFixed42.acc - userRep42.claim.acc) < 0.01);
+// (5) Worker v9 — validateReplay menerima t negatif sampai -2,5 (LEAD_IN
+// 2 detik + 0,5 margin) dan menolak di bawah itu. Diekstrak dari worker.js
+// asli (bukan salinan): checkOppDist + validateReplay + helper kecilnya.
+function fnSrcW(name) {
+  const start = workerLines.findIndex(l => l.startsWith('function ' + name + '('));
+  if (start < 0) throw new Error('worker function not found: ' + name);
+  let depth = 0, end = start;
+  for (let i = start; i < workerLines.length; i++) { for (const ch of workerLines[i]) { if (ch === '{') depth++; if (ch === '}') depth--; } if (i > start && depth === 0) { end = i; break; } }
+  return workerLines.slice(start, end + 1).join('\n');
+}
+const validateReplay42 = new Function(
+  'const GENRES = ["cyber","synth","chip","void"]; const DIFFS = ["easy","normal","hard"]; const MAX_EXTRA_TAPS = 50; const MAX_POLLS = 600; const GOLDEN_MAX = 2;\n' +
+  fnSrcW('isNonEmptyString') + '\n' + fnSrcW('isInt') + '\n' + fnSrcW('isFiniteNumber') + '\n' + fnSrcW('checkOppDist') + '\n' + fnSrcW('validateReplay') +
+  '\nreturn validateReplay;')();
+t('worker v9: GET / version 9', worker.includes('version: 9'));
+t('worker v9: replay user ASLI lolos validasi bentuk (yang menolaknya simulasi, bukan validasi)', validateReplay42(userRep42, { notes: 148 }, 'daily', 34675, 51.8).ok === true);
+t('worker v9: replay user t=-0.10 LOLOS validasi (lead-in diterima)', validateReplay42(userFixed42, { notes: 148 }, 'daily', 34675, 51.8).ok === true);
+const userTooEarly42 = JSON.parse(JSON.stringify(userRep42));
+userTooEarly42.events.inputs[0].t = -3.0;
+t('worker v9: input t=-3.0 DITOLAK (di luar LEAD_IN)', validateReplay42(userTooEarly42, { notes: 148 }, 'daily', 34675, 51.8).error === 'replay input t out of range');
+const userPollNeg42 = JSON.parse(JSON.stringify(userRep42));
+userPollNeg42.events.polls = [{ t: -0.5, rpm: 0, dist: 0, ok: true }];
+t('worker v9: poll t=-0.5 LOLOS validasi', validateReplay42(userPollNeg42, { notes: 148 }, 'daily', 34675, 51.8).ok === true);
+const userPollBad42 = JSON.parse(JSON.stringify(userRep42));
+userPollBad42.events.polls = [{ t: -3.0, rpm: 0, dist: 0, ok: true }];
+t('worker v9: poll t=-3.0 DITOLAK', validateReplay42(userPollBad42, { notes: 148 }, 'daily', 34675, 51.8).error === 'replay poll t out of range');
+// (6) BUG 1b — verifyRejectedText: alasan server ditampilkan + instruksi.
+(function () {
+  const msgStub = k => ({ lbVerifyRejected: 'VERIFIKASI DITOLAK — SKOR TIDAK MASUK BOARD.', lbVerifyRejectedReason: 'VERIFIKASI DITOLAK — {reason}. MAIN ULANG DAN KIRIM LAGI.' }[k] || k);
+  const msgfStub = (k, vars) => { let s = msgStub(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; };
+  const vrt = new Function('msg', 'msgf', fnSrc38('verifyRejectedText') + '\nreturn verifyRejectedText;')(msgStub, msgfStub);
+  t('v42.4 verifyRejectedText: dengan reason -> alasan + MAIN ULANG', vrt({ reason: 'simulated score mismatch' }) === 'VERIFIKASI DITOLAK — simulated score mismatch. MAIN ULANG DAN KIRIM LAGI.');
+  t('v42.4 verifyRejectedText: tanpa reason -> pesan umum', vrt(null) === 'VERIFIKASI DITOLAK — SKOR TIDAK MASUK BOARD.');
+})();
+t('MSG lbVerifyRejectedReason ada di EN + ID', js.includes("lbVerifyRejectedReason: 'VERIFICATION REJECTED — {reason}. PLAY AGAIN AND RESUBMIT.'") && js.includes("lbVerifyRejectedReason: 'VERIFIKASI DITOLAK — {reason}. MAIN ULANG DAN KIRIM LAGI.'"));
+t('submitLb memakai verifyRejectedText saat rejected', js.includes("show(verifyRejectedText(data))"));
+// (7) BUG 2 — tombol connect: harness mock provider (injected + WC).
+// Mengekstrak seksi WalletConnect ASLI (wcGetProvider s/d restore calls)
+// dan menjalankannya dengan window/localStorage/DOM palsu.
+function mkConnectHarness42(opts) {
+  const ADDR = '0x88538a82143065664232422e2dec4309038fcf9a';
+  const ADDR2 = '0x372D48abe5eDccCcDE9BD914a6dE30Dc53e3a1Db';
+  const btn = { textContent: '[ CONNECT WALLET ]', disabled: false };
+  const walletInput = { value: '', addEventListener() {} };
+  const handlers = {};
+  const said = [];
+  const store = {};
+  const fakeLocalStorage = {
+    length: 0,
+    key(i) { return Object.keys(store)[i] || null; },
+    getItem(k) { return store[k] === undefined ? null : store[k]; },
+    setItem(k, v) { store[k] = String(v); this.length = Object.keys(store).length; },
+    removeItem(k) { delete store[k]; this.length = Object.keys(store).length; },
+  };
+  if (opts && opts.wcKeys) { store['wc@2:client:0.3:xyz'] = '{}'; fakeLocalStorage.length = 1; }
+  const mockEth = opts && opts.injected ? {
+    request: async ({ method }) => {
+      if (method === 'eth_requestAccounts' || method === 'eth_accounts') return [ADDR];
+      return null;
+    },
+    on: (ev, fn) => { handlers[ev] = fn; },
+  } : undefined;
+  const mockWcProvider = {
+    accounts: [ADDR],
+    connected: true,
+    request: async ({ method }) => (method === 'eth_requestAccounts' || method === 'eth_accounts' ? [ADDR] : []),
+    connect: async () => {},
+    on: (ev, fn) => { handlers[ev] = fn; },
+  };
+  const fakeWindow = {
+    ethereum: mockEth,
+    EthereumProvider: (opts && opts.wc) ? { init: async () => mockWcProvider } : undefined,
+  };
+  const I18Nstub = { en: { connect: '[ CONNECT WALLET ]', connectedTpl: '[ CONNECTED: {addr} ]' }, id: { connect: '[ HUBUNGKAN WALLET ]', connectedTpl: '[ TERHUBUNG: {addr} ]' } };
+  const MSGstub = {
+    walletConnected: 'WALLET CONNECTED: {addr} — ADDRESS ONLY, NO SIGNATURE REQUESTED.',
+    walletSwitched: 'WALLET SWITCHED TO {addr}.', walletDisconnected: 'WALLET DISCONNECTED.', walletInvalid: 'WALLET RETURNED NO VALID ADDRESS.',
+  };
+  const msgStub = k => MSGstub[k] || I18Nstub.en[k] || k;
+  const msgfStub = (k, vars) => { let s = msgStub(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; };
+  const isAddrStub = s => /^0x[a-fA-F0-9]{40}$/.test(s || '');
+  const $stub = id => (id === 'connectBtn' ? btn : (id === 'walletInput' ? walletInput : null));
+  const api = new Function('window', 'localStorage', 'document', '$', 'msg', 'msgf', 'isAddr', 'walletEl', 'saveWallet38', 'preview', 'say', 'CONFIG', 'I18N', 'lang',
+    js.slice(js.indexOf('let wcProvider = null; // active WalletConnect provider'), js.indexOf("bindClick('connectBtn'")) +
+    '\nreturn { connectWallet, setConnected, updateConnectBtn, restoreWalletConnectSession, restoreInjectedSession };')(
+    fakeWindow, fakeLocalStorage, { createElement: () => { throw new Error('no DOM in harness'); }, head: { appendChild() {} } },
+    $stub, msgStub, msgfStub, isAddrStub, walletInput, () => {}, () => {}, (m) => said.push(m),
+    { WC_PROJECT_ID: 'x', WC_CHAINS: [11155111], SEPOLIA_RPC: 'https://rpc.test', SHOP_ADDRESS: '0x0000000000000000000000000000000000000000' },
+    I18Nstub, 'en');
+  return { api, btn, walletInput, handlers, said, ADDR, ADDR2, store };
+}
+// Dipanggil dengan await dari runVerifyPollTests() di akhir file (bukan
+// IIFE lepas — process.exit di summary bisa memotong tes async yang
+// masih jalan).
+async function runConnectTests42() {
+  // Path A (injected): connect -> tombol TERHUBUNG + disabled.
+  {
+    const h = mkConnectHarness42({ injected: true });
+    await h.api.connectWallet();
+    t('v42.4 connectBtn: path A connect -> TERHUBUNG 0x8853...cf9a + disabled', h.btn.textContent === '[ CONNECTED: 0x8853...cf9a ]' && h.btn.disabled === true);
+    t('v42.4 connectBtn: path A mengisi walletInput', h.walletInput.value.toLowerCase() === h.ADDR.toLowerCase());
+    h.handlers.accountsChanged([h.ADDR2]);
+    t('v42.4 connectBtn: accountsChanged ganti wallet -> tombol ikut ganti', h.btn.textContent === '[ CONNECTED: 0x372D...a1Db ]' && h.btn.disabled === true);
+    h.handlers.accountsChanged([]);
+    t('v42.4 connectBtn: accountsChanged kosong -> kembali CONNECT WALLET', h.btn.textContent === '[ CONNECT WALLET ]' && h.btn.disabled === false);
+  }
+  // Path B (WalletConnect): connect -> tombol TERHUBUNG; disconnect -> kembali.
+  {
+    const h = mkConnectHarness42({ wc: true });
+    await h.api.connectWallet();
+    t('v42.4 connectBtn: path B (WC) connect -> TERHUBUNG + disabled', h.btn.textContent === '[ CONNECTED: 0x8853...cf9a ]' && h.btn.disabled === true);
+    h.handlers.disconnect();
+    t('v42.4 connectBtn: WC disconnect -> kembali CONNECT WALLET', h.btn.textContent === '[ CONNECT WALLET ]' && h.btn.disabled === false);
+  }
+  // Restore: WC session tersimpan (wc@2:) -> tombol TERHUBUNG tanpa klik.
+  {
+    const h = mkConnectHarness42({ wc: true, wcKeys: true });
+    await h.api.restoreWalletConnectSession();
+    t('v42.4 connectBtn: restore WC session -> TERHUBUNG tanpa klik', h.btn.textContent === '[ CONNECTED: 0x8853...cf9a ]' && h.btn.disabled === true);
+  }
+  // Restore: injected eth_accounts -> tombol TERHUBUNG tanpa klik.
+  {
+    const h = mkConnectHarness42({ injected: true });
+    await h.api.restoreInjectedSession();
+    t('v42.4 connectBtn: restore injected (eth_accounts) -> TERHUBUNG tanpa klik', h.btn.textContent === '[ CONNECTED: 0x8853...cf9a ]' && h.btn.disabled === true);
+  }
+  // setConnected(null) manual + updateConnectBtn idempotent.
+  {
+    const h = mkConnectHarness42({ injected: true });
+    h.api.setConnected(h.ADDR);
+    h.api.setConnected(null);
+    t('v42.4 connectBtn: setConnected(null) -> CONNECT WALLET', h.btn.textContent === '[ CONNECT WALLET ]' && h.btn.disabled === false);
+  }
+}
+t('MSG connectedTpl ada di EN + ID', js.includes("connectedTpl: '[ CONNECTED: {addr} ]'") && js.includes("connectedTpl: '[ TERHUBUNG: {addr} ]'"));
+t('MSG walletDisconnected ada di EN + ID', js.includes("walletDisconnected: 'WALLET DISCONNECTED.'") && js.includes("walletDisconnected: 'WALLET TERPUTUS.'"));
+t('setConnected dipakai di semua jalur connect/restore/disconnect', (js.match(/setConnected\(/g) || []).length >= 8);
+t('applyLang memanggil updateConnectBtn (label tidak reset saat ganti bahasa)', js.includes('updateConnectBtn(); // v42.4'));
+// (8) BUG 3 — equip skin SQK.
+t('SQK catalog: semua item punya slot + skin', (() => {
+  const cat = eval(js.slice(js.indexOf('const SQK_SHOP_CATALOG'), js.indexOf('];', js.indexOf('const SQK_SHOP_CATALOG')) + 2) + '\nSQK_SHOP_CATALOG;');
+  const want = { 1: ['note', 'note-sqk-rare'], 2: ['note', 'note-sqk-epic'], 3: ['frame', 'frame-sqk'], 4: ['note', 'note-sqk-lime'], 5: ['note', 'note-sqk-platinum'], 6: ['note', 'note-sqk-inferno'] };
+  return cat.length === 6 && cat.every(c => want[c.id] && want[c.id][0] === c.slot && want[c.id][1] === c.skin);
+})());
+t('SQK catalog: harga TIDAK berubah (5/10/15/20/50/100)', (() => {
+  const cat = eval(js.slice(js.indexOf('const SQK_SHOP_CATALOG'), js.indexOf('];', js.indexOf('const SQK_SHOP_CATALOG')) + 2) + '\nSQK_SHOP_CATALOG;');
+  return JSON.stringify(cat.map(c => c.priceSqk)) === '[5,10,15,20,50,100]';
+})());
+(function () {
+  const skinsSrc = js.slice(js.indexOf('const NOTE_SKINS'), js.indexOf('function shopSkin'));
+  const skins = new Function(skinsSrc + '\nreturn { NOTE_SKINS, FRAME_SKINS };')();
+  const cheese = ['note-mint', 'note-gold', 'note-void', 'note-rainbow'];
+  const sqk = ['note-sqk-rare', 'note-sqk-epic', 'note-sqk-lime', 'note-sqk-platinum', 'note-sqk-inferno'];
+  t('v42.4 NOTE_SKINS: 5 skin SQK baru, masing-masing 4 warna hex', sqk.every(id => Array.isArray(skins.NOTE_SKINS[id]) && skins.NOTE_SKINS[id].length === 4 && skins.NOTE_SKINS[id].every(c => /^#[0-9a-f]{6}$/.test(c))));
+  t('v42.4 NOTE_SKINS: palet SQK BERBEDA dari semua skin Keju', sqk.every(id => cheese.every(cid => JSON.stringify([...skins.NOTE_SKINS[id]].sort()) !== JSON.stringify([...skins.NOTE_SKINS[cid]].sort()))));
+  t('v42.4 FRAME_SKINS: frame-sqk terdaftar', skins.FRAME_SKINS.includes('frame-sqk'));
+  t('v42.4 CSS: #resultPanel.frame-sqk + animasi', css.includes('#resultPanel.frame-sqk') && css.includes('@keyframes sqkFrameShift'));
+  const noteColor = new Function(skinsSrc + '\n' + fnSrc38('noteColor') + '\nreturn noteColor;')();
+  t('v42.4 noteColor: skin SQK rare mewarnai not lane 0 biru', noteColor(0, ['#000', '#111', '#222'], 'note-sqk-rare') === '#3b82f6');
+  t('v42.4 noteColor: skin tidak dikenal -> warna tema', noteColor(1, ['#000', '#111', '#222'], 'nope') === '#111');
+})();
+// equipSqkItem + renderSqkShop: harness dengan eth_call mock (balanceOfItem)
+// + localStorage palsu. Dipanggil dengan await dari runVerifyPollTests().
+async function runEquipTests42() {
+  const ADDR = '0x88538a82143065664232422e2dec4309038fcf9a';
+  const store = {};
+  const loadJSON = (k, d) => { try { const v = store[k]; return v === undefined ? d : JSON.parse(v); } catch { return d; } };
+  const saveJSON = (k, v) => { store[k] = JSON.stringify(v); };
+  const msgs = [];
+  let frameApplied = 0, shopRendered = 0;
+  const ownedMap = { 1: 1n, 2: 0n, 3: 1n, 4: 1n, 5: 0n, 6: 0n }; // user punya 1, 3, 4 (mirip wallet Genesis: item 1 = 1)
+  const sqkEthCall = async (to, data) => { // balanceOfItem = selector + word addr + word id (id = 2 digit hex terakhir)
+    const id = parseInt(data.slice(-2), 16);
+    const n = ownedMap[id] === undefined ? 0n : ownedMap[id];
+    return '0x' + n.toString(16).padStart(64, '0');
+  };
+  const msgStub = k => ({ sqkNeedWallet: 'NEED WALLET', sqkEquipFail: 'CANNOT EQUIP', sqkShopOffline: 'SHOP OFFLINE', sqkNotOwned: 'NOT OWN {item}', sqkEquipped: 'EQUIPPED: {item}' }[k] || k);
+  const msgfStub = (k, vars) => { let s = msgStub(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; };
+  const isAddrStub = s => /^0x[a-fA-F0-9]{40}$/.test(s || '');
+  const catSrc = js.slice(js.indexOf('const SQK_SHOP_CATALOG'), js.indexOf('];', js.indexOf('const SQK_SHOP_CATALOG')) + 2);
+  const equipSqkItem = new Function('currentWallet', 'isAddr', 'sqkShopMsg', 'sqkEthCall', 'applyResultFrame', 'renderSqkShop', 'msg', 'msgf', 'CONFIG', 'SQK_SEL', 'loadJSON', 'saveJSON',
+    catSrc + '\n' + fnSrc38('sqkShopItem') + '\n' + fnSrc38('sqkUint') + '\n' + fnSrc38('sqkWordAddr') + '\n' + fnSrc38('sqkWordUint') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('saveShopSkin') + '\n' + fnSrc38('equipSqkItem') +
+    '\nreturn equipSqkItem;')(
+    () => ADDR, isAddrStub, (m) => msgs.push(m), sqkEthCall,
+    () => { frameApplied++; }, () => { shopRendered++; },
+    msgStub, msgfStub,
+    { SHOP_ADDRESS: '0x43f568AcfaDcee4333785c9F26596719ED0B02fb' },
+    { balanceOfItem: '0x4496166b' }, loadJSON, saveJSON);
+  const skinOf = () => loadJSON('sqk41:skin', { note: null, frame: null });
+  await equipSqkItem(1); // owned -> bisa equip
+  t('v42.4 equipSqk: item 1 (owned) -> shopSkin.note = note-sqk-rare', skinOf().note === 'note-sqk-rare');
+  t('v42.4 equipSqk: pesan EQUIPPED + applyResultFrame + renderSqkShop dipanggil', msgs[msgs.length - 1] === 'EQUIPPED: Skin Rare' && frameApplied === 1 && shopRendered === 1);
+  await equipSqkItem(2); // TIDAK owned -> ditolak, skin tidak berubah
+  t('v42.4 equipSqk: item 2 (tidak owned) -> DITOLAK, skin tetap', msgs[msgs.length - 1] === 'NOT OWN Efek Epic' && skinOf().note === 'note-sqk-rare');
+  await equipSqkItem(3); // frame -> slot frame, note tidak berubah
+  t('v42.4 equipSqk: item 3 (frame) -> shopSkin.frame = frame-sqk, note tetap', skinOf().frame === 'frame-sqk' && skinOf().note === 'note-sqk-rare');
+  await equipSqkItem(4); // ganti skin not
+  t('v42.4 equipSqk: item 4 mengganti note -> note-sqk-lime', skinOf().note === 'note-sqk-lime' && skinOf().frame === 'frame-sqk');
+  // renderSqkShop: HTML menampilkan tombol EQUIP / DIPAKAI ✓ / BELI dengan benar.
+  const fakeEl = () => ({ textContent: '', innerHTML: '', disabled: false, classList: { toggle() {}, add() {}, remove() {} }, querySelectorAll: () => [] });
+  const els = {};
+  const $stub = id => (els[id] || (els[id] = fakeEl()));
+  const sqkState42 = { pool: 1500000000000000000n, seasonEnd: 1801915200, sweepAt: 1802520000, swept: false, sqkBalance: 23500000000000000000n, owned: { 1: 1, 2: 0, 3: 0, 4: 1, 5: 0, 6: 0 }, pity: 3 };
+  const renderMsgStub = k => ({ sqkEquippedTpl: 'DIPAKAI ✓', sqkBuyTpl: '[ BELI — {price} SQK ]', sqkOwnedTpl: 'DIMILIKI ×{n}', sqkPoolTpl: 'POOL: {pool} SQK', sqkSeasonTpl: 'MUSIM BERAKHIR: {date}', sqkSweepTpl: 'sapu {date}', sqkBalanceTpl: 'SALDO SQK: {n}', sqkPityTpl: 'PITY: {n} / 20', sqkResolveBtn: '[ RESOLVE KAPSUL ]' }[k] || k);
+  const renderMsgfStub = (k, vars) => { let s = renderMsgStub(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; };
+  const renderSqkShop = new Function('sqkState', '$', 'msg', 'msgf', 'fmt', 'sqkDateStr', 'escHtml', 'currentWallet', 'sqkPendingCapsule', 'isAddr', 'CONFIG', 'SQK_ZERO_ADDRESS', 'lang', 'loadJSON',
+    catSrc + '\n' + fnSrc38('sqkShopDeployed') + '\n' + fnSrc38('sqkIsEquipped') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('renderSqkShop') +
+    '\nreturn renderSqkShop;')(
+    sqkState42, $stub, renderMsgStub, renderMsgfStub,
+    new Function(fnSrc38('fmt') + '\nreturn fmt;')(),
+    new Function('lang', fnSrc38('sqkDateStr') + '\nreturn sqkDateStr;')('id'),
+    new Function(fnSrc38('escHtml') + '\nreturn escHtml;')(),
+    () => ADDR, () => null,
+    isAddrStub, { SHOP_ADDRESS: '0x43f568AcfaDcee4333785c9F26596719ED0B02fb' }, '0x0000000000000000000000000000000000000000', 'id', loadJSON);
+  // NOTE: shopSkin di atas dibaca dari store yang sama — saat ini note =
+  // note-sqk-lime (dari equip item 4) dan frame = frame-sqk.
+  renderSqkShop();
+  const catHtml = els.sqkShopCatalog.innerHTML;
+  t('v42.4 renderSqk: item 1 (owned, tidak dipakai) -> tombol EQUIP', catHtml.includes('data-sqk-equip="1"'));
+  t('v42.4 renderSqk: item 4 (owned + dipakai) -> DIPAKAI ✓, tanpa tombol EQUIP', catHtml.includes('DIPAKAI ✓') && !catHtml.includes('data-sqk-equip="4"'));
+  t('v42.4 renderSqk: item 2 (belum dimiliki) -> tombol BELI', catHtml.includes('data-sqk-buy="2"'));
+  t('v42.4 renderSqk: tidak ada tombol EQUIP untuk item yang belum dimiliki', !catHtml.includes('data-sqk-equip="2"') && !catHtml.includes('data-sqk-equip="5"') && !catHtml.includes('data-sqk-equip="6"'));
+}
+
 // 14h. Determinisme race (b): oppDistM terekam == nilai keputusan di
 // finish() — satu variabel oppDist (baris 1100-1101 dipakai ulang di 1148) —
 // dan playerDist hanya ditulis di judge() (hit + golden).
@@ -866,6 +1149,10 @@ async function runVerifyPollTests() {
     await driveVerify(h);
     t('pollVerify: restart polls the new hash only', h.urls.every(u => u.includes('0x' + '22'.repeat(32))));
   }
+  // v42.4: tes async BUG 2 (tombol connect) + BUG 3 (equip SQK) — di-await
+  // di sini supaya hitungan pass/fail final menunggu mereka selesai.
+  await runConnectTests42();
+  await runEquipTests42();
 }
 // --- v41: Toko Keju + Liga Mingguan (Worker v5, off-chain only) ---
 // 15a. Worker pure functions — run the real code from worker.js.
@@ -933,7 +1220,7 @@ t('dupCompensation bogus = 0', dupCompensation('bogus') === 0);
 t('catalogItem finds note-gold', catalogItem('note-gold').slot === 'note' && catalogItem('note-gold').rarity === 'rare' && catalogItem('note-gold').price === 800);
 t('catalogItem misses unknown ids', catalogItem('nope') === null);
 // 15b. Worker v5 wiring (string checks — the live D1 + endpoint checks run after deploy).
-t('worker root reports version 8', worker.includes('version: 8'));
+t('worker root reports version 9', worker.includes('version: 9'));
 t('worker has GET /cheese', worker.includes("url.pathname === \"/cheese\" && request.method === \"GET\""));
 t('worker has POST /cheese/buy', worker.includes("url.pathname === \"/cheese/buy\" && request.method === \"POST\""));
 t('worker has POST /cheese/pull', worker.includes("url.pathname === \"/cheese/pull\" && request.method === \"POST\""));
@@ -962,7 +1249,7 @@ t('noteColor gold skin recolors lane 1', noteColor(1, THEME_NOTES, 'note-gold') 
 t('noteColor mint skin wraps lane 5 to index 1', noteColor(5, THEME_NOTES, 'note-mint') === '#5ce1e6');
 t('noteColor unknown skin falls back to theme', noteColor(2, THEME_NOTES, 'bogus') === '#ffff00');
 t('every catalog note skin has client colors', CHEESE_CATALOG.filter(c => c.slot === 'note').every(c => { const m = new Function(noteSkinsSrc + '\nreturn NOTE_SKINS;')(); return Array.isArray(m[c.id]) && m[c.id].length === 4; }));
-t('every catalog frame skin has a client class', CHEESE_CATALOG.filter(c => c.slot === 'frame').every(c => js.includes("FRAME_SKINS = ['frame-neon', 'frame-gold', 'frame-royal', 'frame-rainbow']") && js.includes("'" + c.id + "'")));
+t('every catalog frame skin has a client class', CHEESE_CATALOG.filter(c => c.slot === 'frame').every(c => js.includes("FRAME_SKINS = ['frame-neon', 'frame-gold', 'frame-royal', 'frame-rainbow', 'frame-sqk']") && js.includes("'" + c.id + "'")));
 const skinStore = {};
 const skinLS = { getItem: k => (k in skinStore ? skinStore[k] : null), setItem: (k, v) => { skinStore[k] = String(v); }, removeItem: k => { delete skinStore[k]; } };
 const skinFns = new Function('localStorage', oneLine38('function loadJSON') + '\n' + oneLine38('function saveJSON') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('saveShopSkin') + '\nreturn { shopSkin, saveShopSkin };')(skinLS);
@@ -1001,11 +1288,11 @@ t('README documents the v41 shop catalog', readme.includes('Mint/Golden/Void/Rai
 t('worker v6: /league joins scores for verified', worker.includes("LEFT JOIN scores s ON s.wallet = l.wallet AND s.mode = 'free'") && worker.includes('COALESCE(s.verified, 0) AS verified'));
 t('worker v6: /league rows carry verified', worker.includes('verified: r.verified ? 1 : 0'));
 t('worker v6: /league you carries verified', worker.includes('verified: me.verified ? 1 : 0'));
-t('worker version is 8', worker.includes('{ service: "squeekchain-leaderboard", version: 8 }'));
+t('worker version is 9', worker.includes('{ service: "squeekchain-leaderboard", version: 9 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v42.3', js.includes("gameVersion: 'v42.3'"));
-t('html title is v42.3', html.includes('<title>SQUEEKCHAIN // v42.3</title>'));
+t('submit sends gameVersion v42.4', js.includes("gameVersion: 'v42.4'"));
+t('html title is v42.4', html.includes('<title>SQUEEKCHAIN // v42.4</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {

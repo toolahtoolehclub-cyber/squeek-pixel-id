@@ -109,6 +109,12 @@
 //   existing rate limits are byte-identical to v6.
 //   v42.1 / Worker v8: ONLY SHOP_CONTRACT wired to the deployed shop
 //   address (above) + GET / version 7 -> 8. No other line changed.
+//   v42.4 / Worker v9: replay input/poll/golden t BOLEH NEGATIF sampai
+//   -2,5 (LEAD_IN 2 detik + 0,5 margin) — client v42.4 merekam songTime
+//   mentah (dulu dijepit >= 0 di replaySongT, replay user 0xcafb…
+//   ditolak karena itu). Tanpa ini, replay v42.4 dengan tap lead-in
+//   ditolak checkReplay dengan "t out of range". Tidak ada perubahan
+//   lain: verifikasi, enforcement, EIP-712, Keju, liga byte-identical.
 // EIP-712 domain: { name: "Squeek Pixel ID", version: "1",
 //   chainId: 11155111 (Sepolia), verifyingContract: <signer address> }
 // Attestation: player (address), score (uint256), accuracy (uint256 =
@@ -158,7 +164,7 @@
 // It already exists since v3 — do NOT rotate or re-enter it.
 //
 // Endpoints (all JSON, CORS open):
-//   GET  /                  -> { service, version: 8 }
+//   GET  /                  -> { service, version: 9 }
 //   GET  /cheese?wallet=0x...   -> { wallet, balance, items: [{id, slot,
 //                             rarity, name, price, equipped}], catalog }
 //                             (no wallet -> catalog only, balance 0)
@@ -825,11 +831,13 @@ function validateReplay(replay, body, mode, score, acc) {
     }
   }
   // Inputs: recorded in time order, lane inside the chart, t inside the
-  // song (+2 s slack for the finish frame).
+  // song (+2 s slack for the finish frame) — v42.4: t BOLEH NEGATIF
+  // sampai -2,5: LEAD_IN 2 detik memberi song-time negatif, dan client
+  // v42.4 merekamnya mentah (dulu dijepit 0 — replay 0xcafb… ditolak).
   let prevT = -Infinity;
   for (const inp of ev.inputs) {
     if (!inp || typeof inp !== "object") return { ok: false, error: "replay events.inputs entry is not valid" };
-    if (!isFiniteNumber(inp.t) || inp.t < 0 || inp.t > h.duration + 2) {
+    if (!isFiniteNumber(inp.t) || inp.t < -2.5 || inp.t > h.duration + 2) {
       return { ok: false, error: "replay input t out of range" };
     }
     if (inp.t < prevT) return { ok: false, error: "replay inputs not in time order" };
@@ -844,7 +852,7 @@ function validateReplay(replay, body, mode, score, acc) {
   prevT = -Infinity;
   for (const p of ev.polls) {
     if (!p || typeof p !== "object") return { ok: false, error: "replay events.polls entry is not valid" };
-    if (!isFiniteNumber(p.t) || p.t < 0 || p.t > h.duration + 2) {
+    if (!isFiniteNumber(p.t) || p.t < -2.5 || p.t > h.duration + 2) {
       return { ok: false, error: "replay poll t out of range" };
     }
     if (p.t < prevT) return { ok: false, error: "replay polls not in time order" };
@@ -864,7 +872,7 @@ function validateReplay(replay, body, mode, score, acc) {
   const seenGolden = new Set();
   for (const g of ev.golden) {
     if (!g || typeof g !== "object") return { ok: false, error: "replay events.golden entry is not valid" };
-    if (!isFiniteNumber(g.t) || g.t < 0 || g.t > h.duration + 1) {
+    if (!isFiniteNumber(g.t) || g.t < -2.5 || g.t > h.duration + 1) {
       return { ok: false, error: "replay golden t out of range" };
     }
     if (g.t <= prevT) return { ok: false, error: "replay golden not strictly increasing" };
@@ -1168,7 +1176,7 @@ export default {
 
     try {
       if (url.pathname === "/" && request.method === "GET") {
-        return json({ service: "squeekchain-leaderboard", version: 8 });
+        return json({ service: "squeekchain-leaderboard", version: 9 });
       }
 
       // --- v5: Cheese shop (GET /cheese, POST /cheese/buy|pull|equip) ---

@@ -595,3 +595,5 @@ body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 1
 #resultPanel.frame-gold { border: 3px solid #ffd700; box-shadow: 0 0 24px rgba(255, 215, 0, .5); }
 #resultPanel.frame-royal { border: 3px solid #a050ff; box-shadow: 0 0 24px rgba(160, 80, 255, .5); }
 #resultPanel.frame-rainbow { border: 3px solid transparent; background: linear-gradient(rgba(5, 6, 7, .94), rgba(5, 6, 7, .94)) padding-box, linear-gradient(135deg, #ff5ce1, #ffd700, #00e5ff, #7dffc8) border-box; box-shadow: 0 0 24px rgba(255, 92, 225, .4); }
+#resultPanel.frame-sqk { border: 3px solid transparent; background: linear-gradient(rgba(5, 6, 7, .94), rgba(5, 6, 7, .94)) padding-box, linear-gradient(90deg, #3b82f6, #f43f5e, #a3e635, #3b82f6) border-box; background-size: 100% 100%, 300% 100%; animation: sqkFrameShift 3s linear infinite; box-shadow: 0 0 24px rgba(59, 130, 246, .4); }
+@keyframes sqkFrameShift { to { background-position: 0 0, 300% 0; } }

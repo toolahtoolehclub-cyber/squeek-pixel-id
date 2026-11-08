@@ -32,10 +32,15 @@
  *    (regex /^LIVE-YYYY-MM-DD-<bpm>$/); RACE/DAILY/BOSS/FREE: bpm dari
  *    rng seperti biasa. Practice (header.practice): semua nilai waktu
  *    dikali 1/0.6, bpm dibulatkan Math.round(bpm*0.6) — persis play() v39.
- * 2. INPUT: tiap tap direkam sebagai song-time (detik, 3 desimal, >= 0).
- *    judge memakai st = t - offsetMs/1000 (offset dari header, jepit
- *    +-150 ms). Jendela: PERFECT 0,045 / GREAT 0,09 / GOOD 0,135 detik;
- *    pencarian note terdekat BERHENTI bila n.t - st > 0,185 (= GOOD+0,05).
+ * 2. INPUT: tiap tap direkam sebagai song-time (detik, 4 desimal,
+ *    BOLEH NEGATIF — LEAD_IN 2 detik: tap sebelum lagu mulai punya
+ *    song-time negatif, dan judge memakai st = t - offsetMs/1000
+ *    (offset dari header, jepit +-150 ms). v42.4: client merekam
+ *    songTime MENTAH (dulu dijepit >= 0 — bug yang membuat replay
+ *    user 0xcafb… ditolak: tap lead-in terekam t=0). Worker v9
+ *    menerima t >= -2,5 (LEAD_IN + 0,5 margin). Jendela: PERFECT
+ *    0,045 / GREAT 0,09 / GOOD 0,135 detik; pencarian note terdekat
+ *    BERHENTI bila n.t - st > 0,185 (= GOOD+0,05).
  * 3. ZOOMIES x2: HANYA dari log poll replay (events.polls) — poll terakhir
  *    dengan poll.t <= waktu tap; sebelum poll pertama, header.initialZoomies.
  *    Poll GAGAL (ok:false) = zoomies MATI. Di luar mode live/race, zoomies
@@ -63,9 +68,10 @@
  *    Tie-break yang didokumentasikan: input dan golden event dengan t yang
  *    SAMA diproses input dulu (di client, handler tap jalan sebelum rAF
  *    yang mem-pick golden berikutnya). Batas kuantisasi: semua waktu replay
- *    dibulatkan ke 1 ms — kasus yang jatuh dalam 0,5 ms dari tepi jendela
- *    judgement atau dari tepi pick golden secara teori bisa berbeda antara
- *    client dan simulasi (lihat AUDIT-v40 §3.4).
+ *    dibulatkan ke 0,1 ms (v42.4: dulu 1 ms) — kasus yang jatuh dalam
+ *    0,05 ms dari tepi jendela judgement atau dari tepi pick golden
+ *    secara teori bisa berbeda antara client dan simulasi (lihat
+ *    AUDIT-v40 §3.4).
  * 6. RACE: playerDist HANYA dari note yang di-judge (PERFECT 1,0 m /
  *    GREAT 0,7 m / GOOD 0,4 m) + golden 5 m. oppDistM yang dipakai untuk
  *    menang/kalah adalah nilai TEREKAM di replay.events.finish.oppDistM
