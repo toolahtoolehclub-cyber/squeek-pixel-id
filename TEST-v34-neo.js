@@ -38,8 +38,8 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v40', (html.match(/v40/g) || []).length >= 2);
-t('browser tab title is v40', html.includes('<title>SQUEEKCHAIN // v40</title>'));
+t('html says v40.1', (html.match(/v40\.1/g) || []).length >= 2);
+t('browser tab title is v40.1', html.includes('<title>SQUEEKCHAIN // v40.1</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -271,7 +271,7 @@ t('lb submit button uses i18n', html.includes('data-i18n="lbSubmit"'));
 ['LB_URL', 'LB_MODES', 'lbState', 'lastResult', 'truncAddr', 'lbCleanName', 'lbMode', 'lbName', 'renderLbModes', 'renderLb', 'fetchLb', 'fetchLbRank', 'resetLbSubmit', 'submitLb'].forEach(s => t('v37.1 js has ' + s, js.includes(s)));
 t('LB_URL is the workers.dev endpoint', js.includes("LB_URL: 'https://squeekchain-leaderboard.pancigoreng.workers.dev'"));
 t('lb modes are the six game modes', js.includes("const LB_MODES = ['free', 'daily', 'live', 'race', 'boss', 'challenge'];"));
-['lbLoading', 'lbOffline', 'lbEmpty', 'lbSent', 'lbKept', 'lbNeedWallet', 'lbNoScore', 'lbPractice', 'lbYourRank'].forEach(k => t('MSG has lb key: ' + k, js.includes(k + ':')));
+['lbLoading', 'lbOffline', 'lbEmpty', 'lbSent', 'lbKept', 'lbNeedWallet', 'lbNoScore', 'lbPractice', 'lbYourRank', 'lbVerifying', 'lbVerified', 'lbVerifyRejected', 'lbVerifyUnknown'].forEach(k => t('MSG has lb key: ' + k, js.includes(k + ':')));
 ['lbTitle', 'lbNote', 'lbRefresh', 'lbSubmit'].forEach(k => t('I18N has lb key: ' + k, js.includes(k + ':')));
 t('setTab fetches the board on LEAGUE', js.includes("if (name === 'league') fetchLb(lbState.mode);"));
 t('endGame captures the submittable result (v38: + sessionId/taps/notes/durationMs)', js.includes('lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice, sessionId: G.sessionId || null, taps: G.taps || 0, notes:') && js.includes('durationMs: anthem ? Math.round(anthem.duration * 1000) : 0'));
@@ -484,7 +484,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v40', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v40'"));
+t('submit sends replay + hash + gameVersion v40.1', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v40.1'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -510,7 +510,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v40', readme.startsWith('# Squeekchain v40'));
+t('README title is v40.1', readme.startsWith('# Squeekchain v40.1'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -776,5 +776,97 @@ t('deriveOppDistM: poll ok terakhir - initialDistKm', SqueekEngine.deriveOppDist
 t('deriveOppDistM: tanpa poll ok -> 0', SqueekEngine.deriveOppDistM({ initialDistKm: 12.5 }, [{ t: 0, dist: 12.5, ok: false }]) === 0);
 t('deriveOppDistM: tidak pernah negatif', SqueekEngine.deriveOppDistM({ initialDistKm: 12.5 }, [{ t: 0, dist: 12.4, ok: true }]) === 0);
 
-console.log(`\n${pass} passed, ${fail} failed`);
-process.exit(fail ? 1 : 0);
+// --- v40.1: verified badge ---
+t('MSG lbVerifying exists in both langs', (js.match(/lbVerifying:/g) || []).length === 2);
+t('MSG lbVerified exists in both langs', (js.match(/lbVerified:/g) || []).length === 2);
+t('MSG lbVerifyRejected exists in both langs', (js.match(/lbVerifyRejected:/g) || []).length === 2);
+t('MSG lbVerifyUnknown exists in both langs', (js.match(/lbVerifyUnknown:/g) || []).length === 2);
+t('renderLb shows ✓ for verified rows only', js.includes('r.verified ?') && js.includes('lb-verified') && js.includes('✓'));
+t('CSS has .lb-verified', css.includes('.lb-verified'));
+t('pollVerify polls GET /verify with the replay hash', js.includes("'/verify?replayHash=' + encodeURIComponent(replayHash)"));
+t('pollVerify interval 10s, max 9 tries (~90s)', js.includes('VERIFY_POLL_INTERVAL_MS = 10000') && js.includes('VERIFY_POLL_MAX_TRIES = 9'));
+t('submitLb polls /verify on pending submit', js.includes('pollVerify(hash, showStatus)') && js.includes("d.pending && (d.replayHash || lastResult.replayHash)"));
+t('submitLb stops an old poll on a fresh submit', js.includes('stopVerifyPoll(); // v40.1'));
+t('resetLbSubmit stops the poll', js.includes('function resetLbSubmit() {\n  stopVerifyPoll();'));
+// --- v40.1: poller behaviour with mocked fetch/timers ---
+const verifySrc = js.slice(js.indexOf('const VERIFY_POLL_INTERVAL_MS'), js.indexOf('function resetLbSubmit'));
+function mkVerifyHarness(responses) {
+  let calls = 0; const timers = []; const urls = [];
+  const fakeFetch = async (url) => {
+    urls.push(url);
+    const r = responses[Math.min(calls++, responses.length - 1)];
+    if (r instanceof Error) throw r;
+    return { status: r.status, json: async () => r.body };
+  };
+  const fakeSetTimeout = (fn, ms) => { const id = timers.length + 1; timers.push({ fn, ms, id }); return id; };
+  const fakeClearTimeout = (id) => { const i = timers.findIndex(x => x.id === id); if (i >= 0) timers.splice(i, 1); };
+  const api = new Function('CONFIG', 'tfetch', 'setTimeout', 'clearTimeout', verifySrc + '; return { pollVerify: pollVerify, verifyPollOutcome: verifyPollOutcome, verifyBadgeText: verifyBadgeText, stopVerifyPoll: stopVerifyPoll };')({ LB_URL: 'https://lb.test' }, fakeFetch, fakeSetTimeout, fakeClearTimeout);
+  return { api, timers, urls, get calls() { return calls; } };
+}
+async function driveVerify(h) {
+  let guard = 0;
+  while (h.timers.length && guard++ < 20) { const tk = h.timers.shift(); await tk.fn(); }
+}
+async function runVerifyPollTests() {
+  const T = { verified: 'TERVERIFIKASI ✓', verifying: 'MENUNGGU VERIFIKASI…', rejected: 'VERIFIKASI DITOLAK', unknown: 'BELUM DIKETAHUI' };
+  const V = mkVerifyHarness([]).api;
+  t('verifyPollOutcome: 202 -> pending', V.verifyPollOutcome(202, null) === 'pending');
+  t('verifyPollOutcome: 202 with body -> pending', V.verifyPollOutcome(202, { verification_status: 'pending' }) === 'pending');
+  t('verifyPollOutcome: 200 verified -> verified', V.verifyPollOutcome(200, { verification_status: 'verified' }) === 'verified');
+  t('verifyPollOutcome: 200 other -> unknown', V.verifyPollOutcome(200, { verification_status: 'pending' }) === 'unknown');
+  t('verifyPollOutcome: 422 -> rejected', V.verifyPollOutcome(422, { verification_status: 'rejected' }) === 'rejected');
+  t('verifyPollOutcome: 404 -> unknown', V.verifyPollOutcome(404, { error: 'replay not found' }) === 'unknown');
+  t('verifyPollOutcome: 500 -> unknown', V.verifyPollOutcome(500, null) === 'unknown');
+  t('verifyBadgeText verified with hash+sig', V.verifyBadgeText('verified', 'abcd1234', 'ff001122', T) === 'TERVERIFIKASI ✓ • abcd1234 • 0xff001122');
+  t('verifyBadgeText verified without hash/sig', V.verifyBadgeText('verified', '', '', T) === 'TERVERIFIKASI ✓');
+  t('verifyBadgeText pending', V.verifyBadgeText('pending', '', '', T) === 'MENUNGGU VERIFIKASI…');
+  t('verifyBadgeText rejected', V.verifyBadgeText('rejected', '', '', T) === 'VERIFIKASI DITOLAK');
+  t('verifyBadgeText unknown', V.verifyBadgeText('unknown', '', '', T) === 'BELUM DIKETAHUI');
+  // verified after 2 pending ticks
+  {
+    const h = mkVerifyHarness([
+      { status: 202, body: { verification_status: 'pending' } },
+      { status: 202, body: { verification_status: 'pending' } },
+      { status: 200, body: { verification_status: 'verified', signature: '0x' + 'ab'.repeat(32), replayHash: '0x' + 'cd'.repeat(32) } },
+    ]);
+    const seen = [];
+    h.api.pollVerify('0x' + 'cd'.repeat(32), (s, d) => seen.push([s, d ? d.verification_status : null, d && d.signature ? d.signature.slice(0, 6) : null]));
+    await driveVerify(h);
+    t('pollVerify: pending then verified', seen.length === 2 && seen[0][0] === 'pending' && seen[1][0] === 'verified');
+    t('pollVerify: verified carries the signature', seen[1][2] === '0xabab');
+    t('pollVerify: stops after verified (no timers left)', h.timers.length === 0);
+    t('pollVerify: fetched /verify 3 times', h.calls === 3);
+    t('pollVerify: polls the submitted replay hash', h.urls.every(u => u.includes('/verify?replayHash=0x' + 'cd'.repeat(32))));
+  }
+  // rejected on first tick
+  {
+    const h = mkVerifyHarness([{ status: 422, body: { verification_status: 'rejected', reason: 'sim mismatch' } }]);
+    const seen = [];
+    h.api.pollVerify('0x' + 'ee'.repeat(32), (s) => seen.push(s));
+    await driveVerify(h);
+    t('pollVerify: rejected stops the poll', seen.length === 2 && seen[0] === 'pending' && seen[1] === 'rejected' && h.timers.length === 0 && h.calls === 1);
+  }
+  // network down: 9 tries, then unknown — never claims verified
+  {
+    const h = mkVerifyHarness([new Error('offline')]);
+    const seen = [];
+    h.api.pollVerify('0x' + 'ff'.repeat(32), (s) => seen.push(s));
+    await driveVerify(h);
+    t('pollVerify: offline 9 tries then unknown', seen.length === 2 && seen[0] === 'pending' && seen[1] === 'unknown' && h.calls === 9);
+    t('pollVerify: offline never reports verified', !seen.includes('verified'));
+  }
+  // a fresh pollVerify cancels the previous timer
+  {
+    const h = mkVerifyHarness([{ status: 202, body: { verification_status: 'pending' } }]);
+    const seen = [];
+    h.api.pollVerify('0x' + '11'.repeat(32), (s) => seen.push(s));
+    h.api.pollVerify('0x' + '22'.repeat(32), (s) => seen.push(s));
+    t('pollVerify: restart cancels the old timer', h.timers.length === 1);
+    await driveVerify(h);
+    t('pollVerify: restart polls the new hash only', h.urls.every(u => u.includes('0x' + '22'.repeat(32))));
+  }
+}
+runVerifyPollTests().then(() => {
+  console.log(`\n${pass} passed, ${fail} failed`);
+  process.exit(fail ? 1 : 0);
+});

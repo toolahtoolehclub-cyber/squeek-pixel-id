@@ -163,7 +163,7 @@ const MSG = {
     glOk: 'WEBGL: OK • QLTY: {q} • MOVING 3D BACKGROUND', glFail: 'WEBGL: FAILED — GRADIENT BACKGROUND + CSS GRID (STILL MOVING) • QLTY: {q}',
     glStatusTpl: 'WEBGL: {webgl} • QLTY: {q}{tail}', glTailEco: ' • BACKGROUND: STATIC GRADIENT', glTailUltra: ' • BACKGROUND: 3D / MOVING GRID',
     leagueWin: 'WIN ✓', leagueLose: 'LOSE',
-    lbLoading: 'LOADING LEADERBOARD…', lbOffline: 'LEADERBOARD OFFLINE — CHECK YOUR CONNECTION.', lbEmpty: 'NO SCORES YET — BE THE FIRST.', lbSent: 'SCORE SENT — NEW BEST!', lbKept: 'SCORE SENT — YOUR BEST STANDS.', lbNeedWallet: 'CONNECT A WALLET FIRST TO SUBMIT YOUR SCORE.', lbNoScore: 'NO SCORE TO SUBMIT.', lbPractice: 'PRACTICE RUNS DO NOT COUNT.', lbYourRank: 'YOUR RANK #{rank} OF {total}',
+    lbLoading: 'LOADING LEADERBOARD…', lbOffline: 'LEADERBOARD OFFLINE — CHECK YOUR CONNECTION.', lbEmpty: 'NO SCORES YET — BE THE FIRST.', lbSent: 'SCORE SENT — NEW BEST!', lbKept: 'SCORE SENT — YOUR BEST STANDS.', lbNeedWallet: 'CONNECT A WALLET FIRST TO SUBMIT YOUR SCORE.', lbNoScore: 'NO SCORE TO SUBMIT.', lbPractice: 'PRACTICE RUNS DO NOT COUNT.', lbYourRank: 'YOUR RANK #{rank} OF {total}', lbVerifying: 'WAITING FOR VERIFICATION…', lbVerified: 'VERIFIED ✓', lbVerifyRejected: 'VERIFICATION REJECTED — SCORE NOT ON THE BOARD.', lbVerifyUnknown: 'VERIFICATION STATUS UNKNOWN — CHECK THE LEAGUE TAB.',
     leagueRowTpl: 'YOU {mine} vs {rival} {theirs} — {result} • {date}',
     roundHistRowTpl: '{key} — {label} (AVG {avg} RPM, {n} SAMPLES, ~{work} WORK, {blocks} BLOCKS) — {state}',
     chainUnknown: 'CHAIN STATE UNKNOWN [{status}] — SHOWING NOTHING AS ZERO.',
@@ -289,7 +289,7 @@ const MSG = {
     glOk: 'WEBGL: OK • KUALITAS: {q} • LATAR 3D BERGERAK', glFail: 'WEBGL: GAGAL — LATAR GRADIEN + GRID CSS (TETAP BERGERAK) • KUALITAS: {q}',
     glStatusTpl: 'WEBGL: {webgl} • KUALITAS: {q}{tail}', glTailEco: ' • LATAR: GRADIEN STATIS', glTailUltra: ' • LATAR: 3D / GRID BERGERAK',
     leagueWin: 'MENANG ✓', leagueLose: 'KALAH',
-    lbLoading: 'MEMUAT LEADERBOARD…', lbOffline: 'LEADERBOARD OFFLINE — PERIKSA KONEKSIMU.', lbEmpty: 'BELUM ADA SKOR — JADILAH YANG PERTAMA.', lbSent: 'SKOR TERKIRIM — REKOR BARU!', lbKept: 'SKOR TERKIRIM — REKORMU TETAP.', lbNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK KIRIM SKOR.', lbNoScore: 'TIDAK ADA SKOR UNTUK DIKIRIM.', lbPractice: 'LATIHAN TIDAK DIHITUNG.', lbYourRank: 'PERINGKATMU #{rank} DARI {total}',
+    lbLoading: 'MEMUAT LEADERBOARD…', lbOffline: 'LEADERBOARD OFFLINE — PERIKSA KONEKSIMU.', lbEmpty: 'BELUM ADA SKOR — JADILAH YANG PERTAMA.', lbSent: 'SKOR TERKIRIM — REKOR BARU!', lbKept: 'SKOR TERKIRIM — REKORMU TETAP.', lbNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK KIRIM SKOR.', lbNoScore: 'TIDAK ADA SKOR UNTUK DIKIRIM.', lbPractice: 'LATIHAN TIDAK DIHITUNG.', lbYourRank: 'PERINGKATMU #{rank} DARI {total}', lbVerifying: 'MENUNGGU VERIFIKASI…', lbVerified: 'TERVERIFIKASI ✓', lbVerifyRejected: 'VERIFIKASI DITOLAK — SKOR TIDAK MASUK BOARD.', lbVerifyUnknown: 'STATUS VERIFIKASI BELUM DIKETAHUI — CEK TAB LEAGUE.',
     leagueRowTpl: 'KAMU {mine} vs {rival} {theirs} — {result} • {date}',
     roundHistRowTpl: '{key} — {label} (RATA-RATA {avg} RPM, {n} SAMPEL, ~{work} KERJA, {blocks} BLOK) — {state}',
     chainUnknown: 'STATUS CHAIN TIDAK DIKETAHUI [{status}] — TIDAK ADA YANG DITAMPILKAN SEBAGAI NOL.',
@@ -2169,7 +2169,7 @@ function renderLb() {
   const el = $('lbList'); if (!el) return;
   if (!lbState.rows.length) { el.innerHTML = `<p class="msg">${msg('lbEmpty')}</p>`; return; }
   const me = (currentWallet() || '').toLowerCase();
-  el.innerHTML = lbState.rows.map(r => `<div class="league-row lb-row${r.wallet && r.wallet.toLowerCase() === me ? ' lb-me' : ''}"><span class="lb-rank">#${r.rank}</span> <b>${escHtml(r.name || 'GUEST')}</b> <span class="lb-wallet">${escHtml(truncAddr(r.wallet))}</span> <b class="lb-score">${r.score}</b> <span>${(+r.acc || 0).toFixed(1)}%</span></div>`).join('');
+  el.innerHTML = lbState.rows.map(r => `<div class="league-row lb-row${r.wallet && r.wallet.toLowerCase() === me ? ' lb-me' : ''}"><span class="lb-rank">#${r.rank}</span> <b>${escHtml(r.name || 'GUEST')}</b> <span class="lb-wallet">${escHtml(truncAddr(r.wallet))}</span> <b class="lb-score">${r.score}</b> <span>${(+r.acc || 0).toFixed(1)}%</span>${r.verified ? ` <span class="lb-verified" title="${escHtml(msg('lbVerified'))}">✓</span>` : ''}</div>`).join(''); // v40.1: verified=1 rows carry a ✓ (field already returned by GET /scores); verified=0 rows unchanged
 }
 async function fetchLb(mode) {
   const el = $('lbList'); if (!el) return;
@@ -2200,7 +2200,51 @@ async function fetchLbRank() {
     rk.textContent = (d && d.rank) ? msgf('lbYourRank', { rank: d.rank, total: d.total }) : '';
   } catch (_) { rk.textContent = ''; }
 }
+// --- v40.1: verified badge — Worker v4 verifies replays ASYNC (Cron per
+// menit), so POST /scores returns 202 pending with NO signature yet. Poll
+// GET /verify?replayHash=... until the replay is verified/rejected.
+// GET /rank has no verified field, so it cannot drive this poll — /verify is
+// the purpose-built endpoint (202 pending / 200 verified + signature /
+// 422 rejected / 404 not found).
+const VERIFY_POLL_INTERVAL_MS = 10000, VERIFY_POLL_MAX_TRIES = 9; // ~90s max
+function verifyPollOutcome(httpStatus, body) {
+  if (httpStatus === 202) return 'pending';
+  if (httpStatus === 200 && body && body.verification_status === 'verified') return 'verified';
+  if (httpStatus === 422) return 'rejected';
+  return 'unknown';
+}
+function verifyBadgeText(status, h8, s8, T) {
+  if (status === 'verified') return T.verified + (h8 ? ' • ' + h8 : '') + (s8 ? ' • 0x' + s8 : '');
+  if (status === 'rejected') return T.rejected;
+  if (status === 'pending') return T.verifying;
+  return T.unknown;
+}
+let verifyPollTimer = null;
+function stopVerifyPoll() { if (verifyPollTimer) { clearTimeout(verifyPollTimer); verifyPollTimer = null; } }
+async function pollVerify(replayHash, onStatus) {
+  // onStatus is called exactly twice: 'pending' at start, then ONE terminal
+  // status ('verified' | 'rejected' | 'unknown'). Intermediate ticks are
+  // silent — a transient network blip must not flip the message to unknown
+  // while tries remain.
+  stopVerifyPoll();
+  let tries = 0;
+  const tick = async () => {
+    tries++;
+    let status = 'unknown', data = null;
+    try {
+      const r = await tfetch(CONFIG.LB_URL + '/verify?replayHash=' + encodeURIComponent(replayHash), null, 8000);
+      const d = await r.json().catch(() => null);
+      status = verifyPollOutcome(r.status, d); data = d;
+    } catch (_) { status = 'unknown'; }
+    if (status === 'verified' || status === 'rejected') { onStatus(status, data); return; }
+    if (tries >= VERIFY_POLL_MAX_TRIES) { onStatus('unknown', null); return; }
+    verifyPollTimer = setTimeout(tick, VERIFY_POLL_INTERVAL_MS);
+  };
+  onStatus('pending', null);
+  verifyPollTimer = setTimeout(tick, 0);
+}
 function resetLbSubmit() {
+  stopVerifyPoll();
   const b = $('lbSubmitBtn'); if (b) b.disabled = false;
   const m = $('lbSubmitMsg'); if (m) { m.textContent = ''; m.classList.add('hidden'); }
 }
@@ -2212,6 +2256,7 @@ async function submitLb() {
   const w = currentWallet();
   if (!isAddr(w)) return show(msg('lbNeedWallet'));
   const b = $('lbSubmitBtn'); if (b) b.disabled = true;
+  stopVerifyPoll(); // v40.1: a fresh submit replaces any older verification poll
   // v39: kirim replay + hash + gameVersion bila ada. Fail-soft: bila server
   // menolak replay (400 — mis. seed mismatch / bentuk replay tidak valid),
   // kirim ulang SEKALI tanpa replay supaya skor tetap tersimpan (jalur
@@ -2219,19 +2264,37 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 8000);
   try {
-    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v40' } : bodyBase);
+    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v40.1' } : bodyBase);
     if (!r.ok && r.status === 400 && lastResult.replay) r = await postScores(bodyBase);
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();
     if (!d || !d.ok) throw new Error('submit failed');
+    const T = { verified: msg('lbVerified'), verifying: msg('lbVerifying'), rejected: msg('lbVerifyRejected'), unknown: msg('lbVerifyUnknown') };
     let txt = d.improved ? msg('lbSent') : msg('lbKept');
-    // v39: respons berisi signature = server menandatangani replay ini.
+    // v39: respons berisi signature = server sudah menandatangani replay ini
+    // (dedupe: replay yang sama sudah terverifikasi sebelumnya).
     if (d.signature) {
       const h8 = String(d.replayHash || lastResult.replayHash || '').replace(/^0x/, '').slice(0, 8);
       const s8 = String(d.signature).replace(/^0x/, '').slice(0, 8);
-      txt += ' • TERVERIFIKASI ✓ ' + h8 + ' • 0x' + s8;
+      txt += ' • ' + verifyBadgeText('verified', h8, s8, T);
+      show(txt);
+    } else if (d.pending && (d.replayHash || lastResult.replayHash)) {
+      // v40.1: Worker v4 memverifikasi async (Cron per menit) — POST hanya
+      // mengembalikan 202 pending tanpa signature. Poll GET /verify sampai
+      // terverifikasi/ditolak (maks ~90 detik), lalu tampilkan statusnya.
+      // Poll gagal/offline = netral (tidak error, tidak klaim verified).
+      const hash = String(d.replayHash || lastResult.replayHash);
+      const showStatus = (status, data) => {
+        if (status === 'rejected') { show(msg('lbVerifyRejected')); return; }
+        const h8 = String((data && data.replayHash) || hash).replace(/^0x/, '').slice(0, 8);
+        const s8 = String((data && data.signature) || '').replace(/^0x/, '').slice(0, 8);
+        show(txt + ' • ' + verifyBadgeText(status, h8, s8, T));
+        if (status === 'verified') fetchLb(lbState.mode);
+      };
+      pollVerify(hash, showStatus);
+    } else {
+      show(txt);
     }
-    show(txt);
     saveJSON('sqk37:lbname', lbName());
     lbState.mode = lbMode(lastResult.mode); renderLbModes(); fetchLb(lbState.mode);
   } catch (_) {

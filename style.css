@@ -555,6 +555,7 @@ body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 1
 .lb-rank { color: var(--yellow); min-width: 28px; }
 .lb-wallet { color: #888; font-size: 10px; }
 .lb-score { color: var(--green); margin-left: auto; }
+.lb-verified { color: var(--green); font-weight: 700; } /* v40.1: ✓ on verified board rows */
 .lb-me { border-color: var(--yellow) !important; color: #fff; }
 #lbSubmitBtn:disabled { opacity: .45; }
 
