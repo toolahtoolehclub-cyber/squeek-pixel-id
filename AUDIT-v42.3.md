@@ -118,7 +118,10 @@ tidak disentuh.)
   verifikasi replay/EIP-712/enforcement/Keju/liga, harga katalog, split
   70/30, seasonEnd, alamat toko, Project ID.
 
-## 7. Smoke test browser (TODO saat audit ini ditulis — diisi setelah jalan)
+## 7. Smoke test browser (BELUM JALAN — butuh browser task dari parent)
+Subagent ini TIDAK punya alat browser task (`browser.browse` tidak ada di
+namespace subagent), jadi smoke test interaktif TIDAK BISA dijalankan dari
+sini — parent harus menjalankannya. Yang harus dicek:
 - Chrome biasa TANPA wallet → CONNECT WALLET → modal WalletConnect HARUS
   muncul (QR + daftar wallet termasuk OKX) → JANGAN selesaikan pairing,
   tutup modal.
@@ -126,9 +129,23 @@ tidak disentuh.)
   `0x000000000000000000000000000000000000dEaD` → "TERVERIFIKASI ✓".
 - Bersihkan SEMUA baris uji dari D1 (9 tabel by wallet, `LOWER(wallet)`,
   kolom liga = `best_score`; board kembali 0).
+- Cek juga: pesan `wcLoadFail` hilang saat pindah tab (perbaikan `setTab`).
+- D1 saat audit ini ditulis: BERSIH (0 skor — baris uji v42.2 sudah
+  dibersihkan parent; smoke test v42.3 belum menambah baris).
 
 ## 8. Deploy
-- GitHub head: (diisi setelah push)
-- GitHub Pages: (diisi setelah verifikasi live v42.3)
-- 3 bukti Genesis: meta tag, baris README, DNS TXT — (dicek setelah push)
-- Artifact preview slug `squeekchain-v26-fix`: (di-update ke v42.3)
+- GitHub head: **`8bcfd22f`** (commit "Squeekchain v42.3: WalletConnect
+  vendored bundle (lazy-load, no CDN UMD); tests 1602/1602 + motif 11/11",
+  52 file, tanpa PNG; head sebelumnya `ff10826a`).
+- GitHub Pages LIVE v42.3 (dicek 2026-11-09 ~00:25 WIB): judul
+  `SQUEEKCHAIN // v42.3` (2 fetch awal masih cache v42.2, fetch ke-3
+  v42.3 — sama seperti pola cache Pages sebelumnya); `script.js` live
+  berisi `gameVersion: 'v42.3'` + 3 referensi `wc-provider.bundle.js`;
+  `wc-provider.bundle.js` live HTTP 200, 2.108.792 byte (persis file
+  lokal); `index.html` live: 0 referensi `unpkg.com/@walletconnect`.
+- 3 bukti Genesis UTUH (dicek setelah push): meta tag
+  `05432539-b4e4-4f90-97b3-c258583905b7` di HTML live; baris README
+  `squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7` (raw);
+  DNS TXT `_squeekchain` = `squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9` (Google DoH).
+- Artifact preview slug `squeekchain-v26-fix`: edit ke v42.3
+  DIDISPATCH (builder async, menunggu handoff — kartu widget menyusul).
