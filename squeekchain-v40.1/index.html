@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="SQUEEKCHAIN v40.1 — a pixel rhythm game on Squeekchain: build an anthem from your wallet, play Daily, LIVE and RACE against the real hamster wheel, earn XP across 8 levels, complete daily missions, and climb the global leaderboard.">
+<meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">
+<meta property="og:title" content="SQUEEKCHAIN // Pixel ID">
+<meta property="og:description" content="A pixel rhythm game on Squeekchain — build an anthem from your wallet, race the real hamster wheel, earn XP and climb the global leaderboard.">
+<meta property="og:image" content="https://squeekpixel.web.id/squeekchain-headline-simple.png">
+<meta property="og:url" content="https://squeekpixel.web.id/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="SQUEEKCHAIN // Pixel ID">
+<meta name="twitter:description" content="A pixel rhythm game on Squeekchain — build an anthem from your wallet, race the real hamster wheel, earn XP and climb the global leaderboard.">
+<meta name="twitter:image" content="https://squeekpixel.web.id/squeekchain-headline-simple.png">
+<meta name="theme-color" content="#050607">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect x='3' y='3' width='10' height='10' fill='%2300ff00'/%3E%3C/svg%3E">
+<title>SQUEEKCHAIN // v40.1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="bg-gl" aria-hidden="true"></canvas>
+<div id="bg-anim" aria-hidden="true"><i class="orb orb-g"></i><i class="orb orb-p"></i><i class="sweep"></i></div>
+<div id="crt" aria-hidden="true"></div>
+
+<div id="musicSplash" role="dialog" aria-label="Start music">
+    <div class="splash-box">
+        <p class="splash-title">SQUEEKCHAIN</p>
+        <p class="splash-sub" data-i18n="splashSub">CHOOSE YOUR OPENING MUSIC</p>
+        <button class="btn-primary" type="button" id="startMusicBtn">[ ▶ HYPE 128 BPM ]</button>
+        <button class="btn-secondary" type="button" id="startMusicSantaiBtn" style="margin-top:10px">[ ▶ CALM 100 BPM ]</button>
+        <p class="splash-note" data-i18n="splashNote">Browsers block sound before your first tap — the music starts on your first tap, not before.</p>
+    </div>
+</div>
+<div id="ui-layer">
+    <header class="neo-head">
+        <div>
+            <h1 id="mainTitle">SQUEEKCHAIN</h1>
+            <h2>PIXEL ID // v40.1</h2>
+        </div>
+        <button class="btn-icon" id="settingsBtn" type="button" aria-label="Settings" title="Settings">⚙️</button>
+    </header>
+
+    <main class="container">
+        <section class="panel" id="mainPanel" aria-label="Menu utama">
+            <nav id="tabBar" role="tablist" aria-label="Menu sections">
+                <button class="tab-btn active" type="button" data-tab="play" role="tab" aria-selected="true">PLAY</button>
+                <button class="tab-btn" type="button" data-tab="daily" role="tab" aria-selected="false">DAILY</button>
+                <button class="tab-btn" type="button" data-tab="live" role="tab" aria-selected="false">LIVE</button>
+                <button class="tab-btn" type="button" data-tab="league" role="tab" aria-selected="false">LEAGUE</button>
+                <button class="tab-btn" type="button" data-tab="me" role="tab" aria-selected="false">ME</button>
+            </nav>
+
+            <div class="tab-panel" id="tab-play" role="tabpanel" aria-label="Play">
+            <div class="stack">
+                <label for="walletInput" data-i18n="wallet">WALLET ADDRESS</label>
+                <input id="walletInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+                       inputmode="text" maxlength="42" placeholder="0x..." aria-describedby="walletWarn anthemInfo">
+                <p class="warn" id="walletWarn" data-i18n="warn">⚠️ 0x address ONLY. NEVER enter a seed phrase / private key here, anywhere.</p>
+                <button class="btn-secondary" type="button" id="connectBtn" data-i18n="connect">[ CONNECT WALLET ]</button>
+                <p class="anthem" id="anthemInfo" aria-live="polite">AWAITING INPUT...</p>
+
+                <!-- WRAPPER FOR THE 3D AVATAR -->
+                <div id="avatarPreviewWrap" class="hidden">
+                    <canvas id="avatar-preview" width="128" height="128" aria-label="Avatar preview from your wallet"></canvas>
+                    <div class="avatar-meta">
+                        <p id="avatarLabel" data-i18n="avatarSelf">YOUR PIXEL SELF</p>
+                        <p id="levelLabel">LV 1 • 0 XP</p>
+                        <p id="anthemHash" class="hash"></p>
+                    </div>
+                </div>
+
+                <label id="genreLabel" data-i18n="genre">// GENRE</label>
+                <div class="diff-row" id="genreRow" role="group" aria-labelledby="genreLabel">
+                    <button class="btn-diff active" type="button" data-genre="cyber" aria-pressed="true">CYBER</button>
+                    <button class="btn-diff" type="button" data-genre="synth" aria-pressed="false">SYNTH</button>
+                    <button class="btn-diff" type="button" data-genre="chip" aria-pressed="false">CHIP</button>
+                    <button class="btn-diff locked" type="button" data-genre="void" aria-pressed="false">VOID 🔒 LV5</button>
+                </div>
+
+                <label id="diffLabel" data-i18n="diff">// DIFFICULTY</label>
+                <div class="diff-row" id="diffRow" role="group" aria-labelledby="diffLabel">
+                    <button class="btn-diff active" type="button" data-diff="easy" aria-pressed="true">EASY</button>
+                    <button class="btn-diff" type="button" data-diff="normal" aria-pressed="false">NORMAL</button>
+                    <button class="btn-diff" type="button" data-diff="hard" aria-pressed="false">HARD</button>
+                </div>
+
+                <label id="optionsLabel" data-i18n="options">// OPTIONS</label>
+                <div class="diff-row" id="optionsRow" role="group" aria-labelledby="optionsLabel">
+                    <button class="btn-diff locked" type="button" id="lanesBtn">LANES: 3 🔒 LV6</button>
+                    <button class="btn-diff locked" type="button" id="mirrorBtn">MIRROR: OFF 🔒 LV7</button>
+                </div>
+
+                <label id="modeLabel" data-i18n="mode">// MODE</label>
+                <div class="diff-row" id="modeRow" role="group" aria-labelledby="modeLabel">
+                    <button class="btn-diff active" type="button" data-mode="free" aria-pressed="true">FREE</button>
+                    <button class="btn-diff" type="button" data-mode="daily" aria-pressed="false">DAILY</button>
+                    <button class="btn-diff" type="button" data-mode="live" aria-pressed="false">LIVE</button>
+                    <button class="btn-diff" type="button" data-mode="race" aria-pressed="false">RACE</button>
+                </div>
+                <div id="raceBox" class="hidden">
+                    <p id="raceTitle">RACE — VS SQUEEKTOSHI</p>
+                    <p id="petLine">🐹 SQUEEKTOSHI IS WAITING…</p>
+                    <p id="raceInfo" data-i18n="raceInfo">A real race against the live hamster: your distance grows with every note you hit (PERFECT 1.0 m • GREAT 0.7 m • GOOD 0.4 m). Squeektoshi's distance is the real wheel's distance since the song started. Win the race for +50 XP. When a new 10-minute round starts mid-song, the next note turns GOLDEN (+1000 pts, +5 m).</p>
+                    <p id="raceLast">NO RACE YET — BEAT THE HAMSTER.</p>
+                </div>
+                <div id="liveBox" class="hidden">
+                    <p id="liveTitle">LIVE — RACE THE HAMSTER</p>
+                    <p id="liveInfo" data-i18n="liveInfo">The song's tempo follows the real hamster wheel, live from api.squeekchain.com/v1/status. Resting hamster = CALM 100 BPM. Running hamster = 100 + RPM (max 180). At 70+ RPM ZOOMIES starts and all scores double. Day follows the wheel running, night follows it resting. If the wheel is offline, the song uses a 128 BPM fallback and says so.</p>
+                    <p id="liveLine">FETCHING WHEEL…</p>
+                </div>
+                <div id="dailyBox" class="hidden">
+                    <p id="dailyTitle">DAILY ANTHEM</p>
+                    <p id="dailyInfo">Today's song is the same for everyone. Play today, come back tomorrow — the song changes.</p>
+                    <p id="streakLine">STREAK: 0 DAYS</p>
+                    <p id="freezeLine" class="msg hidden"></p>
+                    <div id="missionList"></div>
+                </div>
+                <div class="lat-row">
+                    <span id="latVal">LATENCY: +0 ms</span>
+                    <button class="btn-secondary" type="button" id="latCalibBtn" data-i18n="latCalib">[ CALIBRATE ]</button>
+                </div>
+                <button class="btn-primary btn-start" type="button" id="playBtn" data-i18n="play">INITIALIZE RHYTHM</button>
+                <button class="btn-secondary" type="button" id="genBtn" data-i18n="card">GENERATE ID CARD</button>
+            </div>
+            <p class="msg" id="message" role="status" aria-live="polite">SYSTEM READY.</p>
+            <p class="msg" id="glStatus" role="status">WEBGL: CHECKING... • QLTY: ULTRA • AUDIO: NOT TESTED YET</p>
+
+            </div>
+
+            <div class="tab-panel hidden" id="tab-daily" role="tabpanel" aria-label="Daily">
+            <div class="stack">
+                <div id="tutorialBox">
+                    <p class="predict-title" data-i18n="howto">HOW TO PLAY</p>
+                    <div id="tutorialSteps"></div>
+                    <button class="btn-secondary" type="button" id="tutorialCloseBtn" data-i18n="gotIt">[ GOT IT — LET'S PLAY ]</button>
+                </div>
+                <div id="bossBox">
+                    <p class="boss-title" data-i18n="boss">WEEKLY BOSS</p>
+                    <p id="bossLine">LOADING THIS WEEK'S BOSS…</p>
+                    <p id="bossHist" class="msg">PAST BOSSES: —</p>
+                    <button class="btn-secondary" type="button" id="bossBtn" data-i18n="bossFight">[ FIGHT WEEKLY BOSS ]</button>
+                </div>
+                <div id="champBox">
+                    <p class="league-title" data-i18n="champs">DAILY CHAMPIONS — YOUR BEST SCORE EACH DAY</p>
+                    <div id="champList"><p class="msg" data-i18n="champsEmpty">No champions yet — your best score of each day lands here.</p></div>
+                </div>
+                <div id="masteryBox">
+                    <p class="mastery-title" data-i18n="masteryTitle">MASTERY — LAST 10 GAMES</p>
+                    <div id="historyBars"></div>
+                    <p id="masteryStats">No games recorded in this browser yet.</p>
+                </div>
+                <div id="awayBox">
+                    <p class="away-title" data-i18n="away">WHILE YOU WERE AWAY</p>
+                    <p id="awayLine" class="msg">Welcome back — play a song and your diary starts here.</p>
+                    <div id="diaryList"></div>
+                    <div class="row">
+                        <input id="diaryNote" type="text" maxlength="120" placeholder="Add a note to your last song…" aria-label="Diary note">
+                        <button class="btn-secondary" type="button" id="diaryNoteBtn" data-i18n="addNote">[ ADD NOTE ]</button>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <div class="tab-panel hidden" id="tab-live" role="tabpanel" aria-label="Live wheel">
+            <div class="stack">
+                <div id="predictBox">
+                    <p class="predict-title" data-i18n="wheelcall">WHEEL CALL — PREDICT THE NEXT ROUND</p>
+                    <p id="roundLine">FETCHING WHEEL…</p>
+                    <div class="row">
+                        <button class="btn-secondary" type="button" id="predNapBtn">😴 NAP</button>
+                        <button class="btn-secondary" type="button" id="predJogBtn">🏃 JOG</button>
+                        <button class="btn-secondary" type="button" id="predZoomiesBtn">⚡ ZOOMIES</button>
+                    </div>
+                    <p id="predStatus" class="msg" data-i18n="predStatus">Rounds are 10 minutes. NAP &lt; 5 RPM • JOG 5–69 RPM • ZOOMIES 70+ RPM. A correct call earns +40 XP.</p>
+                    <p id="predResult" class="msg hidden"></p>
+                </div>
+                <div id="chainBox">
+                    <p class="predict-title" data-i18n="chainTitle">CHAIN — LIVE FROM SQUEEKCORE</p>
+                    <div id="chainLines"><p class="msg" data-i18n="chainLoading">FETCHING CHAIN STATE…</p></div>
+                </div>
+                <div id="roundHistBox">
+                    <p class="predict-title" data-i18n="roundhist">ROUND HISTORY — LAST 12 SETTLED ROUNDS</p>
+                    <div id="roundHistList"><p class="msg" data-i18n="roundHistEmpty">No finished rounds recorded yet — keep this page open and rounds settle here.</p></div>
+                </div>
+            </div>
+            </div>
+
+            <div class="tab-panel hidden" id="tab-league" role="tabpanel" aria-label="Duel League">
+            <div class="stack">
+                <div id="leagueBox">
+                    <p class="league-title" data-i18n="league">DUEL LEAGUE — LOCAL RIVALS</p>
+                    <div id="leagueList"><p class="msg" data-i18n="leagueEmpty">No duels yet — send a Duel Link after a song, and when a friend plays it, their result lands here.</p></div>
+                </div>
+                <div id="lbBox">
+                    <p class="league-title" data-i18n="lbTitle">GLOBAL LEADERBOARD — TOP SCORES</p>
+                    <p class="msg" data-i18n="lbNote">Scores are public. Your wallet shows truncated.</p>
+                    <div class="lb-row">
+                        <input id="lbName" type="text" maxlength="16" placeholder="NAME" aria-label="Leaderboard name">
+                        <button class="btn-secondary" type="button" id="lbRefreshBtn" data-i18n="lbRefresh">[ REFRESH ]</button>
+                    </div>
+                    <div id="lbModes"></div>
+                    <div id="lbList"><p class="msg">LOADING LEADERBOARD…</p></div>
+                    <p class="msg" id="lbRank"></p>
+                </div>
+                <div id="achBox">
+                    <p class="ach-title" data-i18n="ach">ACHIEVEMENTS</p>
+                    <div id="achList"></div>
+                </div>
+            </div>
+            </div>
+
+            <div class="tab-panel hidden" id="tab-me" role="tabpanel" aria-label="Your setup">
+            <div class="stack">
+                <button class="btn-primary hidden" type="button" id="backToGameBtn" data-i18n="backToGame">[ BACK TO GAME ]</button>
+                <div id="calibBox">
+                    <p class="calib-title" data-i18n="calibTitle">PRECISION — TIMING CALIBRATION</p>
+                    <p id="offsetLine">OFFSET: 0 ms</p>
+                    <div class="row">
+                        <button class="btn-secondary" type="button" id="offsetMinusBtn">[ −5 ms ]</button>
+                        <button class="btn-secondary" type="button" id="offsetPlusBtn">[ +5 ms ]</button>
+                    </div>
+                    <button class="btn-secondary" type="button" id="calibBtn" data-i18n="calibBtn">[ AUTO-CALIBRATE — TAP THE BEAT ]</button>
+                    <p id="calibMsg" class="msg hidden"></p>
+                    <button class="btn-primary hidden" type="button" id="calibTapBtn" data-i18n="calibTap">TAP ON THE BEAT!</button>
+                    <p id="calibProg" class="msg hidden"></p>
+                </div>
+                <div id="unlockBox"></div>
+                <button class="btn-secondary" type="button" id="forgetWalletBtn" data-i18n="forgetWallet">[ FORGET SAVED WALLET ]</button>
+            </div>
+            </div>
+
+        </section>
+
+        <section class="panel hidden" id="gamePanel" aria-label="Game rhythm">
+            <div class="stats" role="status">
+                <div class="stat"><b id="scoreVal">0</b><span>SCORE</span></div>
+                <div class="stat"><b id="comboVal">0</b><span>COMBO</span></div>
+                <div class="stat"><b id="accVal">100%</b><span>ACC</span></div>
+                <div class="stat"><b id="bpmVal">120</b><span>BPM</span></div>
+            </div>
+            <div class="row">
+                <button class="btn-secondary" type="button" id="pauseBtn">[ PAUSE ]</button>
+                <button class="btn-danger" type="button" id="stopBtn">[ TERMINATE ]</button>
+            </div>
+            <div id="pauseOverlay" class="hidden" role="dialog" aria-label="Paused">
+                <div class="pause-box">
+                    <p class="pause-title" data-i18n="pauseTitle">PAUSED</p>
+                    <div class="sheet-row">
+                        <label for="pauseVolSlider" data-i18n="volLabel">VOLUME</label>
+                        <input type="range" id="pauseVolSlider" min="0" max="100" value="80" aria-label="Volume" style="flex:1">
+                        <b id="pauseVolVal">80%</b>
+                    </div>
+                    <button class="btn-secondary" type="button" id="pauseCalibBtn" data-i18n="pauseCalib">[ CALIBRATE ]</button>
+                    <button class="btn-primary" type="button" id="pauseResumeBtn" data-i18n="pauseResume">[ RESUME ]</button>
+                    <button class="btn-danger" type="button" id="pauseExitBtn" data-i18n="pauseExit">[ EXIT ]</button>
+                </div>
+            </div>
+            <div class="canvas-wrapper"><canvas id="game-canvas" tabindex="0" aria-label="Game area. Use the left, down, right arrow keys or A S D to hit the lanes."></canvas></div>
+            <div id="precisionBox" aria-live="polite"><span><i data-i18n="lastHitLbl">LAST HIT</i> <b id="lastHit">-- ms</b></span><span><i data-i18n="avgHitLbl">AVG</i> <b id="avgHit">-- ms</b></span><span id="hitDir">—</span></div>
+            <p class="msg hidden" id="feverTag" data-i18n="feverTag">🔥 FEVER ×1.5 — COMBO 30+</p>
+            <div id="raceHud" class="hidden">
+                <div class="race-row"><span class="race-name" data-i18n="youLbl">YOU</span><div class="race-track"><i id="raceYouBar"></i></div><b id="raceYouTxt">0 m</b></div>
+                <div class="race-row"><span class="race-name">🐹 SQUEEKTOSHI</span><div class="race-track"><i id="raceOppBar"></i></div><b id="raceOppTxt">0 m</b></div>
+            </div>
+            <p class="msg" id="gameAudioStatus">AUDIO: —</p>
+            <p class="msg hidden" id="liveHud">LIVE: —</p>
+            <div id="vizBars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <p class="hint"><span data-i18n="hintTap">TAP LANE WHEN BLOCK HITS THE LINE.</span><br><span class="kbd-hint">KEYBOARD: ← ↓ → / A S D &nbsp;•&nbsp; P = PAUSE &nbsp;•&nbsp; M = MUTE</span></p>
+        </section>
+
+        <section class="panel hidden" id="resultPanel" aria-label="Game results">
+            <div class="grade" id="gradeVal">S</div>
+            <div class="kv" id="resultKv"></div>
+            <p class="msg" id="bestMsg"></p>
+            <p class="msg" id="xpMsg"></p>
+            <div id="missionResult"></div>
+            <div class="stack">
+                <button class="btn-primary" type="button" id="againBtn" data-i18n="retry">RETRY</button>
+                <button class="btn-secondary" type="button" id="toCardBtn" data-i18n="card">GENERATE CARD</button>
+                <p class="msg hidden" id="cardErrMsg" role="alert"></p>
+                <button class="btn-secondary" type="button" id="resultCardBtn" data-i18n="resultCard">[ SHARE RESULT CARD ]</button>
+                <button class="btn-secondary" type="button" id="duelBtn" data-i18n="duelLink">[ DUEL LINK ]</button>
+                <button class="btn-secondary" type="button" id="shareXBtn" data-i18n="shareX">[ SHARE RESULT TO X ]</button>
+                <button class="btn-secondary" type="button" id="lbSubmitBtn" data-i18n="lbSubmit">[ SUBMIT SCORE ]</button>
+                <p class="msg hidden" id="lbSubmitMsg"></p>
+                <p class="msg hidden" id="rivalBackMsg"></p>
+                <p class="msg" id="duelMsg" data-i18n="duelMsgPh">THE DUEL LINK WILL APPEAR HERE AFTER THE GAME ENDS.</p>
+                <textarea id="duelOut" readonly rows="2" placeholder="The duel link will appear here — copy it manually if the clipboard is blocked."></textarea>
+                <button class="btn-danger" type="button" id="homeBtn" data-i18n="exitMenu">EXIT TO MENU</button>
+            </div>
+        </section>
+    </main>
+        <div id="settingsBackdrop" class="hidden" aria-hidden="true"></div>
+        <section id="settingsSheet" class="hidden" role="dialog" aria-label="Settings">
+            <div class="sheet-head">
+                <p data-i18n="settingsTitle">SETTINGS</p>
+                <button class="btn-icon" id="settingsCloseBtn" type="button" aria-label="Close settings">✕</button>
+            </div>
+            <div class="sheet-body">
+                <div class="sheet-row">
+                    <span data-i18n="langLabel">LANGUAGE</span>
+                    <button class="btn-icon" id="langBtn" type="button" aria-label="Switch language English / Bahasa Indonesia" title="Language: EN / ID">EN</button>
+                </div>
+                <div class="sheet-row">
+                    <span data-i18n="qualityLabel">GRAPHICS</span>
+                    <button class="btn-icon" id="qualityBtn" type="button" aria-label="Change graphics quality" title="Quality: ULTRA / ECO">QLTY: ULTRA</button>
+                </div>
+                <div class="sheet-row">
+                    <span data-i18n="soundLabel">SOUND</span>
+                    <button class="btn-icon" id="muteBtn" type="button" aria-label="Mute / unmute sound" aria-pressed="false" title="Mute (M)">🔊</button>
+                </div>
+                <div class="sheet-row">
+                    <label for="volSlider" data-i18n="volLabel">VOLUME</label>
+                    <input type="range" id="volSlider" min="0" max="100" value="80" aria-label="Volume" style="flex:1">
+                    <b id="volVal">80%</b>
+                </div>
+                <button class="btn-secondary" type="button" id="musicModeBtn">MUSIC: HYPE 128 BPM — TAP FOR CALM</button>
+                <div class="row">
+                    <button class="btn-secondary" type="button" id="practiceBtn">PRACTICE: OFF</button>
+                    <button class="btn-secondary" type="button" id="obsBtn" data-i18n="obs">[ OBS OVERLAY LINK ]</button>
+                    <button class="btn-secondary" type="button" id="howBtn" data-i18n="howBtn">[ HOW TO PLAY ]</button>
+                </div>
+            </div>
+        </section>
+
+    <!-- v33: card overlay — the ID card and the result card open ON TOP of
+         whatever panel is showing (no more jumping back to the menu), with
+         close + minimize controls. -->
+    <div id="cardBackdrop" class="hidden" aria-hidden="true"></div>
+    <section id="cardOverlay" class="hidden" role="dialog" aria-label="Card">
+        <div class="card-head">
+            <p id="cardTitle">SQUEEK // CARD</p>
+            <div class="row">
+                <button class="btn-icon" id="cardMinBtn" type="button" aria-label="Minimize card">—</button>
+                <button class="btn-icon" id="cardCloseBtn" type="button" aria-label="Close card">✕</button>
+            </div>
+        </div>
+        <div class="canvas-wrapper"><canvas id="card-canvas" aria-label="Squeek card"></canvas></div>
+        <div class="row">
+            <button class="btn-primary" type="button" id="dlBtn" data-i18n="download">[ DOWNLOAD ]</button>
+            <button class="btn-secondary" type="button" id="shareBtn" data-i18n="share">[ SHARE ]</button>
+        </div>
+    </section>
+    <div id="cardBar" class="hidden"><button id="cardBarOpen" type="button"><span data-i18n="cardBarLbl">ID CARD — TAP TO OPEN</span></button><button id="cardBarClose" type="button" aria-label="Close card">✕</button></div>
+    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v40.1 • <span data-i18n="footerNote">UNOFFICIAL. On-chain data is read read-only (Sepolia token). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia.</span><br>Daily: ?daily=1 • Live: ?live=1 • Race: ?race=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard • OBS: ?overlay=1</footer>
+</div>
+
+<div id="overlayBox" class="hidden" aria-label="OBS overlay — live hamster status">
+    <p id="overlayTitle">🐹 SQUEEKCHAIN — LIVE</p>
+    <p id="overlayRpm">RPM —</p>
+    <p id="overlayDist">DIST — KM</p>
+    <p id="overlayRound">ROUND —</p>
+    <p id="overlayZoom">ZOOMIES —</p>
+    <p id="overlayPet">🐹 —</p>
+    <p id="overlaySong">SONG —</p>
+</div>
+
+<noscript><p style="color:#ff00ff;text-align:center;padding:20px">This game needs JavaScript. Enable JavaScript to play.</p></noscript>
+<script src="engine.js" defer></script>
+<script src="script.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,573 @@
+:root {
+    --accent: #00ff00; --accent2: #ff00ff;
+    --bg: #000000; --fg: #ffffff;
+    --green: #00ff00; --pink: #ff00ff; --cyan: #00ffff; --yellow: #ffff00;
+    --border: 4px solid #ffffff;
+    --shadow-hard: 6px 6px 0px var(--pink);
+    --shadow-black: 6px 6px 0px #333;
+}
+
+* { box-sizing: border-box; border-radius: 0 !important; }
+button, canvas, h1, h2, .stat { user-select: none; -webkit-tap-highlight-color: transparent; }
+input[type=text] { user-select: text; }
+
+body {
+    margin: 0; min-height: 100dvh; background-color: var(--bg); color: var(--fg);
+    font-family: 'Space Mono', monospace; overflow-x: hidden;
+    display: flex; flex-direction: column; align-items: center;
+    /* Animated Grid Background */
+    background-image: linear-gradient(rgba(57,255,20,0.14) 1px, transparent 1px), linear-gradient(90deg, rgba(57,255,20,0.14) 1px, transparent 1px);
+    background-size: 30px 30px;
+    animation: bgPan 8s linear infinite; /* v26-bg: grid dibuat 3x lebih terlihat dan 2,5x lebih cepat — di v25 hampir tidak kelihatan */
+}
+
+@keyframes bgPan {
+    0% { background-position: 0 0; }
+    100% { background-position: 30px 30px; }
+}
+
+#bg-gl { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; opacity: 0.6; pointer-events: none; }
+body.no-gl #bg-gl { display: none; }
+body.no-gl { background: radial-gradient(circle at 20% 20%, rgba(0,255,0,.18), transparent 55%), radial-gradient(circle at 80% 80%, rgba(255,0,255,.18), transparent 55%), #000; }
+
+#ui-layer { width: 100%; max-width: 460px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 10; display: flex; flex-direction: column; gap: 20px; }
+
+header { text-align: center; margin-bottom: 10px; }
+
+h1 { font-family: 'Press Start 2P', monospace; font-size: 22px; color: var(--green); margin: 0; line-height: 1.3; }
+h2 { font-size: 12px; color: var(--cyan); margin: 5px 0 0 0; letter-spacing: 2px; }
+
+.panel { background: #000; border: var(--border); box-shadow: var(--shadow-hard); padding: 20px; width: 100%; }
+.stack { display: flex; flex-direction: column; gap: 15px; }
+.row { display: flex; gap: 10px; }
+.row > button { flex: 1; min-width: 0; }
+.hidden { display: none !important; }
+
+button { border: var(--border); padding: 15px; font: bold 14px 'Space Mono', monospace; text-transform: uppercase; cursor: pointer; transition: transform .08s, box-shadow .08s; box-shadow: var(--shadow-black); background: #000; color: #fff; }
+button:focus-visible, input:focus-visible, canvas:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+button:active { transform: translate(4px, 4px); box-shadow: none; }
+button:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: var(--shadow-black); }
+.btn-primary { background: var(--green); color: #000; width: 100%; }
+.btn-secondary { background: #000; color: var(--cyan); border-color: var(--cyan); width: 100%; }
+.btn-danger { background: #000; color: var(--pink); border-color: var(--pink); width: 100%; }
+.btn-icon { width: 48px; height: 48px; padding: 0; font-size: 20px; flex-shrink: 0; box-shadow: 4px 4px 0 var(--pink); }
+#qualityBtn { width: auto; min-width: 92px; height: 48px; padding: 0 8px; font-size: 10px; }
+
+.diff-row { display: flex; gap: 10px; }
+.btn-diff { flex: 1; padding: 10px 0; background: #000; color: #999; border: 2px solid #666; box-shadow: none; font-size: 12px; min-width: 0; }
+.btn-diff.active { background: var(--cyan); color: #000; border-color: #fff; box-shadow: 4px 4px 0 var(--pink); }
+
+label { font-size: 12px; color: var(--pink); font-weight: bold; }
+input[type=text] { width: 100%; padding: 15px; border: var(--border); background: #000; color: var(--green); font: 14px 'Space Mono', monospace; outline: none; }
+input[type=text]:focus { border-color: var(--green); box-shadow: 0 0 10px var(--green); }
+input[type=text].invalid { border-color: var(--pink); box-shadow: 0 0 10px var(--pink); }
+
+.msg { text-align: center; color: var(--green); font-size: 12px; font-weight: bold; margin: 15px 0 0 0; border: 1px dashed var(--green); padding: 10px; word-break: break-word; }
+.anthem { font-size: 12px; color: var(--cyan); text-align: center; margin: 0; word-break: break-word; }
+.warn { font-size: 11px; color: var(--yellow); text-align: left; margin: 0; border: 1px dashed var(--yellow); padding: 8px 10px; line-height: 1.5; }
+
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; }
+.stat { border: 2px solid #fff; padding: 10px; text-align: center; background: #000; min-width: 0; }
+.stat b { display: block; color: var(--green); font-size: 16px; font-family: 'Press Start 2P', monospace; overflow: hidden; text-overflow: ellipsis; }
+.stat span { font-size: 10px; color: #aaa; }
+
+canvas { display: block; width: 100%; height: auto; border: none; box-shadow: none; image-rendering: pixelated; image-rendering: crisp-edges; }
+.canvas-wrapper { width: 100%; border: var(--border); box-shadow: 6px 6px 0 var(--cyan); background: #050505; margin-bottom: 15px; position: relative; overflow: hidden; }
+.canvas-wrapper canvas { box-shadow: none; border: none; }
+#game-canvas { touch-action: none; background: #050505; }
+#card-canvas { background: #050505; }
+
+#avatarPreviewWrap { display: flex; flex-direction: row; align-items: center; gap: 12px; border: 2px dashed var(--accent); padding: 8px 10px; text-align: left; } /* v37.2: horizontal compact layout — the tall centered column (~210px) pushed PLAY below the fold on phones */
+#avatarPreviewWrap.hidden { display: none; }
+#avatar-preview { width: 84px; height: 84px; flex: none; border: 3px solid #fff; box-shadow: 4px 4px 0 var(--pink); image-rendering: pixelated; } /* v37.2: was 128px; canvas backing store stays 128x128, CSS scales it down crisp */
+.avatar-meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; } /* v37.2: the three label lines beside the avatar */
+.avatar-meta p { margin: 0; text-align: left; }
+#avatarLabel { margin: 0; font-size: 10px; color: var(--cyan); letter-spacing: 2px; }
+#duelOut { width: 100%; background: #000; color: var(--cyan); border: 2px solid var(--cyan); font: 11px 'Space Mono', monospace; padding: 8px; }
+#glStatus, #gameAudioStatus { border-color: var(--cyan); color: var(--cyan); }
+body.hemat { background: #181818; }
+body.hemat #bg-gl { opacity: .1; }
+
+.hint { text-align: center; font-size: 11px; color: #aaa; margin: 15px 0; line-height: 1.7; }
+.kbd-hint { color: #888; font-size: 10px; }
+
+#resultPanel { text-align: center; }
+#resultPanel .grade, .grade { font-family: 'Press Start 2P', monospace; font-size: 64px; line-height: 1; margin: 20px 0; color: var(--cyan); text-shadow: 4px 4px 0 var(--pink); }
+.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; border: 2px solid #333; padding: 15px; margin-bottom: 20px; text-align: left; }
+.kv b { color: var(--green); text-align: right; overflow-wrap: anywhere; }
+
+.footer { text-align: center; font-size: 10px; color: #777; line-height: 1.6; padding: 0 8px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } #bg-gl { opacity: .15; } }
+@media (max-width: 360px) { h1 { font-size: 18px; } .panel { padding: 15px; } .stat b { font-size: 13px; } }
+
+#crt { position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: .14; background: repeating-linear-gradient(0deg, rgba(0,0,0,.9) 0 1px, transparent 1px 3px); }
+#crt::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%); }
+.hash { margin: 0; font-size: 10px; color: #888; word-break: break-all; text-align: center; }
+#precisionBox { display: flex; justify-content: space-between; gap: 8px; border: 2px solid #333; padding: 8px 10px; font-size: 11px; color: #aaa; margin: 12px 0 8px 0; }
+#precisionBox b { color: var(--accent); }
+#vizBars { display: flex; align-items: flex-end; gap: 3px; height: 28px; border: 2px solid #222; padding: 4px; margin-bottom: 10px; }
+#vizBars i { flex: 1; display: block; background: var(--accent); height: 20%; min-height: 2px; }
+@keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
+@keyframes shake { 0%,100% { transform: translate(0,0); } 25% { transform: translate(-4px,2px); } 50% { transform: translate(4px,-2px); } 75% { transform: translate(-2px,-2px); } }
+.stat.pop b { animation: pop .18s steps(2) 1; }
+#gamePanel.shake { animation: shake .18s steps(3) 1; }
+@media (prefers-reduced-motion: reduce) { #crt { display: none; } .stat.pop b, #gamePanel.shake { animation: none !important; } }
+
+#dailyBox { border: 2px dashed var(--yellow); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+#dailyBox.hidden { display: none; }
+
+/* v27 LIVE: info box for LIVE mode + day/night theme driven by the real wheel. */
+#liveBox { border: 2px dashed var(--green); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+#liveBox.hidden { display: none; }
+#liveTitle { margin: 0; font-size: 12px; color: var(--green); font-weight: bold; letter-spacing: 2px; }
+#liveInfo { margin: 0; font-size: 11px; color: #aaa; line-height: 1.5; }
+#liveLine { margin: 0; font-size: 12px; color: var(--cyan); font-weight: bold; }
+#liveHud.zoomies { border-color: var(--yellow); color: var(--yellow); }
+body.live-night #bg-anim { filter: brightness(.45) hue-rotate(200deg); }
+body.live-night #bg-gl { opacity: .35; }
+body.live-day #bg-anim { filter: saturate(1.4); }
+#dailyTitle { margin: 0; font-size: 12px; color: var(--yellow); font-weight: bold; letter-spacing: 2px; }
+#dailyInfo { margin: 0; font-size: 11px; color: #aaa; line-height: 1.5; }
+#streakLine { margin: 0; font-size: 12px; color: var(--pink); font-weight: bold; }
+.mission { font-size: 11px; color: #ccc; border: 1px solid #333; padding: 6px 8px; margin-top: 4px; }
+.mission.done { color: var(--green); border-color: var(--green); text-decoration: line-through; }
+.mission.done::before { content: "[DONE] "; }
+#levelLabel { margin: 0; font-size: 11px; color: var(--yellow); font-weight: bold; letter-spacing: 1px; }
+#masteryBox { border: 2px solid #333; padding: 10px; }
+.mastery-title { margin: 0 0 8px 0; font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; }
+#historyBars { display: flex; align-items: flex-end; gap: 3px; height: 48px; }
+#historyBars i { flex: 1; display: block; background: var(--cyan); min-height: 3px; }
+#historyBars i.best { background: var(--yellow); }
+#masteryStats { margin: 8px 0 0 0; font-size: 11px; color: #aaa; line-height: 1.6; }
+#missionResult { margin: 12px 0; text-align: left; }
+#xpMsg { border-color: var(--yellow); color: var(--yellow); }
+
+#musicSplash { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,.92); display: flex; align-items: center; justify-content: center; padding: 20px; }
+#musicSplash.hidden { display: none !important; }
+.splash-box { border: 4px solid #00ff00; box-shadow: 6px 6px 0 #ff00ff; background: #000; padding: 24px 18px; text-align: center; max-width: 340px; width: 100%; }
+.splash-title { font-family: 'Press Start 2P', monospace; font-size: 20px; color: #00ff00; margin: 0 0 8px 0; text-shadow: 3px 3px 0 #ff00ff; }
+.splash-sub { font-size: 12px; color: #00ffff; letter-spacing: 2px; margin: 0 0 16px 0; }
+.splash-note { font-size: 11px; color: #888; line-height: 1.6; margin: 14px 0 0 0; }
+
+/* v26-bg: BACKGROUND BERGERAK ALA FILE TES — murni CSS, jalan walau WebGL mati.
+   Model animasi: grid diagonal geser + 2 orb cahaya melayang + 1 garis sweep turun.
+   Tidak pakai WebGL, tidak pakai JS, jadi tidak bisa "gagal diam" seperti background 3D. */
+#bg-anim { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+#bg-anim .orb { position: absolute; width: 180px; height: 180px; opacity: .30; }
+#bg-anim .orb-g { background: #00ff00; box-shadow: 0 0 60px #00ff00; top: 8%; left: -40px; animation: driftG 12s ease-in-out infinite alternate; }
+#bg-anim .orb-p { background: #ff00ff; box-shadow: 0 0 60px #ff00ff; bottom: 12%; right: -40px; animation: driftP 14s ease-in-out infinite alternate; }
+@keyframes driftG { from { transform: translate(0, 0); } to { transform: translate(60px, 90px); } }
+@keyframes driftP { from { transform: translate(0, 0); } to { transform: translate(-70px, -70px); } }
+#bg-anim .sweep { position: absolute; left: 0; right: 0; height: 60px; background: linear-gradient(180deg, transparent, rgba(0,255,255,.14), transparent); animation: sweepY 6s linear infinite; }
+@keyframes sweepY { from { top: -60px; } to { top: 100%; } }
+body.hemat #bg-anim { display: none; } /* HEMAT = diam, sesuai janji tombol QLTY */
+
+/* v28 FIX: calibration box, unlocks, locked buttons, gold avatar. */
+#calibBox { border: 2px dashed var(--cyan); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.calib-title { margin: 0; font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; }
+#offsetLine { margin: 0; font-size: 12px; color: var(--yellow); font-weight: bold; }
+#calibMsg, #calibProg { margin: 0; }
+#calibTapBtn { font-size: 20px; padding: 22px 15px; }
+#unlockBox { border: 2px solid #333; padding: 10px; }
+.unlock-title { margin: 0 0 8px 0; font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; }
+.unlock { font-size: 11px; color: #888; border: 1px solid #333; padding: 6px 8px; margin-top: 4px; }
+.unlock.done { color: var(--green); border-color: var(--green); }
+.btn-diff.locked { opacity: .55; }
+.locked-row { opacity: .55; }
+#avatarPreviewWrap.gold { border-color: #ffd700; box-shadow: 0 0 12px rgba(255, 215, 0, .5); }
+#avatarPreviewWrap.gold #avatar-preview { border-color: #ffd700; }
+
+.creator-link { color: var(--cyan); text-decoration: none; border-bottom: 2px solid var(--pink); font-weight: bold; letter-spacing: 1px; }
+.creator-link:hover, .creator-link:focus-visible { color: var(--yellow); border-color: var(--yellow); }
+
+/* v29 MEGA: race, prediction, league, achievements, boss, away/diary, overlay, fever. */
+#raceBox { border: 2px dashed var(--pink); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+#raceBox.hidden { display: none; }
+#raceTitle { margin: 0; font-size: 12px; color: var(--pink); font-weight: bold; letter-spacing: 2px; }
+#petLine { margin: 0; font-size: 12px; color: var(--yellow); font-weight: bold; }
+#raceInfo { margin: 0; font-size: 11px; color: #aaa; line-height: 1.5; }
+#raceLast { margin: 0; font-size: 12px; color: var(--cyan); font-weight: bold; }
+#predictBox { border: 2px dashed var(--green); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.predict-title { margin: 0; font-size: 11px; color: var(--green); font-weight: bold; letter-spacing: 1px; }
+#roundLine { margin: 0; font-size: 12px; color: var(--cyan); font-weight: bold; }
+#predStatus, #predResult { margin: 0; }
+#predNapBtn.picked, #predJogBtn.picked, #predZoomiesBtn.picked { background: var(--yellow); color: #000; border-color: #fff; }
+#bossBox { border: 2px dashed var(--yellow); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.boss-title { margin: 0; font-size: 11px; color: var(--yellow); font-weight: bold; letter-spacing: 1px; }
+#bossLine { margin: 0; font-size: 12px; color: var(--pink); font-weight: bold; line-height: 1.5; }
+#leagueBox { border: 2px solid #333; padding: 10px; }
+.league-title { margin: 0 0 8px 0; font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; }
+.league-row { font-size: 11px; color: #ccc; border: 1px solid #333; padding: 6px 8px; margin-top: 4px; line-height: 1.5; }
+.league-row.win { color: var(--green); border-color: var(--green); }
+.league-row.lose { color: var(--pink); }
+#achBox { border: 2px solid #333; padding: 10px; }
+.ach-title { margin: 0 0 8px 0; font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; }
+.ach-chip { display: inline-block; font-size: 10px; border: 1px solid #333; color: #888; padding: 5px 7px; margin: 2px; }
+.ach-chip.done { color: #000; background: var(--yellow); border-color: #fff; }
+#awayBox { border: 2px dashed var(--cyan); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.away-title { margin: 0; font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 1px; }
+#awayLine { margin: 0; }
+.diary-line { font-size: 11px; color: #ccc; border: 1px solid #333; padding: 6px 8px; line-height: 1.5; }
+.diary-line b { color: var(--green); }
+#diaryNote { flex: 2; }
+#freezeLine { margin: 0; font-size: 11px; color: var(--cyan); font-weight: bold; }
+#feverTag { border-color: var(--yellow); color: var(--yellow); }
+#raceHud { border: 2px solid var(--pink); padding: 10px; margin: 12px 0 8px 0; display: flex; flex-direction: column; gap: 8px; }
+#raceHud.hidden { display: none; }
+.race-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.race-name { width: 110px; flex-shrink: 0; font-weight: bold; color: #fff; }
+.race-track { flex: 1; height: 14px; border: 1px solid #666; background: #111; }
+.race-track i { display: block; height: 100%; background: var(--green); width: 0%; }
+#raceOppBar { background: var(--pink); }
+.race-row b { width: 52px; text-align: right; color: var(--cyan); }
+#langBtn { width: auto; min-width: 48px; height: 48px; padding: 0 8px; font-size: 12px; }
+#overlayBox { position: fixed; inset: 0; z-index: 20; padding: 24px; font-family: 'Press Start 2P', monospace; color: #fff; text-shadow: 2px 2px 0 #000; pointer-events: none; }
+#overlayBox.hidden { display: none !important; }
+#overlayBox p { margin: 0 0 14px 0; font-size: 16px; line-height: 1.6; }
+#overlayTitle { color: var(--green); font-size: 20px !important; }
+#overlayZoom { color: var(--yellow); }
+#overlayPet { color: var(--cyan); }
+
+/* v30 TOTAL: volume slider + tutorial box */
+input[type=range] { accent-color: var(--green); height: 28px; }
+#tutorialBox { border: 2px solid var(--yellow); padding: 10px; margin-bottom: 8px; }
+#tutorialBox .msg { text-align: left; }
+body.overlay { background: transparent; }
+body.overlay #ui-layer, body.overlay #bg-gl, body.overlay #bg-anim, body.overlay #crt, body.overlay #musicSplash { display: none !important; }
+body.overlay { animation: none; background-image: none; }
+
+/* ============ v31 ARCADE: the menu is now an arcade cabinet ============ */
+
+/* Cabinet bezel: the menu panel gets a double frame like an arcade screen. */
+#mainPanel { outline: 4px solid var(--green); outline-offset: 6px; background: #050505; box-shadow: 6px 6px 0 var(--pink), 0 0 30px rgba(0, 255, 0, .25), inset 0 0 40px rgba(0, 0, 0, .9); }
+
+/* Tab bar: one row of 5 menu buttons. */
+#tabBar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
+.tab-btn[data-tab="play"] { border-color: var(--green); }
+.tab-btn[data-tab="daily"] { border-color: var(--yellow); }
+.tab-btn[data-tab="live"] { border-color: var(--pink); }
+.tab-btn[data-tab="league"] { border-color: var(--cyan); }
+.tab-btn[data-tab="me"] { border-color: #ff8800; }
+.tab-btn.active[data-tab="play"] { background: var(--green); color: #000; box-shadow: 0 5px 0 #005500, 0 0 14px rgba(0, 255, 0, .7); }
+.tab-btn.active[data-tab="daily"] { background: var(--yellow); color: #000; box-shadow: 0 5px 0 #555500, 0 0 14px rgba(255, 255, 0, .7); }
+.tab-btn.active[data-tab="live"] { background: var(--pink); color: #000; box-shadow: 0 5px 0 #550055, 0 0 14px rgba(255, 0, 255, .7); }
+.tab-btn.active[data-tab="league"] { background: var(--cyan); color: #000; box-shadow: 0 5px 0 #005555, 0 0 14px rgba(0, 255, 255, .7); }
+.tab-btn.active[data-tab="me"] { background: #ff8800; color: #000; box-shadow: 0 5px 0 #552200, 0 0 14px rgba(255, 136, 0, .7); }
+.tab-panel { display: flex; flex-direction: column; gap: 15px; }
+.tab-panel.hidden { display: none !important; }
+
+/* START button: the big arcade attract-mode button. */
+.btn-start { font-size: 18px; padding: 22px 15px; animation: startPulse 1.6s ease-in-out infinite; }
+@keyframes startPulse { 0%, 100% { box-shadow: 6px 6px 0 #333, 0 0 0 rgba(0, 255, 0, 0); } 50% { box-shadow: 6px 6px 0 #333, 0 0 26px rgba(0, 255, 0, .8); } }
+
+
+
+/* Desktop: the cabinet gets room to breathe; tabs stay one row. */
+@media (min-width: 900px) { #ui-layer { max-width: 520px; } }
+@media (max-width: 360px) { #tabBar { gap: 5px; } }
+@media (max-width: 480px) {
+    #qualityBtn { min-width: 84px; }
+}
+@media (prefers-reduced-motion: reduce) { .btn-start { animation: none !important; } }
+
+/* ================= v32 NEO — minimal, futuristic =================
+   Supersedes the v31 arcade layer above. Same ids, same layout
+   skeleton, new visual language: hairline borders, glass panels,
+   generous spacing, one accent (cyan) + one signal (green), no chunky
+   borders, no marquee, no bulbs, no side art. Header is a slim row
+   (wordmark + one settings gear); secondary controls live in a sheet. */
+
+/* --- base: near-black, faint static grid, soft top glow --- */
+body {
+    background: #050607;
+    background-image: radial-gradient(ellipse 90% 40% at 50% -5%, rgba(0, 229, 255, .10), transparent 70%);
+}
+body::before { opacity: .05; animation: none; }
+#crt { opacity: .05; }
+
+/* --- slim header: wordmark left, one gear right --- */
+.neo-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 6px 14px; margin-bottom: 10px;
+}
+.neo-head h1 {
+    font-size: 17px; letter-spacing: 2px; margin: 0 0 5px;
+    color: #fff; text-shadow: 0 0 18px rgba(0, 229, 255, .45);
+}
+.neo-head h2 {
+    font-size: 9px; letter-spacing: 3px; margin: 0;
+    color: rgba(255, 255, 255, .45);
+}
+
+/* --- glass panels, hairline borders --- */
+.panel {
+    background: rgba(255, 255, 255, .03);
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 18px;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, .45);
+    padding: 16px;
+}
+#mainPanel { outline: none; box-shadow: 0 10px 32px rgba(0, 0, 0, .45); }
+#gamePanel { background: rgba(255, 255, 255, .02); }
+.container { gap: 12px; }
+.stack { gap: 10px; }
+
+/* --- buttons: thin, rounded, calm --- */
+button {
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .05);
+    box-shadow: none;
+    color: rgba(255, 255, 255, .85);
+    padding: 13px 12px;
+}
+button:active { transform: translateY(1px); box-shadow: none; }
+.btn-primary {
+    background: linear-gradient(135deg, #00ff88, #00e5ff);
+    color: #001318; border-color: transparent;
+    font-weight: 700;
+    box-shadow: 0 0 24px rgba(0, 229, 255, .25);
+}
+.btn-secondary { background: rgba(255, 255, 255, .04); color: #a5f3fc; border-color: rgba(0, 229, 255, .35); }
+.btn-danger { background: rgba(255, 0, 80, .10); color: #fda4af; border-color: rgba(255, 0, 80, .4); }
+.btn-icon {
+    border: 1px solid rgba(255, 255, 255, .18); border-radius: 12px;
+    background: rgba(255, 255, 255, .05); box-shadow: none;
+    height: 44px; min-width: 44px; padding: 0 12px;
+    font-size: 13px; color: rgba(255, 255, 255, .85);
+}
+.btn-start { animation: none; }
+
+/* --- segmented pills (genre / diff / options / mode) --- */
+.btn-diff {
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 999px; background: transparent;
+    color: rgba(255, 255, 255, .6);
+    box-shadow: none; padding: 11px 4px;
+}
+.btn-diff.active {
+    background: #00e5ff; color: #001318; border-color: transparent;
+    box-shadow: 0 0 16px rgba(0, 229, 255, .3);
+}
+.btn-diff.locked { opacity: .45; }
+
+/* --- tabs: one pill container, text only --- */
+#tabBar {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 999px; padding: 4px; margin-bottom: 14px;
+}
+.tab-btn {
+    border: none; border-radius: 999px; background: transparent;
+    box-shadow: none; color: rgba(255, 255, 255, .55);
+    padding: 10px 2px; font-size: 10px; letter-spacing: 1px;
+}
+.tab-btn.active {
+    background: rgba(0, 229, 255, .16); color: #00e5ff;
+    box-shadow: none;
+}
+
+/* --- text: quieter labels, calmer boxes --- */
+label { color: rgba(255, 255, 255, .5); letter-spacing: 2px; font-size: 10px; }
+h2, .boss-title, .league-title, .ach-title, .away-title, .mastery-title, .predict-title, .calib-title, #raceTitle, #liveTitle, #dailyTitle {
+    color: rgba(255, 255, 255, .65); letter-spacing: 2px;
+}
+.msg {
+    background: rgba(255, 255, 255, .03);
+    border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 10px; color: rgba(255, 255, 255, .7);
+    font-size: 11px; font-weight: 400; line-height: 1.6;
+}
+.warn {
+    border: 1px dashed rgba(255, 220, 0, .5); border-radius: 10px;
+    background: rgba(255, 220, 0, .05); font-size: 10px;
+}
+.anthem { color: #67e8f9; font-size: 11px; line-height: 1.7; }
+input[type="text"], textarea {
+    border: 1px solid rgba(255, 255, 255, .18); border-radius: 12px;
+    background: rgba(255, 255, 255, .04);
+}
+input[type="text"]:focus, textarea:focus { border-color: #00e5ff; box-shadow: 0 0 0 3px rgba(0, 229, 255, .15); }
+input[type="range"] { accent-color: #00e5ff; }
+
+/* --- info boxes: slim hairline cards --- */
+#raceBox, #liveBox, #dailyBox {
+    border: 1px solid rgba(0, 229, 255, .25); border-radius: 14px;
+    background: rgba(0, 229, 255, .04); padding: 12px; font-size: 11px; line-height: 1.65;
+}
+#dailyBox { border-color: rgba(0, 255, 136, .25); background: rgba(0, 255, 136, .04); }
+#raceBox { border-color: rgba(255, 200, 0, .25); background: rgba(255, 200, 0, .04); }
+
+/* --- latency row --- */
+.lat-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 12px; border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 12px; background: rgba(255, 255, 255, .02);
+    font-size: 11px; color: rgba(255, 255, 255, .7);
+}
+.lat-row .btn-secondary { padding: 9px 12px; }
+
+/* --- settings sheet (bottom sheet + backdrop) --- */
+#settingsBackdrop {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, .6);
+    backdrop-filter: blur(2px); z-index: 40;
+}
+#settingsSheet {
+    position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
+    width: min(460px, 100%); z-index: 41;
+    background: #0b0e10; border: 1px solid rgba(255, 255, 255, .14);
+    border-bottom: none; border-radius: 20px 20px 0 0;
+    padding: 16px 16px calc(18px + env(safe-area-inset-bottom));
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, .6);
+}
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sheet-head p { margin: 0; font-size: 11px; letter-spacing: 3px; color: rgba(255, 255, 255, .7); }
+.sheet-body { display: flex; flex-direction: column; gap: 10px; }
+.sheet-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 12px; border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 12px; background: rgba(255, 255, 255, .02);
+    font-size: 11px; color: rgba(255, 255, 255, .7); letter-spacing: 2px;
+}
+.sheet-row label { margin: 0; }
+#settingsSheet .btn-secondary { width: 100%; }
+
+/* --- game panel polish --- */
+.stat { border: 1px solid rgba(255, 255, 255, .12); border-radius: 12px; background: rgba(255, 255, 255, .03); }
+.canvas-wrapper { border-radius: 14px; overflow: hidden; }
+#game-canvas { border-radius: 14px; }
+.grade { color: #00ff88; text-shadow: 0 0 24px rgba(0, 255, 136, .4); }
+.kv span { color: rgba(255, 255, 255, .5); }
+.kv b { color: rgba(255, 255, 255, .9); }
+.league-row, .diary-line, .unlock { border-radius: 10px; }
+.ach-chip { border-radius: 999px; }
+#vizBars i { background: #00e5ff; opacity: .5; }
+
+/* --- footer: one slim line --- */
+.footer {
+    border: none; padding: 16px 4px 8px; color: rgba(255, 255, 255, .35);
+    font-size: 9px; line-height: 1.7; letter-spacing: .5px; text-align: center;
+}
+.creator-link { color: #67e8f9; }
+
+/* --- splash: minimal glass card --- */
+.splash-box {
+    border: 1px solid rgba(255, 255, 255, .14); border-radius: 20px;
+    background: rgba(8, 10, 12, .92); box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+}
+.splash-title { color: #fff; text-shadow: 0 0 22px rgba(0, 229, 255, .5); }
+.splash-sub { color: rgba(255, 255, 255, .5); letter-spacing: 3px; }
+.splash-note { color: rgba(255, 255, 255, .4); }
+
+/* --- v32 PERFORMANCE: while a game runs, freeze every decoration so the
+   game loop gets the full frame budget (the lag fix). WebGL is paused
+   from JS (pauseGL); CSS hides the layers and pauses the animations. --- */
+body.playing #bg-gl, body.playing #bg-anim, body.playing #crt { display: none !important; }
+body.playing { background-image: none; animation: none; }
+body.playing * { animation-play-state: paused !important; }
+body.playing .stat.pop { animation: pop .3s !important; }
+body.playing #gamePanel.shake { animation: shake .3s !important; }
+
+
+@media (max-width: 480px) {
+    .neo-head h1 { font-size: 15px; }
+    .panel { padding: 13px; }
+    #settingsSheet { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .btn-primary { box-shadow: none; } }
+
+/* v32.2 FIX: the latency value must not wrap onto two lines ("LATENSI: 0" / "ms"). */
+#latVal { white-space: nowrap; }
+
+/* ==========================================
+   v33 NEO+ — card overlay, settings anywhere, stat fit
+   ========================================== */
+/* Card overlay: floats above whatever panel is showing. The card canvas
+   keeps its 400x600 artboard; the overlay frame is the NEO glass + a
+   cyan-to-green gradient hairline, not the old white box. */
+#cardBackdrop, #settingsBackdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .72); z-index: 40; }
+#cardOverlay { position: fixed; z-index: 41; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow-y: auto; background: rgba(8, 10, 12, .97); border: 1px solid rgba(255, 255, 255, .14); border-radius: 20px; padding: 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, .7), 0 0 0 1px rgba(0, 229, 255, .25); }
+#cardOverlay .canvas-wrapper { border: 1px solid rgba(0, 229, 255, .35); border-radius: 14px; box-shadow: none; margin-bottom: 12px; }
+#cardOverlay .canvas-wrapper canvas { border-radius: 14px; }
+.card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.card-head p { margin: 0; font-size: 11px; letter-spacing: .18em; color: var(--cyan); }
+.card-head .row { display: flex; gap: 8px; }
+/* Minimized card bar: a slim strip at the bottom of the screen. */
+#cardBar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 41; display: flex; align-items: center; gap: 6px; width: min(440px, calc(100vw - 24px)); background: rgba(8, 10, 12, .95); border: 1px solid rgba(0, 229, 255, .4); border-radius: 999px; padding: 6px 8px 6px 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, .6); }
+#cardBarOpen { flex: 1; background: none; border: none; color: var(--cyan); font: inherit; font-size: 11px; letter-spacing: .14em; text-align: left; padding: 8px 0; cursor: pointer; }
+#cardBarClose { flex: none; }
+/* v33: stat values never truncate on phones — ACC is an integer now and the
+   value font shrinks a step at phone widths. */
+@media (max-width: 480px) { .stat b { font-size: 13px; white-space: nowrap; } .stat { padding: 8px 4px; } }
+
+/* ==========================================
+   v33.1 FIX — sticky header, solid result panel, card bar clearance
+   ========================================== */
+/* The gear must stay reachable during play: after auto-scroll the header
+   used to scroll off the top. Now it sticks. */
+.neo-head { position: sticky; top: 0; z-index: 30; background: #050607; }
+/* The result panel is nearly transparent glass — the animated background
+   bled through and washed out the mission rows. Solid here only. */
+#resultPanel { background: rgba(5, 6, 7, .94); }
+/* The fixed minimize bar used to float over the footer text. */
+body.cardbar { padding-bottom: 72px; }
+
+/* ==========================================
+   v33.2 FIX — auto-scroll must stop below the sticky header
+   ========================================== */
+/* v33.1 made the header sticky; play()/finish() scroll the panels to the
+   very top, so the header covered the grade (result) and the stats (game). */
+#gamePanel, #resultPanel { scroll-margin-top: 76px; }
+
+/* ==========================================
+   v34 THEMES — one look per mode
+   ========================================== */
+/* Each mode button wears its theme accent, so the mode's look is visible
+   before the song even starts. */
+#modeRow [data-mode="free"] { --mode-accent: #00e5ff; }
+#modeRow [data-mode="daily"] { --mode-accent: #ffb020; }
+#modeRow [data-mode="live"] { --mode-accent: #00ff88; }
+#modeRow [data-mode="race"] { --mode-accent: #ff2e63; }
+#modeRow .btn-diff { border-color: var(--mode-accent, rgba(255, 255, 255, .2)); color: var(--mode-accent, #fff); }
+#modeRow .btn-diff.active { background: var(--mode-accent, #00e5ff); border-color: var(--mode-accent, #00e5ff); color: #000; }
+/* The game panel glows in the active theme's accent while playing. */
+body[data-theme="cyber"] { --theme-accent: #00e5ff; --theme-glow: rgba(0, 229, 255, .28); }
+body[data-theme="sunrise"] { --theme-accent: #ffb020; --theme-glow: rgba(255, 176, 32, .28); }
+body[data-theme="wheel"] { --theme-accent: #00ff88; --theme-glow: rgba(0, 255, 136, .28); }
+body[data-theme="versus"] { --theme-accent: #ff2e63; --theme-glow: rgba(255, 46, 99, .30); }
+body[data-theme="calm"] { --theme-accent: #7aa0ff; --theme-glow: rgba(122, 160, 255, .28); }
+body[data-theme="void"] { --theme-accent: #a050ff; --theme-glow: rgba(160, 80, 255, .30); }
+body[data-theme="gold"] { --theme-accent: #ffd700; --theme-glow: rgba(255, 215, 0, .28); }
+body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 10px 32px rgba(0, 0, 0, .45), 0 0 26px var(--theme-glow); }
+
+/* v37: global leaderboard (Cloudflare Workers + D1) */
+#lbBox { margin-top: 12px; }
+.lb-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.lb-row input[type=text] { flex: 1; min-width: 0; padding: 10px; }
+.lb-row .btn-secondary { flex: none; width: auto; } /* v37.1: width:100% from .btn-secondary crushed the name input to a sliver */
+#lbModes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; justify-content: center; } /* v37.2: buttons were left-hugging with empty space on the right; centered as a group */
+.lb-mode { padding: 6px 10px; font-size: 11px; flex: none; } /* v37.1: flex:1 from .btn-diff shrank all six buttons onto one line, clipping CHALLENGE */
+#lbRank:empty { display: none; } /* v37.1: .msg border rendered an empty box when no wallet was entered */
+#lbList { margin-top: 8px; }
+.lb-row.league-row { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.lb-rank { color: var(--yellow); min-width: 28px; }
+.lb-wallet { color: #888; font-size: 10px; }
+.lb-score { color: var(--green); margin-left: auto; }
+.lb-verified { color: var(--green); font-weight: 700; } /* v40.1: ✓ on verified board rows */
+.lb-me { border-color: var(--yellow) !important; color: #fff; }
+#lbSubmitBtn:disabled { opacity: .45; }
+
+/* ==========================================
+   v38 — real pause menu (DOM overlay)
+   ========================================== */
+/* Sits above the game canvas but below the settings sheet (z 40/41), so
+   opening settings mid-song still works. Hidden whenever the game is not
+   paused; EXIT / TERMINATE are two-step armed in JS, never window.confirm. */
+#pauseOverlay { position: fixed; inset: 0; z-index: 35; background: rgba(0, 0, 0, .82); display: flex; align-items: center; justify-content: center; padding: 20px; }
+#pauseOverlay.hidden { display: none !important; }
+.pause-box { border: 1px solid rgba(255, 255, 255, .14); border-radius: 20px; background: rgba(8, 10, 12, .97); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); padding: 20px 16px; text-align: center; width: min(340px, 100%); display: flex; flex-direction: column; gap: 10px; }
+.pause-title { font-family: 'Press Start 2P', monospace; font-size: 16px; color: #fff; margin: 0 0 6px 0; letter-spacing: 2px; }
+.pause-box .sheet-row { text-align: left; }
+#pauseVolVal { color: rgba(255, 255, 255, .85); font-size: 11px; min-width: 38px; text-align: right; }
