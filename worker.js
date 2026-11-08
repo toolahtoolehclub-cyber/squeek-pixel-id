@@ -164,7 +164,7 @@
 // It already exists since v3 — do NOT rotate or re-enter it.
 //
 // Endpoints (all JSON, CORS open):
-//   GET  /                  -> { service, version: 9 }
+//   GET  /                  -> { service, version: 10 }
 //   GET  /cheese?wallet=0x...   -> { wallet, balance, items: [{id, slot,
 //                             rarity, name, price, equipped}], catalog }
 //                             (no wallet -> catalog only, balance 0)
@@ -185,6 +185,13 @@
 //                             Credits duplicate-capsule Keju from a
 //                             verified CapsuleResolved receipt, idempotent
 //                             per txHash.
+//   POST /dream/harvest {wallet, plantedAt, stage}
+//                          -> { ok, keju, night_key } or 400/409.
+//                             One Dream Seed harvest per (wallet, Squeek
+//                             night); reward 25 + 25*stage, max 75 Keju.
+//   POST /analytics {event} -> { ok } or 400.
+//                             Anonymous counts only (visit, play, mode_*,
+//                             shop_open, submit). No wallet, no IP stored.
 //   GET  /league?week=YYYY-MM-DD&wallet=0x...
 //                          -> { week_start, reset_at, count,
 //                             scores: [{rank, wallet, name, best_score,
@@ -254,6 +261,38 @@ const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const RATE_MAX_WALLET = 10;
 const RATE_MAX_IP = 30;
+// --- v10 (P0-1): rate limit — COUNT FIRST, insert ONLY if allowed.
+// v9 inserted a log row BEFORE the check, so every rejected attempt added
+// a row and extended its own block. The 429 body now carries retryAfterSec
+// (seconds until the oldest row in the window ages out) so the client can
+// show an exact retry clock time. `table` is always a literal from this
+// file, never user input.
+async function rateLimitAllowed(env, table, wallet, ip, walletMax, ipMax) {
+  const now = Date.now();
+  const windowStart = now - RATE_WINDOW_MS;
+  await env.DB.prepare(`DELETE FROM ${table} WHERE ts < ?`).bind(windowStart).run();
+  const walletRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS n, MIN(ts) AS oldest FROM ${table} WHERE wallet = ? AND ts >= ?`
+  ).bind(wallet, windowStart).first();
+  const ipRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS n, MIN(ts) AS oldest FROM ${table} WHERE ip = ? AND ts >= ?`
+  ).bind(ip, windowStart).first();
+  const walletCount = (walletRow && walletRow.n) || 0;
+  const ipCount = (ipRow && ipRow.n) || 0;
+  if (walletCount >= walletMax || ipCount >= ipMax) {
+    const oldestWallet = walletCount >= walletMax && walletRow.oldest ? walletRow.oldest : Infinity;
+    const oldestIp = ipCount >= ipMax && ipRow.oldest ? ipRow.oldest : Infinity;
+    const oldest = Math.min(oldestWallet, oldestIp);
+    const retryAfterSec = Number.isFinite(oldest)
+      ? Math.max(1, Math.ceil((oldest + RATE_WINDOW_MS - now) / 1000))
+      : Math.ceil(RATE_WINDOW_MS / 1000);
+    return { allowed: false, retryAfterSec };
+  }
+  await env.DB.prepare(
+    `INSERT INTO ${table} (wallet, ip, ts) VALUES (?, ?, ?)`
+  ).bind(wallet, ip, now).run();
+  return { allowed: true, retryAfterSec: 0 };
+}
 // A perfect run scores at most ~1800 points per note; the +1000 slack
 // covers menu/idle ticks counted in the score.
 const MAX_SCORE_PER_NOTE = 1800;
@@ -362,6 +401,10 @@ const SQK_TOKEN = "0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e"; // Sepolia SQK
 const SHOP_OWNER = "0x88538a82143065664232422e2dec4309038fcf9a";
 const SEPOLIA_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
 const SQUEEK_API_SETTLEMENTS = "https://api.squeekchain.com/v1/settlements";
+const SQUEEK_API_STATS = "https://api.squeekchain.com/v1/measurement/stats?range=7d";
+// --- v10: GHOST pace bound — a claimed ghost pace above 1.0 m/s is not a
+// real daytime average (fastest sustained daytime pace observed ~0.6 m/s).
+const GHOST_PACE_MAX_MS = 1.0;
 const SQK_SHOP_CATALOG = [
   { id: 1, name: "Skin Rare", priceSqk: 5 },
   { id: 2, name: "Efek Epic", priceSqk: 10 },
@@ -732,6 +775,18 @@ function checkOppDist(replay) {
   }
   const opp = fin.oppDistM;
   if (!isFiniteNumber(opp) || opp < 0) return "finish.oppDistM is not valid";
+  // v10 (P1-3): GHOST race — the opponent is a simulation at a real
+  // daytime pace, not the live wheel. Validate oppDistM against the
+  // claimed pace x finish time (tolerance 2 m for tick rounding).
+  if (h.ghost === true) {
+    const pace = h.ghostPaceMs;
+    if (typeof pace !== "number" || !Number.isFinite(pace) || pace < 0 || pace > GHOST_PACE_MAX_MS) {
+      return "ghost pace is not valid";
+    }
+    const expected = pace * fin.t;
+    if (Math.abs(opp - expected) > 2) return "finish.oppDistM inconsistent with ghost pace";
+    return null;
+  }
   const polls = replay.events.polls;
   const lastPoll = polls.length ? polls[polls.length - 1] : null;
   if (!lastPoll || !lastPoll.ok) {
@@ -809,6 +864,22 @@ function validateReplay(replay, body, mode, score, acc) {
   }
   if (!isFiniteNumber(h.initialDistKm) || h.initialDistKm < 0) {
     return { ok: false, error: "replay header initialDistKm is not valid" };
+  }
+  // v10 (P1-3): GHOST race — the header declares whether the opponent was
+  // a simulation and at what pace. Ghost only exists in race mode; the
+  // pace is capped at 1.0 m/s (fastest sustained daytime pace observed
+  // ~0.6 m/s). checkOppDist validates oppDistM against the pace.
+  if (h.ghost !== undefined && typeof h.ghost !== "boolean") {
+    return { ok: false, error: "replay header ghost is not valid" };
+  }
+  if (h.ghost === true && h.mode !== "race") {
+    return { ok: false, error: "replay ghost is only valid in race mode" };
+  }
+  if (h.ghostPaceMs !== undefined && (!isFiniteNumber(h.ghostPaceMs) || h.ghostPaceMs < 0 || h.ghostPaceMs > GHOST_PACE_MAX_MS)) {
+    return { ok: false, error: "replay header ghostPaceMs out of range" };
+  }
+  if (h.ghost === true && (h.ghostPaceMs === undefined || h.ghostPaceMs <= 0)) {
+    return { ok: false, error: "replay header ghostPaceMs is missing" };
   }
   const ev = replay.events;
   if (!ev || typeof ev !== "object") return { ok: false, error: "replay events are missing" };
@@ -1019,7 +1090,57 @@ async function markRejected(env, replayHash, reason, now) {
 // { ok: true } on pass, { ok: false, reason } on a deterministic failure
 // (rejected), and THROWS on transient errors (engine/D1 failure) so the
 // caller can leave the row pending for a retry.
-async function verifyOne(env, row, now) {
+// --- v10 (P1-2): poll cross-check against public wheel data ---
+// A fake poll log claiming ZOOMIES all song doubles the score. The public
+// /v1/measurement/stats?range=7d gives 30-minute buckets with workUnits;
+// a bucket with coverage "complete" and workUnits "0" PROVES the wheel did
+// not move in that half hour. If EVERY bucket covering the song window is
+// provably still, any poll claiming rpm > 0 is fabrication -> reject.
+// Missing/partial/null buckets are inconclusive -> SKIP (fail open, never
+// reject on missing data). Fetch failure -> skip the check.
+function pollsContradictWheel(stats, wallStartMs, durationMs, polls) {
+  if (!stats || !Array.isArray(stats.days)) return false;
+  const okPolls = (Array.isArray(polls) ? polls : []).filter(
+    (p) => p && p.ok && typeof p.rpm === "number" && p.rpm > 0
+  );
+  if (!okPolls.length) return false; // no live claim to contradict
+  const endMs = wallStartMs + durationMs;
+  const bucketStarts = new Set();
+  for (let t = Math.floor(wallStartMs / (30 * 60000)) * 30 * 60000; t < endMs; t += 30 * 60000) {
+    bucketStarts.add(t);
+  }
+  if (!bucketStarts.size) return false;
+  let checked = 0, still = 0;
+  for (const bucketStart of bucketStarts) {
+    const d = new Date(bucketStart);
+    const dateKey = d.toISOString().slice(0, 10);
+    const minuteUtc = d.getUTCHours() * 60 + d.getUTCMinutes();
+    const day = stats.days.find((x) => x && x.date === dateKey);
+    if (!day || !Array.isArray(day.buckets)) continue;
+    const bucket = day.buckets.find((b) => b && b.startMinuteUtc === minuteUtc);
+    if (!bucket) continue;
+    if (bucket.coverage !== "complete") continue;
+    if (bucket.workUnits === null || bucket.workUnits === undefined) continue;
+    const w = Number(bucket.workUnits);
+    if (!Number.isFinite(w)) continue;
+    checked++;
+    if (w === 0) still++;
+  }
+  // Only reject when the window is FULLY covered by provably-still buckets.
+  return checked > 0 && checked === bucketStarts.size && still === checked;
+}
+
+// --- v10 (P2-2): Dream Seed harvest reward — 25 + 25 per stage, max 75
+// Keju per night (comparable to one verified song). The planted timestamp
+// is client-claimed, so the reward is deliberately small and capped, and
+// the one-per-night rule is enforced server-side by the ledger's UNIQUE
+// (wallet, kind, day_key) index.
+function dreamReward(stage) {
+  const st = Math.max(0, Math.min(2, Math.floor(Number(stage) || 0)));
+  return Math.min(75, 25 + 25 * st);
+}
+
+async function verifyOne(env, row, now, wheelStats) {
   const replay = JSON.parse(row.replay);
   const chart = buildChart(replay.header);
   const sim = simulate(chart, replay);
@@ -1027,6 +1148,12 @@ async function verifyOne(env, row, now) {
   if (!v.ok) {
     await markRejected(env, row.replay_hash, v.reason, now);
     return { ok: false, reason: v.reason };
+  }
+  // v10 (P1-2): poll cross-check — a replay whose polls claim the wheel
+  // moved while the public stats prove it was still is fabricated.
+  if (wheelStats && pollsContradictWheel(wheelStats, replay.header.wallStartMs, replay.header.duration * 1000, replay.events.polls)) {
+    await markRejected(env, row.replay_hash, "polls contradict public wheel data", now);
+    return { ok: false, reason: "polls contradict public wheel data" };
   }
   const privHex = env.SIGNING_KEY;
   if (typeof privHex !== "string" || !/^[0-9a-fA-F]{64}$/.test(privHex)) {
@@ -1134,6 +1261,13 @@ async function processVerifyQueue(env) {
   )
     .bind(VERIFY_BATCH)
     .all();
+  // v10 (P1-2): fetch the public wheel stats ONCE per cron run for the
+  // poll cross-check (not per row). Fetch failure -> skip the check.
+  let wheelStats = null;
+  try {
+    const statsRes = await fetch(SQUEEK_API_STATS, { headers: { "User-Agent": "squeekchain-leaderboard/10" } });
+    if (statsRes.ok) wheelStats = await statsRes.json().catch(() => null);
+  } catch (_) {}
   let verified = 0;
   let rejected = 0;
   for (const row of results) {
@@ -1144,7 +1278,7 @@ async function processVerifyQueue(env) {
       .run();
     if ((claimed.meta.changes || 0) === 0) continue; // claimed by another run
     try {
-      const out = await verifyOne(env, row, Date.now());
+      const out = await verifyOne(env, row, Date.now(), wheelStats);
       if (out.ok) verified++;
       else rejected++;
     } catch (e) {
@@ -1176,7 +1310,7 @@ export default {
 
     try {
       if (url.pathname === "/" && request.method === "GET") {
-        return json({ service: "squeekchain-leaderboard", version: 9 });
+        return json({ service: "squeekchain-leaderboard", version: 10 });
       }
 
       // --- v5: Cheese shop (GET /cheese, POST /cheese/buy|pull|equip) ---
@@ -1340,23 +1474,15 @@ export default {
         if (!Number.isInteger(targetRound) || targetRound < 0) {
           return json({ error: "targetRound is not valid" }, 400);
         }
-        // Rate limit 10/wallet/hour, same submit_log pattern as /scores.
+        // v10 (P0-1): resolve has its OWN counter (resolve_log) — score
+        // submits must not block capsule resolve. Check BEFORE insert.
         const now = Date.now();
-        await env.DB.prepare("DELETE FROM submit_log WHERE ts < ?")
-          .bind(now - RATE_WINDOW_MS)
-          .run();
-        const walletCount = await env.DB.prepare(
-          "SELECT COUNT(*) AS n FROM submit_log WHERE wallet = ? AND ts >= ?"
-        )
-          .bind(wallet, now - RATE_WINDOW_MS)
-          .first();
         await env.DB.prepare(
-          "INSERT INTO submit_log (wallet, ip, ts) VALUES (?, ?, ?)"
-        )
-          .bind(wallet, request.headers.get("CF-Connecting-IP") || "unknown", now)
-          .run();
-        if ((walletCount.n || 0) >= RATE_MAX_WALLET) {
-          return json({ error: "rate_limited" }, 429);
+          "CREATE TABLE IF NOT EXISTS resolve_log (wallet TEXT NOT NULL, ip TEXT NOT NULL, ts INTEGER NOT NULL)"
+        ).run();
+        const rlResolve = await rateLimitAllowed(env, "resolve_log", wallet, request.headers.get("CF-Connecting-IP") || "unknown", RATE_MAX_WALLET, RATE_MAX_IP);
+        if (!rlResolve.allowed) {
+          return json({ error: "rate_limited", retryAfterSec: rlResolve.retryAfterSec }, 429);
         }
         // Is targetRound settled? The public API takes NO query params.
         let recent = null;
@@ -1578,7 +1704,73 @@ export default {
         });
       }
 
+      if (url.pathname === "/dream/harvest" && request.method === "POST") {
+        const body = await request.json().catch(() => null);
+        if (!body || !isWallet(body.wallet)) {
+          return json({ error: "wallet address is not valid" }, 400);
+        }
+        const wallet = body.wallet.toLowerCase();
+        const plantedAt = Number(body.plantedAt);
+        const stage = Math.floor(Number(body.stage));
+        if (!Number.isFinite(plantedAt) || plantedAt <= 0 || plantedAt > Date.now()) {
+          return json({ error: "plantedAt is not valid" }, 400);
+        }
+        if (!Number.isInteger(stage) || stage < 0 || stage > 2) {
+          return json({ error: "stage is not valid" }, 400);
+        }
+        // v10 (P2-2): one harvest per (wallet, Squeek night). The night key
+        // is derived server-side from plantedAt. The dream_harvests row is
+        // the guard (INSERT OR IGNORE); the balance + ledger credit runs
+        // after it. Tiny failure window: if the batch after the guard
+        // fails, the guard row exists and a retry returns 409 — the credit
+        // can then only be fixed manually. Accepted: D1 errors there are
+        // rare and the amount is at most 75 Keju.
+        const nightKey = squeekDayKey(plantedAt);
+        const keju = dreamReward(stage);
+        const now = Date.now();
+        await env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS dream_harvests (wallet TEXT NOT NULL, night_key TEXT NOT NULL, planted_at INTEGER NOT NULL, stage INTEGER NOT NULL, reward INTEGER NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY (wallet, night_key))"
+        ).run();
+        await env.DB.prepare(
+          "CREATE UNIQUE INDEX IF NOT EXISTS idx_cheese_ledger_dream ON cheese_ledger(wallet, kind, day_key) WHERE kind = 'dream'"
+        ).run();
+        const guard = await env.DB.prepare(
+          "INSERT OR IGNORE INTO dream_harvests (wallet, night_key, planted_at, stage, reward, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+        ).bind(wallet, nightKey, plantedAt, stage, keju, now).run();
+        if ((guard.meta.changes || 0) === 0) {
+          return json({ error: "already harvested" }, 409);
+        }
+        await env.DB.batch([
+          env.DB.prepare(
+            "INSERT INTO cheese_balances (wallet, balance, updated_at) VALUES (?, ?, ?) ON CONFLICT(wallet) DO UPDATE SET balance = cheese_balances.balance + excluded.balance, updated_at = excluded.updated_at"
+          ).bind(wallet, keju, now),
+          env.DB.prepare(
+            "INSERT OR IGNORE INTO cheese_ledger (wallet, replay_hash, kind, amount, day_key, created_at) VALUES (?, NULL, 'dream', ?, ?, ?)"
+          ).bind(wallet, keju, nightKey, now),
+        ]);
+        return json({ ok: true, keju, night_key: nightKey });
+      }
+
+      if (url.pathname === "/analytics" && request.method === "POST") {
+        const body = await request.json().catch(() => null);
+        const event = body && typeof body.event === "string" ? body.event : "";
+        const allowed = ["visit", "play", "mode_free", "mode_daily", "mode_live", "mode_race", "mode_boss", "mode_lullaby", "shop_open", "submit"];
+        if (allowed.indexOf(event) < 0) {
+          return json({ error: "event is not valid" }, 400);
+        }
+        // v10 (P2-5): anonymous counts only — no wallet, no IP stored.
+        await env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS analytics_daily (day_key TEXT NOT NULL, event TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day_key, event))"
+        ).run();
+        const dayKey = squeekDayKey(Date.now());
+        await env.DB.prepare(
+          "INSERT INTO analytics_daily (day_key, event, n) VALUES (?, ?, 1) ON CONFLICT(day_key, event) DO UPDATE SET n = analytics_daily.n + 1"
+        ).bind(dayKey, event).run();
+        return json({ ok: true });
+      }
+
       if (url.pathname === "/session" && request.method === "POST") {
+        const sessBody = await request.json().catch(() => null);
         const sessionId = crypto.randomUUID();
         const seed = randomSeed();
         const nonce = randomNonce();
@@ -1593,6 +1785,19 @@ export default {
         )
           .bind(sessionId, seed, nonce, expiresAt)
           .run();
+        // v10 (P1-2): bind the session to the wallet that requested it.
+        // The client already sends `wallet` (or 'GUEST'); /scores checks
+        // the binding so a session issued for one wallet cannot submit a
+        // score for another. Legacy/unbound sessions are not checked.
+        const sessWallet = sessBody && typeof sessBody.wallet === "string" ? sessBody.wallet.toLowerCase() : null;
+        if (sessWallet && sessWallet !== "guest" && isWallet(sessWallet)) {
+          await env.DB.prepare(
+            "CREATE TABLE IF NOT EXISTS session_wallets (session_id TEXT PRIMARY KEY, wallet TEXT NOT NULL)"
+          ).run();
+          await env.DB.prepare(
+            "INSERT INTO session_wallets (session_id, wallet) VALUES (?, ?)"
+          ).bind(sessionId, sessWallet).run();
+        }
         return json({ sessionId, seed, nonce, expiresAt });
       }
 
@@ -1660,28 +1865,12 @@ export default {
         const ip = request.headers.get("CF-Connecting-IP") || "unknown";
         const now = Date.now();
 
-        // --- Rate limit, BEFORE plausibility. Every attempt is logged,
-        // including ones that fail later checks. Old rows (>1h) are pruned.
-        await env.DB.prepare("DELETE FROM submit_log WHERE ts < ?")
-          .bind(now - RATE_WINDOW_MS)
-          .run();
-        const walletCount = await env.DB.prepare(
-          "SELECT COUNT(*) AS n FROM submit_log WHERE wallet = ? AND ts >= ?"
-        )
-          .bind(wallet, now - RATE_WINDOW_MS)
-          .first();
-        const ipCount = await env.DB.prepare(
-          "SELECT COUNT(*) AS n FROM submit_log WHERE ip = ? AND ts >= ?"
-        )
-          .bind(ip, now - RATE_WINDOW_MS)
-          .first();
-        await env.DB.prepare(
-          "INSERT INTO submit_log (wallet, ip, ts) VALUES (?, ?, ?)"
-        )
-          .bind(wallet, ip, now)
-          .run();
-        if ((walletCount.n || 0) >= RATE_MAX_WALLET || (ipCount.n || 0) >= RATE_MAX_IP) {
-          return json({ error: "rate_limited" }, 429);
+        // --- Rate limit, BEFORE plausibility. v10 (P0-1): check BEFORE
+        // insert — a rejected attempt adds NO row and cannot extend its
+        // own block. The 429 body carries retryAfterSec for the client.
+        const rlScores = await rateLimitAllowed(env, "submit_log", wallet, ip, RATE_MAX_WALLET, RATE_MAX_IP);
+        if (!rlScores.allowed) {
+          return json({ error: "rate_limited", retryAfterSec: rlScores.retryAfterSec }, 429);
         }
 
         // --- Basic score validation (unchanged from v1).
@@ -1838,6 +2027,14 @@ export default {
         if (s.seed !== replay.header.seed) {
           return json({ error: "replay seed mismatch" }, 422);
         }
+        // v10 (P1-2): session->wallet binding — a bound session only
+        // submits for its own wallet. Unbound (legacy/GUEST) sessions skip.
+        const binding = await env.DB.prepare(
+          "SELECT wallet FROM session_wallets WHERE session_id = ?"
+        ).bind(body.sessionId).first();
+        if (binding && binding.wallet && binding.wallet !== wallet) {
+          return json({ error: "session wallet mismatch" }, 422);
+        }
         const sessionCreated = s.expires_at - SESSION_TTL_MS;
         const wallStart = replay.header.wallStartMs;
         if (wallStart < sessionCreated - REALTIME_SKEW_MS || wallStart > s.expires_at) {
@@ -1974,4 +2171,4 @@ export default {
 
 // Named exports for local unit tests (the Worker runtime only uses
 // `default`; esbuild keeps these in the bundle).
-export { canonical, replayHashOf, validateReplay, checkOppDist, verifySimulated, cheeseEarned, squeekDayKey, weekStartMs, weekStartKey, capsuleRarity, capsulePool, capsulePick, dupCompensation, catalogItem, CHEESE_CATALOG, CHEESE_PER_SONG, CHEESE_GRADE_S_BONUS, CHEESE_DAILY_BONUS, CHEESE_PULL_PRICE };
+export { canonical, replayHashOf, validateReplay, checkOppDist, verifySimulated, cheeseEarned, squeekDayKey, weekStartMs, weekStartKey, capsuleRarity, capsulePool, capsulePick, dupCompensation, catalogItem, rateLimitAllowed, pollsContradictWheel, dreamReward, CHEESE_CATALOG, CHEESE_PER_SONG, CHEESE_GRADE_S_BONUS, CHEESE_DAILY_BONUS, CHEESE_PULL_PRICE, GHOST_PACE_MAX_MS };

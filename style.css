@@ -597,3 +597,37 @@ body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 1
 #resultPanel.frame-rainbow { border: 3px solid transparent; background: linear-gradient(rgba(5, 6, 7, .94), rgba(5, 6, 7, .94)) padding-box, linear-gradient(135deg, #ff5ce1, #ffd700, #00e5ff, #7dffc8) border-box; box-shadow: 0 0 24px rgba(255, 92, 225, .4); }
 #resultPanel.frame-sqk { border: 3px solid transparent; background: linear-gradient(rgba(5, 6, 7, .94), rgba(5, 6, 7, .94)) padding-box, linear-gradient(90deg, #3b82f6, #f43f5e, #a3e635, #3b82f6) border-box; background-size: 100% 100%, 300% 100%; animation: sqkFrameShift 3s linear infinite; box-shadow: 0 0 24px rgba(59, 130, 246, .4); }
 @keyframes sqkFrameShift { to { background-position: 0 0, 300% 0; } }
+
+/* ==========================================
+   v42.5 — tagline, wallet status, shop previews, Dream Seeds, small button
+   ========================================== */
+/* P1-4: first-impression tagline, visible within 5 seconds of landing. */
+.tagline { text-align: center; color: var(--cyan); font-size: 13px; font-weight: bold; letter-spacing: 1px; margin: 2px 0 10px 0; }
+/* P1-1: wallet status card — green when connected, so a saved manual
+   address can never be mistaken for a live connection. */
+.wallet-status { text-align: center; font-size: 12px; font-weight: bold; border: 1px solid var(--green); border-radius: 10px; padding: 10px; color: var(--green); margin-top: 10px; }
+.wallet-status.not-connected { border-color: var(--yellow); color: var(--yellow); }
+#walletInput[readonly] { opacity: .65; }
+#walletManualNote { font-size: 11px; }
+/* P1-5: shop previews — the product itself, rendered from the skin's own
+   palette (no new image assets). Note skins: a row of hamster-note dots;
+   frames: a mini framed panel; capsules: a rarity-coloured dot + label. */
+.shop-preview { display: flex; align-items: center; gap: 6px; margin: 2px 0; min-height: 22px; }
+.shop-preview .pv-dot { width: 16px; height: 16px; border-radius: 4px; display: inline-block; }
+.shop-preview .pv-frame { border: 3px solid #00ffff; border-radius: 6px; padding: 4px 10px; font-size: 10px; color: #fff; }
+.shop-preview .pv-frame.frame-gold { border-color: #ffd700; }
+.shop-preview .pv-frame.frame-royal { border-color: #a050ff; }
+.shop-preview .pv-frame.frame-rainbow { border-color: transparent; background: linear-gradient(rgba(5,6,7,.9), rgba(5,6,7,.9)) padding-box, linear-gradient(135deg, #ff5ce1, #ffd700, #00e5ff, #7dffc8) border-box; }
+.shop-preview .pv-frame.frame-sqk { border-color: transparent; background: linear-gradient(rgba(5,6,7,.9), rgba(5,6,7,.9)) padding-box, linear-gradient(90deg, #3b82f6, #f43f5e, #a3e635, #3b82f6) border-box; }
+.shop-preview .pv-cap { font-size: 11px; font-weight: bold; }
+.shop-preview .pv-cap.common { color: #9aa5a8; }
+.shop-preview .pv-cap.rare { color: #3b82f6; }
+.shop-preview .pv-cap.epic { color: #a050ff; }
+.shop-preview .pv-cap.legendary { color: #ffd700; }
+/* P2-2: Dream Seeds box (DAILY tab) + Lullaby box (PLAY tab). */
+#dreamBox { border: 1px dashed #7a50ff; border-radius: 10px; padding: 10px; }
+#lullabyBox { border: 1px dashed #7a50ff; border-radius: 10px; padding: 10px; margin-top: 10px; }
+#lullabyBox p { margin: 4px 0; }
+/* P2-6: GENERATE CARD is now a small button under SUBMIT, not a full-width
+   button next to RETRY (it was too easy to tap by accident). */
+.btn-small { font-size: 11px; padding: 8px 12px; width: auto; align-self: center; }

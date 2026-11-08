@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build + deploy Worker v9 (v42.4: replay t boleh negatif sampai -2.5, lead-in) (squeekchain-leaderboard).
+# Build + deploy Worker v10 (v42.5: rate-limit check-sebelum-insert + resolve_log terpisah, session->wallet, poll cross-check, GHOST, Dream Seeds, analytics) (squeekchain-leaderboard).
 # The repo keeps `import { buildChart, simulate } from "./engine.js"`;
 # esbuild inlines engine.js (and @noble) into ONE bundle because
 # upload_worker.py only uploads a single file.
@@ -7,8 +7,8 @@
 #   bundle-only : just produce /tmp/v42.4-build/dist/worker.js
 #   deploy      : bundle + upload (default)
 set -euo pipefail
-V421="$HOME/workspace/goals/domain-squeekpixel-is-a-dev-submit-genesis-buildooooor/files/squeekchain-v42.4"
-BUILD=/tmp/v42.4-build
+V421="$HOME/workspace/goals/domain-squeekpixel-is-a-dev-submit-genesis-buildooooor/files/squeekchain-v42.5"
+BUILD=/tmp/v42.5-build
 DB_ID=cd6920f3-3efb-491d-ae0c-b287069c8052
 mkdir -p "$BUILD/dist"
 cp "$V421/worker.js" "$V421/engine.js" "$BUILD/"

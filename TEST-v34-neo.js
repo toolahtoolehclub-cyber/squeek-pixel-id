@@ -36,11 +36,16 @@ IDS.forEach(id => {
   t('v33 id present once: ' + id, n === 1);
 });
 t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
+// --- v42.5 ids: wallet status card + disconnect + night boxes + shop previews ---
+['walletStatus', 'disconnectBtn', 'walletManualNote', 'raceGhostLine', 'lullabyBox', 'lullabyInfo', 'dreamBox', 'dreamLine', 'dreamPlantBtn', 'dreamHarvestBtn', 'capsulePreview', 'sqkCapsulePreview'].forEach(id => {
+  const n = (html.match(new RegExp('id="' + id + '"', 'g')) || []).length;
+  t('v42.5 id present once: ' + id, n === 1);
+});
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v42.4', (html.match(/v42\.4/g) || []).length >= 2);
-t('browser tab title is v42.4', html.includes('<title>SQUEEKCHAIN // v42.4</title>'));
+t('html says v42.5', (html.match(/v42\.5/g) || []).length >= 2);
+t('browser tab title is v42.5', html.includes('<title>SQUEEKCHAIN // v42.5</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -274,8 +279,8 @@ t('LB_URL is the workers.dev endpoint', js.includes("LB_URL: 'https://squeekchai
 t('lb modes are the six game modes', js.includes("const LB_MODES = ['free', 'daily', 'live', 'race', 'boss', 'challenge'];"));
 ['lbLoading', 'lbOffline', 'lbEmpty', 'lbSent', 'lbKept', 'lbNeedWallet', 'lbNoScore', 'lbPractice', 'lbYourRank', 'lbVerifying', 'lbVerified', 'lbVerifyRejected', 'lbVerifyUnknown'].forEach(k => t('MSG has lb key: ' + k, js.includes(k + ':')));
 ['lbTitle', 'lbNote', 'lbRefresh', 'lbSubmit'].forEach(k => t('I18N has lb key: ' + k, js.includes(k + ':')));
-t('setTab fetches the board on LEAGUE', js.includes("if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); }"));
-t('endGame captures the submittable result (v38: + sessionId/taps/notes/durationMs)', js.includes('lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice, sessionId: G.sessionId || null, taps: G.taps || 0, notes:') && js.includes('durationMs: anthem ? Math.round(anthem.duration * 1000) : 0'));
+t('setTab fetches the board on LEAGUE', js.includes("if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); recheckVerifyOnLeague(); }"));
+t('endGame captures the submittable result (v38: + sessionId/taps/notes/durationMs; v42.5: + lullaby)', js.includes('lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice, lullaby: !!G.lullaby, sessionId: G.sessionId || null, taps: G.taps || 0, notes:') && js.includes('durationMs: anthem ? Math.round(anthem.duration * 1000) : 0'));
 t('submit is disabled while sending', js.includes('b.disabled = true') && js.includes('resetLbSubmit()'));
 t('submit posts to /scores', js.includes("CONFIG.LB_URL + '/scores'") && js.includes("method: 'POST'"));
 t('submit only beats the stored best (worker upsert)', js.includes("d.improved ? msg('lbSent') : msg('lbKept')"));
@@ -396,7 +401,7 @@ t('Genesis meta tag is line 8, byte-identical', htmlLines[7] === '<meta name="sq
 t('README last line is the Genesis proof', readme.trimEnd().split('\n').pop() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 t('OG image is absolute on the live domain', html.includes('og:image" content="https://squeekpixel.web.id/squeekchain-headline-simple.png"'));
 t('Twitter card is summary_large_image', html.includes('twitter:card" content="summary_large_image"'));
-t('meta description is v42.4, not v32 NEO', html.includes('SQUEEKCHAIN v42.4') && !html.includes('v32 NEO'));
+t('meta description is v42.5, not v32 NEO', html.includes('SQUEEKCHAIN v42.5') && !html.includes('v32 NEO'));
 t('README documents 11 achievements', readme.includes('11 named achievements'));
 t('README documents the v38 XP economy', readme.includes('54,000 total XP') && readme.includes('[0, 700, 2000, 4300, 8500, 16000, 29500, 54000]'));
 t('README documents the 19:00 WIB Squeek-day reset', readme.includes('19:00 WIB'));
@@ -485,7 +490,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v42.4', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.4'"));
+t('submit sends replay + hash + gameVersion v42.5', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.5'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -511,7 +516,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v42.4', readme.startsWith('# Squeekchain v42.4'));
+t('README title is v42.5', readme.startsWith('# Squeekchain v42.5'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -841,7 +846,7 @@ const validateReplay42 = new Function(
   'const GENRES = ["cyber","synth","chip","void"]; const DIFFS = ["easy","normal","hard"]; const MAX_EXTRA_TAPS = 50; const MAX_POLLS = 600; const GOLDEN_MAX = 2;\n' +
   fnSrcW('isNonEmptyString') + '\n' + fnSrcW('isInt') + '\n' + fnSrcW('isFiniteNumber') + '\n' + fnSrcW('checkOppDist') + '\n' + fnSrcW('validateReplay') +
   '\nreturn validateReplay;')();
-t('worker v9: GET / version 9', worker.includes('version: 9'));
+t('worker v10: GET / version 10', worker.includes('version: 10'));
 t('worker v9: replay user ASLI lolos validasi bentuk (yang menolaknya simulasi, bukan validasi)', validateReplay42(userRep42, { notes: 148 }, 'daily', 34675, 51.8).ok === true);
 t('worker v9: replay user t=-0.10 LOLOS validasi (lead-in diterima)', validateReplay42(userFixed42, { notes: 148 }, 'daily', 34675, 51.8).ok === true);
 const userTooEarly42 = JSON.parse(JSON.stringify(userRep42));
@@ -1032,8 +1037,9 @@ async function runEquipTests42() {
   const sqkState42 = { pool: 1500000000000000000n, seasonEnd: 1801915200, sweepAt: 1802520000, swept: false, sqkBalance: 23500000000000000000n, owned: { 1: 1, 2: 0, 3: 0, 4: 1, 5: 0, 6: 0 }, pity: 3 };
   const renderMsgStub = k => ({ sqkEquippedTpl: 'DIPAKAI ✓', sqkBuyTpl: '[ BELI — {price} SQK ]', sqkOwnedTpl: 'DIMILIKI ×{n}', sqkPoolTpl: 'POOL: {pool} SQK', sqkSeasonTpl: 'MUSIM BERAKHIR: {date}', sqkSweepTpl: 'sapu {date}', sqkBalanceTpl: 'SALDO SQK: {n}', sqkPityTpl: 'PITY: {n} / 20', sqkResolveBtn: '[ RESOLVE KAPSUL ]' }[k] || k);
   const renderMsgfStub = (k, vars) => { let s = renderMsgStub(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; };
+  const skinsSrc42 = js.slice(js.indexOf('const NOTE_SKINS'), js.indexOf('function shopSkin'));
   const renderSqkShop = new Function('sqkState', '$', 'msg', 'msgf', 'fmt', 'sqkDateStr', 'escHtml', 'currentWallet', 'sqkPendingCapsule', 'isAddr', 'CONFIG', 'SQK_ZERO_ADDRESS', 'lang', 'loadJSON',
-    catSrc + '\n' + fnSrc38('sqkShopDeployed') + '\n' + fnSrc38('sqkIsEquipped') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('renderSqkShop') +
+    catSrc + '\n' + skinsSrc42 + '\n' + fnSrc38('skinPreviewHtml') + '\n' + fnSrc38('capsulePreviewHtml') + '\n' + fnSrc38('sqkShopDeployed') + '\n' + fnSrc38('sqkIsEquipped') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('renderSqkShop') +
     '\nreturn renderSqkShop;')(
     sqkState42, $stub, renderMsgStub, renderMsgfStub,
     new Function(fnSrc38('fmt') + '\nreturn fmt;')(),
@@ -1049,6 +1055,8 @@ async function runEquipTests42() {
   t('v42.4 renderSqk: item 4 (owned + dipakai) -> DIPAKAI ✓, tanpa tombol EQUIP', catHtml.includes('DIPAKAI ✓') && !catHtml.includes('data-sqk-equip="4"'));
   t('v42.4 renderSqk: item 2 (belum dimiliki) -> tombol BELI', catHtml.includes('data-sqk-buy="2"'));
   t('v42.4 renderSqk: tidak ada tombol EQUIP untuk item yang belum dimiliki', !catHtml.includes('data-sqk-equip="2"') && !catHtml.includes('data-sqk-equip="5"') && !catHtml.includes('data-sqk-equip="6"'));
+  t('v42.5 renderSqk: tiap item menampilkan preview (dots/frame dari palet)', catHtml.includes('pv-dot') && catHtml.includes('pv-frame frame-sqk'));
+  t('v42.5 renderSqk: kapsul menampilkan 4 chip rarity', els.sqkCapsulePreview && els.sqkCapsulePreview.innerHTML.includes('pv-cap legendary'));
 }
 
 // 14h. Determinisme race (b): oppDistM terekam == nilai keputusan di
@@ -1068,7 +1076,7 @@ t('MSG lbVerifyUnknown exists in both langs', (js.match(/lbVerifyUnknown:/g) || 
 t('renderLb shows ✓ for verified rows only', js.includes('r.verified ?') && js.includes('lb-verified') && js.includes('✓'));
 t('CSS has .lb-verified', css.includes('.lb-verified'));
 t('pollVerify polls GET /verify with the replay hash', js.includes("'/verify?replayHash=' + encodeURIComponent(replayHash)"));
-t('pollVerify interval 10s, max 9 tries (~90s)', js.includes('VERIFY_POLL_INTERVAL_MS = 10000') && js.includes('VERIFY_POLL_MAX_TRIES = 9'));
+t('pollVerify interval 10s, max 12 tries (~120s) (v42.5 P2-3)', js.includes('VERIFY_POLL_INTERVAL_MS = 10000') && js.includes('VERIFY_POLL_MAX_TRIES = 12'));
 t('submitLb polls /verify on pending submit', js.includes('pollVerify(hash, showStatus)') && js.includes("d.pending && (d.replayHash || lastResult.replayHash)"));
 t('submitLb stops an old poll on a fresh submit', js.includes('stopVerifyPoll(); // v40.1'));
 t('resetLbSubmit stops the poll', js.includes('function resetLbSubmit() {\n  stopVerifyPoll();'));
@@ -1130,13 +1138,13 @@ async function runVerifyPollTests() {
     await driveVerify(h);
     t('pollVerify: rejected stops the poll', seen.length === 2 && seen[0] === 'pending' && seen[1] === 'rejected' && h.timers.length === 0 && h.calls === 1);
   }
-  // network down: 9 tries, then unknown — never claims verified
+  // network down: 12 tries, then unknown — never claims verified (v42.5: 9 -> 12)
   {
     const h = mkVerifyHarness([new Error('offline')]);
     const seen = [];
     h.api.pollVerify('0x' + 'ff'.repeat(32), (s) => seen.push(s));
     await driveVerify(h);
-    t('pollVerify: offline 9 tries then unknown', seen.length === 2 && seen[0] === 'pending' && seen[1] === 'unknown' && h.calls === 9);
+    t('pollVerify: offline 12 tries then unknown', seen.length === 2 && seen[0] === 'pending' && seen[1] === 'unknown' && h.calls === 12);
     t('pollVerify: offline never reports verified', !seen.includes('verified'));
   }
   // a fresh pollVerify cancels the previous timer
@@ -1220,7 +1228,7 @@ t('dupCompensation bogus = 0', dupCompensation('bogus') === 0);
 t('catalogItem finds note-gold', catalogItem('note-gold').slot === 'note' && catalogItem('note-gold').rarity === 'rare' && catalogItem('note-gold').price === 800);
 t('catalogItem misses unknown ids', catalogItem('nope') === null);
 // 15b. Worker v5 wiring (string checks — the live D1 + endpoint checks run after deploy).
-t('worker root reports version 9', worker.includes('version: 9'));
+t('worker root reports version 10', worker.includes('version: 10'));
 t('worker has GET /cheese', worker.includes("url.pathname === \"/cheese\" && request.method === \"GET\""));
 t('worker has POST /cheese/buy', worker.includes("url.pathname === \"/cheese/buy\" && request.method === \"POST\""));
 t('worker has POST /cheese/pull', worker.includes("url.pathname === \"/cheese/pull\" && request.method === \"POST\""));
@@ -1258,8 +1266,8 @@ skinFns.saveShopSkin({ note: 'note-gold', frame: 'frame-neon' });
 t('shopSkin round-trips through sqk41:skin', skinFns.shopSkin().note === 'note-gold' && skinFns.shopSkin().frame === 'frame-neon');
 t('shopSkin survives a corrupt store', (() => { skinStore['sqk41:skin'] = 'not-json'; return skinFns.shopSkin().note === null; })());
 // 15d. Client wiring: shop tab, league weekly, cosmetics in the game.
-t('setTab fetches the shop on SHOP', js.includes("if (name === 'shop') { fetchShop(); fetchSqkShop(); }"));
-t('setTab fetches the weekly league on LEAGUE', js.includes("if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); }"));
+t('setTab fetches the shop on SHOP', js.includes("if (name === 'shop') { analyticsEvent('shop_open'); fetchShop(); fetchSqkShop(); }"));
+t('setTab fetches the weekly league on LEAGUE', js.includes("if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); recheckVerifyOnLeague(); }"));
 ['fetchShop', 'renderShop', 'buyItem', 'pullCapsule', 'equipItem', 'fetchLeagueWeekly', 'renderLeagueWeekly', 'applyResultFrame', 'shopSkin', 'saveShopSkin', 'noteColor', 'shopOwned', 'shopEquipped'].forEach(s => t('v41 js has ' + s, js.includes('function ' + s)));
 t('shop fetches GET /cheese', js.includes("CONFIG.LB_URL + '/cheese'"));
 t('buy posts to /cheese/buy', js.includes("CONFIG.LB_URL + '/cheese/buy'"));
@@ -1288,11 +1296,11 @@ t('README documents the v41 shop catalog', readme.includes('Mint/Golden/Void/Rai
 t('worker v6: /league joins scores for verified', worker.includes("LEFT JOIN scores s ON s.wallet = l.wallet AND s.mode = 'free'") && worker.includes('COALESCE(s.verified, 0) AS verified'));
 t('worker v6: /league rows carry verified', worker.includes('verified: r.verified ? 1 : 0'));
 t('worker v6: /league you carries verified', worker.includes('verified: me.verified ? 1 : 0'));
-t('worker version is 9', worker.includes('{ service: "squeekchain-leaderboard", version: 9 }'));
+t('worker version is 10', worker.includes('{ service: "squeekchain-leaderboard", version: 10 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v42.4', js.includes("gameVersion: 'v42.4'"));
-t('html title is v42.4', html.includes('<title>SQUEEKCHAIN // v42.4</title>'));
+t('submit sends gameVersion v42.5', js.includes("gameVersion: 'v42.5'"));
+t('html title is v42.5', html.includes('<title>SQUEEKCHAIN // v42.5</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {
@@ -1331,7 +1339,7 @@ t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.
 // --- 15f. v42.1: SQK shop + golden capsule (Worker v8, shop DEPLOYED) ---
 t('sqk ids are inside the SHOP tab', html.indexOf('id="sqkShopBox"') > html.indexOf('id="tab-shop"') && html.indexOf('id="sqkShopBox"') > html.indexOf('id="shopMsg"'));
 t('sqk commit + resolve buttons are disabled in the HTML', html.includes('id="sqkCommitBtn" data-i18n="sqkCommitBtn" disabled') && html.includes('id="sqkResolveBtn" data-i18n="sqkResolveBtn" disabled'));
-t('sqk coming-soon banner element is in the HTML (hidden at runtime when deployed)', html.includes('id="sqkShopSoon"') && html.includes('SQK SHOP COMING SOON'));
+t('sqk shop banner element is in the HTML, initial text LOADING (v42.5 P2-1)', html.includes('id="sqkShopSoon"') && html.includes('LOADING…') && js.includes("sqkShopSoon: 'SQK SHOP COMING SOON"));
 t('renderSqkShop hides the banner when the shop is deployed', js.includes("soon.classList.toggle('hidden', deployed)"));
 t('client SHOP_ADDRESS is the deployed shop', js.includes("CONFIG.SHOP_ADDRESS = '0x43f568AcfaDcee4333785c9F26596719ED0B02fb'"));
 t('client has SQK_TOKEN + SEPOLIA_RPC', js.includes('CONFIG.SQK_TOKEN = CONFIG.TOKEN') && js.includes('CONFIG.SEPOLIA_RPC = CONFIG.RPC_URL'));
@@ -1344,7 +1352,7 @@ t('client resolves via the Worker first', js.includes("CONFIG.LB_URL + '/capsule
 t('client credits Keju only from a Worker-verified receipt', js.includes('Credit the Keju compensation via the Worker (verified receipt)'));
 t('client disables sqk buttons while the shop is undeployed', js.includes('commit.disabled = !deployed') && js.includes('if (!sqkShopDeployed()) return sqkShopMsg(msg(') && js.includes("sqkShopSoon')"));
 t('sqk i18n exists in EN + ID', js.includes("sqkShopSoon: 'SQK SHOP COMING SOON") && js.includes("sqkShopSoon: 'TOKO SQK SEGERA HADIR") && js.includes("sqkCapsuleOdds: 'ODDS: COMMON 70%") && js.includes("sqkCapsuleOdds: 'PELUANG: COMMON 70%"));
-t('shop tab fetches the SQK shop too', js.includes("if (name === 'shop') { fetchShop(); fetchSqkShop(); }"));
+t('shop tab fetches the SQK shop too', js.includes("if (name === 'shop') { analyticsEvent('shop_open'); fetchShop(); fetchSqkShop(); }"));
 // --- 15g. v42.2: WalletConnect (Reown) — connect from a plain browser ---
 // v42.3: the UMD CDN tag is GONE (the unpkg file is not standalone and never
 // loaded). The provider is a vendored esbuild bundle, lazy-loaded on demand.
@@ -1431,6 +1439,54 @@ t('worker verification path untouched by v8', worker.includes('function verifyOn
   t('worker sqk pity matches the client pity', W.sqkCapsuleRarity(0.1, 19) === 'rare' && W.sqkCapsuleRarity(0.1, 18) === 'common');
   t('worker sqk shop IS deployed (SHOP_CONTRACT is the live shop)', W.sqkShopDeployed() === true);
 })();
+
+// --- v42.5: audit fixes (static checks; functional tests live in TEST-v42.5.js) ---
+// P1-4 first impression: tagline under the header, visible in 5 seconds.
+t('v42.5 tagline under the header (EN in HTML, ID in I18N)', html.includes('Your high score depends on a hamster.') && js.includes("tagline: 'Skormu tergantung pada seekor hamster.'"));
+// P2-1 shop loading: initial text is LOADING, never "COMING SOON".
+t('v42.5 shop loading text is LOADING (not COMING SOON)', html.includes('LOADING…') && !html.includes('SQK SHOP COMING SOON'));
+// P2-6 GENERATE CARD: below SUBMIT, small button.
+t('v42.5 GENERATE CARD is below SUBMIT + small', (() => {
+  const sub = html.indexOf('id="lbSubmitBtn"'), card = html.indexOf('id="toCardBtn"'), retry = html.indexOf('id="againBtn"');
+  return sub > 0 && card > sub && retry > 0 && retry < sub && html.includes('class="btn-secondary btn-small" type="button" id="toCardBtn"');
+})());
+// P3-1 fail-soft retry is gone.
+t('v42.5 fail-soft no-replay retry REMOVED', !js.includes('if (!r.ok && r.status === 400 && lastResult.replay) r = await postScores(bodyBase);'));
+// P0-1 rate limit: client shows a specific 429 message with the retry time.
+t('v42.5 submitLb handles 429 with retry time', js.includes("r.status === 429") && js.includes("msgf('lbRateLimited', { time: t })"));
+t('v42.5 resolve handles 429 with retry time', js.includes("msgf('sqkRateLimited', { time: t"));
+t('v42.5 MSG rate-limit keys exist in EN + ID', js.includes("sqkRateLimited: 'TOO MANY REQUESTS — TRY AGAIN AT {time}.'") && js.includes("sqkRateLimited: 'TERLALU SERING — COBA LAGI {time}.'") && js.includes("lbRateLimited: 'TOO MANY SUBMITS — TRY AGAIN AT {time}.'") && js.includes("lbRateLimited: 'TERLALU SERING KIRIM SKOR — COBA LAGI {time}.'"));
+// P1-1 wallet UX: transactions use txWallet() (connected address), not the field.
+t('v42.5 txWallet() exists and is used by buy/commit/resolve', js.includes('function txWallet() { return connectedAddr || currentWallet(); }') && (js.match(/const w = txWallet\(\); \/\/ v42\.5/g) || []).length === 3);
+t('v42.5 updateConnectBtn renders status card + disconnect + readonly field', js.includes("const st = $('walletStatus');") && js.includes("const dc = $('disconnectBtn');") && js.includes('walletEl.readOnly = connected;') && js.includes("const mn = $('walletManualNote');"));
+t('v42.5 disconnectWallet() exists and is bound', js.includes('async function disconnectWallet()') && js.includes("bindClick('disconnectBtn', disconnectWallet);"));
+t('v42.5 sqkNoProvider no longer says BUKA HALAMAN INI DI METAMASK', !js.includes('BUKA HALAMAN INI DI METAMASK') && js.includes('TAP [ CONNECT WALLET ] TO CONNECT'));
+// P1-3 GHOST: constants + helpers + labels.
+t('v42.5 GHOST constants (0.878 m/passage, default 0.5 m/s)', js.includes('GHOST_WHEEL_M_PER_PASSAGE = 0.878') && js.includes('GHOST_DEFAULT_PACE_MS = 0.5'));
+t('v42.5 GHOST helpers exist', js.includes('function ghostPaceFromStats(d)') && js.includes('async function fetchGhostPace()') && js.includes('function ghostActive()'));
+t('v42.5 GHOST labels exist in EN + ID', js.includes("ghostNapping: '") && js.includes("ghostOffline: '") && js.includes("ghostPaceTpl: '") && js.includes("ghostWokeUp: '"));
+// P1-5 shop previews: helpers + used in both shops.
+t('v42.5 skinPreviewHtml + capsulePreviewHtml exist and render in both shops', js.includes('function skinPreviewHtml(skinId, slot)') && js.includes('function capsulePreviewHtml()') && js.includes('skinPreviewHtml(c.id, c.slot)') && js.includes('skinPreviewHtml(c.skin, c.slot)'));
+// P2-2 Dream Seeds + Lullaby.
+t('v42.5 Dream Seeds functions exist', js.includes('function plantDream()') && js.includes('function waterDream()') && js.includes('async function harvestDream()') && js.includes('function renderDreamBox()'));
+t('v42.5 Lullaby mode: seedKey + play forces synth/easy + submit blocked', js.includes("if (mode === 'lullaby') return 'LULLABY-' + squeekTodayStr();") && js.includes("if (lastResult.lullaby) return show(msg('lbLullaby'));"));
+t('v42.5 Lullaby XP +50 flat, waters the seed', js.includes('const xpGain = G.lullaby ? 50 :') && js.includes('if (G.lullaby) { const st = waterDream();'));
+// P2-3 verify re-check on LEAGUE tab.
+t('v42.5 recheckVerifyOnLeague exists and is called from setTab(league)', js.includes('async function recheckVerifyOnLeague()') && js.includes('recheckVerifyOnLeague(); } // v37'));
+// P2-5 analytics.
+t('v42.5 analytics: allowlist + fire-and-forget POST /analytics', js.includes("const ANALYTICS_EVENTS = ['visit', 'play', 'mode_free'") && js.includes("tfetch(CONFIG.LB_URL + '/analytics'") && js.includes("analyticsEvent('visit');") && js.includes("analyticsEvent('shop_open');"));
+// Worker v10: version + new endpoints + helpers.
+t('worker v10: version 10', worker.includes('version: 10'));
+t('worker v10: rateLimitAllowed helper (count first, insert only if allowed)', worker.includes('async function rateLimitAllowed(env, table, wallet, ip, walletMax, ipMax)'));
+t('worker v10: resolve uses its own resolve_log table', worker.includes('rateLimitAllowed(env, "resolve_log"'));
+t('worker v10: scores 429 carries retryAfterSec', worker.includes('return json({ error: "rate_limited", retryAfterSec: rlScores.retryAfterSec }, 429);'));
+t('worker v10: session->wallet binding (session_wallets)', worker.includes('CREATE TABLE IF NOT EXISTS session_wallets') && worker.includes('return json({ error: "session wallet mismatch" }, 422);'));
+t('worker v10: poll cross-check helper + wired into verifyOne', worker.includes('function pollsContradictWheel(stats, wallStartMs, durationMs, polls)') && worker.includes('pollsContradictWheel(wheelStats, replay.header.wallStartMs'));
+t('worker v10: ghost header validation + checkOppDist ghost branch', worker.includes('replay header ghost is not valid') && worker.includes('finish.oppDistM inconsistent with ghost pace'));
+t('worker v10: /dream/harvest + /analytics endpoints', worker.includes('url.pathname === "/dream/harvest"') && worker.includes('url.pathname === "/analytics"'));
+t('worker v10: dreamReward helper (25/50/75)', worker.includes('function dreamReward(stage)'));
+t('migrate-v10.sql exists and covers all 5 new objects', (() => { try { const m = fs.readFileSync('migrate-v10.sql', 'utf8'); return m.includes('resolve_log') && m.includes('session_wallets') && m.includes('dream_harvests') && m.includes('idx_cheese_ledger_dream') && m.includes('analytics_daily'); } catch (_) { return false; } })());
+t('build-worker.sh points at v42.5', (() => { try { const b = fs.readFileSync('build-worker.sh', 'utf8'); return b.includes('squeekchain-v42.5') && b.includes('/tmp/v42.5-build') && b.includes('Worker v10'); } catch (_) { return false; } })());
 
 runVerifyPollTests().then(() => {
   console.log(`\n${pass} passed, ${fail} failed`);

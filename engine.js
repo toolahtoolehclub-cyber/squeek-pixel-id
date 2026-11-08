@@ -208,7 +208,14 @@
   }
 
   // ---- Jarak lawan dari log poll (diagnostik, lihat aturan 6) ----
-  function deriveOppDistM(header, polls) {
+  function deriveOppDistM(header, polls, finishT) {
+    // v42.5 GHOST: jarak lawan = pace hantu × waktu lagu saat finish
+    // (bukan dari poll — poll saat ghost menunjukkan RPM 0 / gagal).
+    if (header && header.ghost) {
+      const pace = (typeof header.ghostPaceMs === 'number') ? header.ghostPaceMs : 0;
+      const t = (typeof finishT === 'number') ? finishT : ((header && typeof header.duration === 'number') ? header.duration : 0);
+      return +Math.max(0, pace * t).toFixed(1);
+    }
     const list = Array.isArray(polls) ? polls : [];
     let last = null;
     for (const p of list) if (p && p.ok && typeof p.dist === 'number') last = p;
@@ -336,7 +343,7 @@
     const finishEv = replay.events.finish || null;
     const oppDistM = (finishEv && typeof finishEv.oppDistM === 'number') ? finishEv.oppDistM : null;
     const win = oppDistM === null ? null : playerDist > oppDistM;
-    const oppDistMDerived = isRace ? deriveOppDistM(h, polls) : null;
+    const oppDistMDerived = isRace ? deriveOppDistM(h, polls, finishEv ? finishEv.t : null) : null;
     return {
       score, acc, maxCombo, counts, grade,
       playerDistM: playerDist,
