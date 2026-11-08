@@ -33,16 +33,8 @@ body.no-gl { background: radial-gradient(circle at 20% 20%, rgba(0,255,0,.18), t
 #ui-layer { width: 100%; max-width: 460px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 10; display: flex; flex-direction: column; gap: 20px; }
 
 header { text-align: center; margin-bottom: 10px; }
-.header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; text-align: left; }
-.header-row > div { flex: 1; text-align: center; }
 
-/* FLICKER ANIMATION UNTUK JUDUL */
-@keyframes neonFlicker {
-    0%, 18%, 22%, 25%, 53%, 57%, 100% { text-shadow: 3px 3px 0 var(--pink), 0 0 10px var(--green), 0 0 20px var(--green); opacity: 1; }
-    20%, 24%, 55% { text-shadow: none; opacity: 0.5; }
-}
 h1 { font-family: 'Press Start 2P', monospace; font-size: 22px; color: var(--green); margin: 0; line-height: 1.3; }
-h1.flicker { animation: neonFlicker 3s infinite alternate; }
 h2 { font-size: 12px; color: var(--cyan); margin: 5px 0 0 0; letter-spacing: 2px; }
 
 .panel { background: #000; border: var(--border); box-shadow: var(--shadow-hard); padding: 20px; width: 100%; }
@@ -85,13 +77,6 @@ canvas { display: block; width: 100%; height: auto; border: none; box-shadow: no
 #game-canvas { touch-action: none; background: #050505; }
 #card-canvas { background: #050505; }
 
-/* 3D ROTATING AVATAR */
-.avatar-container { width: 100%; display: flex; justify-content: center; perspective: 1000px; }
-.avatar-wrapper { width: 100px; height: 100px; margin: 0 auto; } /* v26 FIX #4: animasi spin3D di wrapper DIMATIKAN — putaran dilakukan di dalam canvas lewat JS, bukan CSS */
-@keyframes spin3D { 
-    0% { transform: rotateY(0deg); } 
-    100% { transform: rotateY(360deg); } 
-}
 #avatarPreviewWrap { display: flex; flex-direction: row; align-items: center; gap: 12px; border: 2px dashed var(--accent); padding: 8px 10px; text-align: left; } /* v37.2: horizontal compact layout — the tall centered column (~210px) pushed PLAY below the fold on phones */
 #avatarPreviewWrap.hidden { display: none; }
 #avatar-preview { width: 84px; height: 84px; flex: none; border: 3px solid #fff; box-shadow: 4px 4px 0 var(--pink); image-rendering: pixelated; } /* v37.2: was 128px; canvas backing store stays 128x128, CSS scales it down crisp */
@@ -113,7 +98,7 @@ body.hemat #bg-gl { opacity: .1; }
 
 .footer { text-align: center; font-size: 10px; color: #777; line-height: 1.6; padding: 0 8px; }
 
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } #bg-gl { opacity: .15; } .avatar-wrapper { animation: none; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } #bg-gl { opacity: .15; } }
 @media (max-width: 360px) { h1 { font-size: 18px; } .panel { padding: 15px; } .stat b { font-size: 13px; } }
 
 #crt { position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: .14; background: repeating-linear-gradient(0deg, rgba(0,0,0,.9) 0 1px, transparent 1px 3px); }
@@ -253,23 +238,12 @@ body.overlay #ui-layer, body.overlay #bg-gl, body.overlay #bg-anim, body.overlay
 body.overlay { animation: none; background-image: none; }
 
 /* ============ v31 ARCADE: the menu is now an arcade cabinet ============ */
-/* Marquee: the lit sign on top of the cabinet. Bulbs chase in two phases. */
-.marquee { border: 4px solid #fff; box-shadow: 6px 6px 0 var(--pink), 0 0 24px rgba(255, 0, 255, .45); background: #0a0a0a; padding: 10px 10px 12px 10px; text-align: center; }
-.marquee .header-row { margin: 6px 0; }
-.marquee h1 { font-size: 26px; }
-.marquee h2 { color: var(--yellow); }
-.bulbs { display: flex; justify-content: space-between; gap: 4px; padding: 0 4px; }
-.bulbs i { width: 10px; height: 10px; border-radius: 50%; background: var(--yellow); box-shadow: 0 0 8px var(--yellow); animation: bulbChase 1s steps(2) infinite; }
-.bulbs i:nth-child(even) { background: var(--green); box-shadow: 0 0 8px var(--green); animation-delay: .5s; }
-@keyframes bulbChase { 0%, 49% { opacity: 1; } 50%, 100% { opacity: .25; } }
 
 /* Cabinet bezel: the menu panel gets a double frame like an arcade screen. */
 #mainPanel { outline: 4px solid var(--green); outline-offset: 6px; background: #050505; box-shadow: 6px 6px 0 var(--pink), 0 0 30px rgba(0, 255, 0, .25), inset 0 0 40px rgba(0, 0, 0, .9); }
 
-/* Tab bar: the cabinet's menu buttons. One row of 5 chunky arcade buttons. */
+/* Tab bar: one row of 5 menu buttons. */
 #tabBar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
-.btn-arcade { padding: 13px 2px; font-family: 'Press Start 2P', monospace; font-size: 9px; letter-spacing: 0; border: 3px solid #fff; background: #111; color: #fff; box-shadow: 0 5px 0 #333; text-transform: uppercase; }
-.btn-arcade:active { transform: translateY(4px); box-shadow: 0 1px 0 #333; }
 .tab-btn[data-tab="play"] { border-color: var(--green); }
 .tab-btn[data-tab="daily"] { border-color: var(--yellow); }
 .tab-btn[data-tab="live"] { border-color: var(--pink); }
@@ -287,35 +261,15 @@ body.overlay { animation: none; background-image: none; }
 .btn-start { font-size: 18px; padding: 22px 15px; animation: startPulse 1.6s ease-in-out infinite; }
 @keyframes startPulse { 0%, 100% { box-shadow: 6px 6px 0 #333, 0 0 0 rgba(0, 255, 0, 0); } 50% { box-shadow: 6px 6px 0 #333, 0 0 26px rgba(0, 255, 0, .8); } }
 
-/* Side art: only on wide screens — the cabinet's side panels. */
-.cab-side { display: none; }
-@media (min-width: 1000px) {
-    .cab-side { display: flex; flex-direction: column; align-items: center; gap: 18px; position: fixed; top: 50%; transform: translateY(-50%); z-index: 5; pointer-events: none; }
-    .cab-side.left { left: 28px; }
-    .cab-side.right { right: 28px; }
-    .cab-ham { font-size: 84px; line-height: 1; filter: drop-shadow(0 0 18px rgba(0, 255, 0, .8)); animation: hamBob 2.4s ease-in-out infinite alternate; }
-    @keyframes hamBob { from { transform: translateY(0); } to { transform: translateY(-12px); } }
-    .cab-vert { writing-mode: vertical-rl; font-family: 'Press Start 2P', monospace; font-size: 16px; letter-spacing: 6px; color: var(--green); text-shadow: 2px 2px 0 var(--pink), 0 0 14px rgba(0, 255, 0, .6); }
-    .cab-side.right .cab-vert { color: var(--cyan); text-shadow: 2px 2px 0 var(--pink), 0 0 14px rgba(0, 255, 255, .6); }
-    .cab-stars { font-size: 12px; color: var(--yellow); letter-spacing: 4px; }
-}
 
-/* Coin slot footer + splash coin line. */
-.footer { background: #111; border: 2px solid #ffd700; box-shadow: 4px 4px 0 #333; padding: 12px 10px; color: #aaa; }
-.splash-coin { font-size: 12px; color: var(--yellow); letter-spacing: 2px; font-weight: bold; margin: 0 0 16px 0; animation: startPulse 1.6s ease-in-out infinite; }
 
 /* Desktop: the cabinet gets room to breathe; tabs stay one row. */
-@media (min-width: 900px) { #ui-layer { max-width: 520px; } .marquee h1 { font-size: 30px; } }
-@media (max-width: 360px) { .marquee h1 { font-size: 20px; } .btn-arcade { font-size: 8px; padding: 12px 1px; } #tabBar { gap: 5px; } }
-/* v31.1 FIX: on phones the marquee header row overflowed and the mute button was cut off ~40px (found by the artifact builder's audit). Below 480px the title takes a full row and the EN / QLTY / mute buttons wrap below it, centered. */
+@media (min-width: 900px) { #ui-layer { max-width: 520px; } }
+@media (max-width: 360px) { #tabBar { gap: 5px; } }
 @media (max-width: 480px) {
-    .marquee h1 { font-size: 20px; }
-    .marquee .header-row { flex-wrap: wrap; justify-content: center; }
-    .marquee .header-row > div { flex: 1 1 100%; }
-    .marquee .btn-icon { height: 44px; }
     #qualityBtn { min-width: 84px; }
 }
-@media (prefers-reduced-motion: reduce) { .bulbs i, .btn-start, .splash-coin, .cab-ham { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .btn-start { animation: none !important; } }
 
 /* ================= v32 NEO — minimal, futuristic =================
    Supersedes the v31 arcade layer above. Same ids, same layout
@@ -516,8 +470,6 @@ body.playing * { animation-play-state: paused !important; }
 body.playing .stat.pop { animation: pop .3s !important; }
 body.playing #gamePanel.shake { animation: shake .3s !important; }
 
-/* --- v32: arcade leftovers are dead (no marquee/bulbs/side art in HTML) --- */
-.marquee, .bulbs, .cab-side, .splash-coin { display: none !important; }
 
 @media (max-width: 480px) {
     .neo-head h1 { font-size: 15px; }
@@ -605,3 +557,16 @@ body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 1
 .lb-score { color: var(--green); margin-left: auto; }
 .lb-me { border-color: var(--yellow) !important; color: #fff; }
 #lbSubmitBtn:disabled { opacity: .45; }
+
+/* ==========================================
+   v38 — real pause menu (DOM overlay)
+   ========================================== */
+/* Sits above the game canvas but below the settings sheet (z 40/41), so
+   opening settings mid-song still works. Hidden whenever the game is not
+   paused; EXIT / TERMINATE are two-step armed in JS, never window.confirm. */
+#pauseOverlay { position: fixed; inset: 0; z-index: 35; background: rgba(0, 0, 0, .82); display: flex; align-items: center; justify-content: center; padding: 20px; }
+#pauseOverlay.hidden { display: none !important; }
+.pause-box { border: 1px solid rgba(255, 255, 255, .14); border-radius: 20px; background: rgba(8, 10, 12, .97); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); padding: 20px 16px; text-align: center; width: min(340px, 100%); display: flex; flex-direction: column; gap: 10px; }
+.pause-title { font-family: 'Press Start 2P', monospace; font-size: 16px; color: #fff; margin: 0 0 6px 0; letter-spacing: 2px; }
+.pause-box .sheet-row { text-align: left; }
+#pauseVolVal { color: rgba(255, 255, 255, .85); font-size: 11px; min-width: 38px; text-align: right; }

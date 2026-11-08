@@ -1,4 +1,4 @@
-// v37.2 tests — run: node TEST-v34-neo.js  (cwd = the v37.2 folder)
+// v38 tests — run: node TEST-v34-neo.js  (cwd = the v38 folder)
 const fs = require('fs');
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
@@ -36,8 +36,8 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v37.2', (html.match(/v37\.2/g) || []).length >= 2);
-t('browser tab title is v37.2', html.includes('<title>SQUEEKCHAIN // v37.2</title>'));
+t('html says v38', (html.match(/v38/g) || []).length >= 2);
+t('browser tab title is v38', html.includes('<title>SQUEEKCHAIN // v38</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -257,7 +257,7 @@ t('lb modes are the six game modes', js.includes("const LB_MODES = ['free', 'dai
 ['lbLoading', 'lbOffline', 'lbEmpty', 'lbSent', 'lbKept', 'lbNeedWallet', 'lbNoScore', 'lbPractice', 'lbYourRank'].forEach(k => t('MSG has lb key: ' + k, js.includes(k + ':')));
 ['lbTitle', 'lbNote', 'lbRefresh', 'lbSubmit'].forEach(k => t('I18N has lb key: ' + k, js.includes(k + ':')));
 t('setTab fetches the board on LEAGUE', js.includes("if (name === 'league') fetchLb(lbState.mode);"));
-t('endGame captures the submittable result', js.includes('lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice };'));
+t('endGame captures the submittable result (v38: + sessionId/taps/notes/durationMs)', js.includes('lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice, sessionId: G.sessionId || null, taps: G.taps || 0, notes:') && js.includes('durationMs: anthem ? Math.round(anthem.duration * 1000) : 0'));
 t('submit is disabled while sending', js.includes('b.disabled = true') && js.includes('resetLbSubmit()'));
 t('submit posts to /scores', js.includes("CONFIG.LB_URL + '/scores'") && js.includes("method: 'POST'"));
 t('submit only beats the stored best (worker upsert)', js.includes("d.improved ? msg('lbSent') : msg('lbKept')"));
@@ -295,6 +295,97 @@ t('v37.2 avatar labels sit beside the canvas', html.includes('class="avatar-meta
   t('v37.2 avatar id present once: ' + id, n === 1);
 });
 t('v37.2 LEAGUE mode buttons are centered', /#lbModes\s*\{[^}]*justify-content:\s*center/.test(css));
+
+// --- 12. v38: XP economy, Squeek day, remembered wallet, LEGACY LV8, pause, sessions ---
+const jsLines = js.split('\n');
+function fnSrc38(name) {
+  const start = jsLines.findIndex(l => l.startsWith('function ' + name + '('));
+  if (start < 0) throw new Error('function not found: ' + name);
+  let depth = 0, end = start;
+  for (let i = start; i < jsLines.length; i++) { for (const ch of jsLines[i]) { if (ch === '{') depth++; if (ch === '}') depth--; } if (i > start && depth === 0) { end = i; break; } }
+  return jsLines.slice(start, end + 1).join('\n');
+}
+function oneLine38(prefix) { const l = jsLines.find(l => l.startsWith(prefix)); if (!l) throw new Error('line not found: ' + prefix); return l; }
+
+// 12a. XP_LEVELS + levelFor (run the real functions)
+t('XP_LEVELS is the v38 curve', js.includes('const XP_LEVELS = [0, 700, 2000, 4300, 8500, 16000, 29500, 54000];'));
+const levelFor = new Function(oneLine38('const XP_LEVELS =') + '\n' + oneLine38('function levelFor') + '\nreturn levelFor;')();
+[[0, 1], [699, 1], [700, 2], [1999, 2], [2000, 3], [4299, 3], [4300, 4], [8499, 4], [8500, 5], [15999, 5], [16000, 6], [29499, 6], [29500, 7], [53999, 7], [54000, 8], [100000, 8]].forEach(([xp, lv]) => t('levelFor(' + xp + ') = LV' + lv, levelFor(xp) === lv));
+t('old LV8 total 4000 XP is now LV3', levelFor(4000) === 3);
+t('no old XP thresholds left', !js.includes('[0, 100, 250, 500, 900, 1500, 2500, 4000]'));
+
+// 12b. squeekTodayStr() — Squeek day boundary 12:00 UTC (= 19:00 WIB)
+const squeekTodayStr = new Function(oneLine38('function squeekTodayStr') + '\nreturn squeekTodayStr;')();
+t('squeekTodayStr 11:59 UTC -> yesterday', squeekTodayStr(new Date('2026-11-08T11:59:00Z')) === '2026-11-07');
+t('squeekTodayStr 12:00 UTC -> today', squeekTodayStr(new Date('2026-11-08T12:00:00Z')) === '2026-11-08');
+t('squeekTodayStr 00:30 UTC -> yesterday', squeekTodayStr(new Date('2026-11-08T00:30:00Z')) === '2026-11-07');
+t('squeekTodayStr 18:59 WIB (11:59 UTC) is still the old Squeek day', squeekTodayStr(new Date('2026-11-08T11:59:59Z')) === '2026-11-07');
+t('squeekTodayStr uses Squeek helpers, not local todayStr, for daily/missions/streak', js.includes("squeekTodayStr()") && !js.includes('function yesterdayStr(') && !js.includes('function twoDaysAgoStr('));
+
+// 12c. remembered wallet — run the real saveWallet38 with a mock localStorage
+const store38 = {};
+const ls38 = { getItem: k => (k in store38 ? store38[k] : null), setItem: (k, v) => { store38[k] = String(v); }, removeItem: k => { delete store38[k]; } };
+const saveWallet38 = new Function('localStorage', oneLine38('const isAddr =') + '\n' + oneLine38('function saveWallet38') + '\nreturn saveWallet38;')(ls38);
+const W38 = '0x372D48abe5eDccCcDE9BD914a6dE30Dc53e3a1Db';
+saveWallet38(W38);
+t('saveWallet38 stores under key sqk38:wallet', store38['sqk38:wallet'] === W38);
+saveWallet38('not-a-wallet');
+t('saveWallet38 ignores invalid addresses', store38['sqk38:wallet'] === W38);
+saveWallet38('');
+t('saveWallet38 ignores empty input', store38['sqk38:wallet'] === W38);
+t('wallet refill reads sqk38:wallet on load', js.includes("localStorage.getItem('sqk38:wallet')"));
+t('forgetWallet38 removes sqk38:wallet', js.includes("localStorage.removeItem('sqk38:wallet')"));
+t('forget wallet button exists once', (html.match(/id="forgetWalletBtn"/g) || []).length === 1);
+t('wallet saved on connect + accountsChanged + change/blur', (js.match(/saveWallet38\(/g) || []).length >= 4);
+t('no auto eth_requestAccounts outside connectWallet', (js.match(/method: 'eth_requestAccounts'/g) || []).length === 1);
+
+// 12d. LEGACY LV8 — check is always false; run the real migration with a mock store
+const legacyLine = jsLines.find(l => l.includes("id: 'legacy8'"));
+t('LEGACY LV8 is in ACHIEVEMENTS', !!legacyLine && legacyLine.includes("name: 'LEGACY LV8'"));
+t('LEGACY LV8 check is always false', /check: \(\) => false/.test(legacyLine || ''));
+const migStore = {};
+const migLS = { getItem: k => (k in migStore ? migStore[k] : null), setItem: (k, v) => { migStore[k] = String(v); }, removeItem: k => { delete migStore[k]; } };
+const migSrc = ['walletKey', 'loadJSON', 'saveJSON', 'totalXP', 'maybeMigrateLegacy8'].map(fnSrc38).join('\n');
+const maybeMigrateLegacy8 = new Function('localStorage', migSrc + '\nreturn maybeMigrateLegacy8;')(migLS);
+const WLEG = '0x88538a82143065664232422e2dec4309038fcf9a';
+migStore['sqk24:xp:' + WLEG.toLowerCase()] = '5000';
+t('migration grants legacy8 to old-LV8 wallet (xp 5000)', maybeMigrateLegacy8(WLEG) === true && JSON.parse(migStore['sqk29:ach:' + WLEG.toLowerCase()]).includes('legacy8'));
+t('migration sets per-wallet + global flag', migStore['sqk38:migrated:' + WLEG.toLowerCase()] === '1' && migStore['sqk38:migrated'] === '1');
+t('migration runs only once (no duplicate badge)', maybeMigrateLegacy8(WLEG) === false && JSON.parse(migStore['sqk29:ach:' + WLEG.toLowerCase()]).length === 1);
+const WLOW = '0x00000000000000000000000000000000000000dEaD';
+migStore['sqk24:xp:' + WLOW.toLowerCase()] = '3999';
+t('migration skips wallet below 4000 XP', maybeMigrateLegacy8(WLOW) === false && !('sqk29:ach:' + WLOW.toLowerCase() in migStore));
+t('migration marks the low wallet too (no second chance)', maybeMigrateLegacy8(WLOW) === false);
+const WEDGE = '0x1111111111111111111111111111111111111111';
+migStore['sqk24:xp:' + WEDGE.toLowerCase()] = '4000';
+t('migration boundary: exactly 4000 XP qualifies', maybeMigrateLegacy8(WEDGE) === true);
+t('ID card counts 11 achievements', js.includes(" + '/11 — '") && js.includes("'0/11 — PLAY TO UNLOCK'"));
+
+// 12e. real pause menu (DOM overlay, no window.confirm)
+['pauseOverlay', 'pauseVolSlider', 'pauseVolVal', 'pauseCalibBtn', 'pauseResumeBtn', 'pauseExitBtn', 'backToGameBtn'].forEach(id => t('v38 pause id present once: ' + id, (html.match(new RegExp('id="' + id + '"', 'g')) || []).length === 1));
+t('no window.confirm anywhere', !js.includes('window.confirm('));
+t('exit/terminate are two-step armed', js.includes('armOrExit') && js.includes("pauseSure") && js.includes('[ SURE? TAP AGAIN ]'));
+t('pause overlay has its CSS', /#pauseOverlay\s*\{/.test(css) && css.includes('.pause-box'));
+
+// 12f. verified sessions
+t('play() requests a server session before building the song', js.includes("CONFIG.LB_URL + '/session'") && js.includes("body: JSON.stringify({ wallet: w || 'GUEST', mode: playMode })"));
+t('FREE plays the server seed', js.includes("'FREE-' + String(session38.seed)"));
+t('submit carries sessionId/taps/notes/durationMs', js.includes('sessionId: lastResult.sessionId') && js.includes('notes: lastResult.notes') && js.includes('taps: lastResult.taps') && js.includes('durationMs: lastResult.durationMs'));
+
+// 12g. OG/Twitter meta + Genesis proofs intact
+const htmlLines = html.split('\n');
+t('Genesis meta tag is line 8, byte-identical', htmlLines[7] === '<meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">');
+t('README last line is the Genesis proof', readme.trimEnd().split('\n').pop() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
+t('OG image is absolute on the live domain', html.includes('og:image" content="https://squeekpixel.web.id/squeekchain-headline-simple.png"'));
+t('Twitter card is summary_large_image', html.includes('twitter:card" content="summary_large_image"'));
+t('meta description is v38, not v32 NEO', html.includes('SQUEEKCHAIN v38') && !html.includes('v32 NEO'));
+t('README documents 11 achievements', readme.includes('11 named achievements'));
+t('README documents the v38 XP economy', readme.includes('54,000 total XP') && readme.includes('[0, 700, 2000, 4300, 8500, 16000, 29500, 54000]'));
+t('README documents the 19:00 WIB Squeek-day reset', readme.includes('19:00 WIB'));
+
+// 12h. dead-code cleanup
+['.marquee', 'bulbChase', 'neonFlicker', 'spin3D', 'cab-side', 'btn-arcade', 'splash-coin'].forEach(s => t('dead v31 CSS gone from style.css: ' + s, !css.includes(s)));
+t('introOsc/introGain only survive in one v38 comment', (js.match(/introOsc/g) || []).length === 1 && (js.match(/introGain/g) || []).length === 1);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

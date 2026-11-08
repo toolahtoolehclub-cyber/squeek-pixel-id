@@ -32,11 +32,17 @@ let challengeCode = null;
 // v27 LIVE state: last wheel snapshot, poll timer, ZOOMIES flag (70+ RPM = x2 score).
 let liveSnapshot = null, livePoll = null, liveZoomies = false;
 function todayStr(d) { const t = d || new Date(); const p = n => String(n).padStart(2, '0'); return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`; }
-function yesterdayStr() { const t = new Date(); t.setDate(t.getDate() - 1); return todayStr(t); }
+// v38: yesterdayStr() removed — the streak now uses squeekYesterdayStr() (Squeek day, 12:00 UTC).
+// v38 DAILY RESET 19:00 WIB: the Squeek day runs 12:00 UTC-12:00 UTC
+// (19:00 WIB-19:00 WIB). squeekTodayStr() is the UTC date of the current
+// Squeek day: before 12:00 UTC it is still yesterday's UTC date.
+function squeekTodayStr(d) { const t = d ? new Date(d) : new Date(); const u = new Date(t.getTime() - 12 * 3600 * 1000); const p = n => String(n).padStart(2, '0'); return `${u.getUTCFullYear()}-${p(u.getUTCMonth() + 1)}-${p(u.getUTCDate())}`; }
+function squeekYesterdayStr() { const t = new Date(); t.setDate(t.getDate() - 1); return squeekTodayStr(t); }
+function squeekTwoDaysAgoStr() { const t = new Date(); t.setDate(t.getDate() - 2); return squeekTodayStr(t); }
 function seedKeyFor(mode) {
-  if (mode === 'daily') return 'DAILY-' + todayStr();
-  if (mode === 'live') return 'LIVE-' + todayStr() + '-' + (liveSnapshot && liveSnapshot.ok ? liveBpm(liveSnapshot.rpm) : 128);
-  if (mode === 'race') return 'RACE-' + todayStr() + '-' + (liveSnapshot && liveSnapshot.ok ? liveBpm(liveSnapshot.rpm) : 128); // v29: race replays like a live song
+  if (mode === 'daily') return 'DAILY-' + squeekTodayStr();
+  if (mode === 'live') return 'LIVE-' + squeekTodayStr() + '-' + (liveSnapshot && liveSnapshot.ok ? liveBpm(liveSnapshot.rpm) : 128);
+  if (mode === 'race') return 'RACE-' + squeekTodayStr() + '-' + (liveSnapshot && liveSnapshot.ok ? liveBpm(liveSnapshot.rpm) : 128); // v29: race replays like a live song
   if (mode === 'boss') return 'BOSS-' + weeklyKey(); // v29: weekly boss seed
   if (mode === 'challenge' && challengeCode) return challengeCode;
   return 'FREE-' + Math.floor(Math.random() * 1e9);
@@ -170,6 +176,8 @@ const MSG = {
     achZoomies: 'Finish a live/race song with ZOOMIES', achRacewin: 'Win a race vs Squeektoshi',
     achOracle: 'A correct Wheel Call', achStreak: '7-day daily streak', achGold: 'Reach LV8',
     achVoid: 'Finish a VOID song', achMirror: 'Finish a Mirror song',
+    achLegacy8: 'LV8 under the old XP curve (before v38) — a one-time legacy badge, never earnable again',
+    walletForgotten: 'SAVED WALLET FORGOTTEN — BACK TO GUEST.',
     ovRpmOff: 'RPM — (WHEEL OFFLINE)', ovDistOff: 'DIST — KM',
     ovZoomOn: '🔥 ZOOMIES ×2 — SCORE DOUBLED', ovZoomJog: '🏃 JOG — NORMAL SCORE', ovZoomNap: '😴 NAP — NORMAL SCORE', ovZoomOff: 'ZOOMIES —',
     ovPetRun: '🐹 SQUEEKTOSHI RUNNING — {rpm} RPM', ovPetNap: '😴 SQUEEKTOSHI NAPPING (0 RPM)', ovPetOff: '❓ WHEEL OFFLINE — SQUEEKTOSHI HIDING',
@@ -294,6 +302,8 @@ const MSG = {
     achZoomies: 'Selesaikan lagu live/balapan dengan ZOOMIES', achRacewin: 'Menangkan balapan vs Squeektoshi',
     achOracle: 'Satu tebakan Wheel Call benar', achStreak: 'Streak harian 7 hari', achGold: 'Capai LV8',
     achVoid: 'Selesaikan lagu VOID', achMirror: 'Selesaikan lagu Mirror',
+    achLegacy8: 'LV8 di kurva XP lama (sebelum v38) — badge legacy sekali saja, tidak bisa didapat lagi',
+    walletForgotten: 'WALLET TERSIMPAN DILUPAKAN — KEMBALI KE GUEST.',
     ovRpmOff: 'RPM — (RODA OFFLINE)', ovDistOff: 'JARAK — KM',
     ovZoomOn: '🔥 ZOOMIES ×2 — SKOR BERLIPAT', ovZoomJog: '🏃 JOG — SKOR NORMAL', ovZoomNap: '😴 NAP — SKOR NORMAL', ovZoomOff: 'ZOOMIES —',
     ovPetRun: '🐹 SQUEEKTOSHI BERLARI — {rpm} RPM', ovPetNap: '😴 SQUEEKTOSHI TIDUR (0 RPM)', ovPetOff: '❓ RODA OFFLINE — SQUEEKTOSHI SEMBUNYI',
@@ -333,7 +343,8 @@ const I18N = {
     leagueEmpty: 'No duels yet — send a Duel Link after a song, and when a friend plays it, their result lands here.',
     champsEmpty: 'No champions yet — your best score of each day lands here.',
     roundHistEmpty: 'No finished rounds recorded yet — keep this page open and rounds settle here.',
-    cardBarLbl: 'ID CARD — TAP TO OPEN' },
+    cardBarLbl: 'ID CARD — TAP TO OPEN',
+    forgetWallet: '[ FORGET SAVED WALLET ]', pauseTitle: 'PAUSED', pauseCalib: '[ CALIBRATE ]', pauseResume: '[ RESUME ]', pauseExit: '[ EXIT ]', pauseSure: '[ SURE? TAP AGAIN ]', backToGame: '[ BACK TO GAME ]' },
   id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', lbTitle: 'LEADERBOARD GLOBAL — SKOR TERATAS', lbNote: 'Skor bersifat publik. Walletmu tampil terpotong.', lbRefresh: '[ MUAT ULANG ]', lbSubmit: '[ KIRIM SKOR ]', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR', chainTitle: 'CHAIN — LIVE DARI SQUEEKCORE', chainLoading: 'MENGAMBIL STATUS CHAIN…', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI',
     warn: '⚠️ Hanya alamat 0x. JANGAN PERNAH memasukkan seed phrase / private key di sini, di mana pun.',
     splashSub: 'PILIH MUSIK PEMBUKA', splashNote: 'Browser memblokir suara sebelum ketukan pertamamu — musik mulai saat kamu pertama kali mengetuk, bukan sebelumnya.',
@@ -352,11 +363,21 @@ const I18N = {
     leagueEmpty: 'Belum ada duel — kirim Duel Link setelah satu lagu, dan saat teman memainkannya, hasilnya muncul di sini.',
     champsEmpty: 'Belum ada juara — skor terbaikmu setiap hari muncul di sini.',
     roundHistEmpty: 'Belum ada ronde selesai yang tercatat — biarkan halaman ini terbuka dan ronde akan tercatat di sini.',
-    cardBarLbl: 'KARTU ID — KETUK UNTUK BUKA' },
+    cardBarLbl: 'KARTU ID — KETUK UNTUK BUKA',
+    forgetWallet: '[ LUPAKAN WALLET TERSIMPAN ]', pauseTitle: 'DIJEDA', pauseCalib: '[ KALIBRASI ]', pauseResume: '[ LANJUT ]', pauseExit: '[ KELUAR ]', pauseSure: '[ YAKIN? KETUK LAGI ]', backToGame: '[ KEMBALI KE GAME ]' },
 };
 let lang = loadJSON('sqk29:lang', 'en');
 
-const XP_LEVELS = [0, 100, 250, 500, 900, 1500, 2500, 4000];
+// v38 XP ECONOMY: LV8 now needs 54,000 total XP (was 4,000). Cumulative
+// thresholds [0, 700, 2000, 4300, 8500, 16000, 29500, 54000]; per-level
+// increments ~x1.8 each (700, 1300, 2300, 4200, 7500, 13500, 24500) —
+// early levels fall in 1-2 songs, the last level is a real grind. Measured
+// on the live chart generator (20 seeds): a perfect NORMAL song is ~165
+// notes / ~119,700 pts / ~4,070 XP; a casual song (acc ~70%, broken
+// combos) is ~1,200-1,600 XP. So LV8 is ~13-14 perfect NORMAL songs,
+// ~22 perfect EASY songs, or ~35-45 casual songs. Existing total XP is
+// kept as-is; levelFor() just re-reads it against the new thresholds.
+const XP_LEVELS = [0, 700, 2000, 4300, 8500, 16000, 29500, 54000];
 function totalXP(w) { return loadJSON('sqk24:xp:' + walletKey(w), 0) | 0; }
 function levelFor(xp) { let lv = 1; for (let i = 0; i < XP_LEVELS.length; i++) if (xp >= XP_LEVELS[i]) lv = i + 1; return lv; }
 
@@ -387,7 +408,7 @@ function setOffsetMs(v) { offsetMs = offsetMsClamp(v); saveJSON('sqk28:offsetMs'
 const DAILY_GENRES = ['cyber', 'synth', 'chip'];
 const DIFF_KEYS = ['easy', 'normal', 'hard'];
 function dailySpec(dateStr) {
-  const d = dateStr || todayStr();
+  const d = dateStr || squeekTodayStr();
   return { genre: DAILY_GENRES[cyrb53('DAILY-GENRE-' + d) % DAILY_GENRES.length], diff: DIFF_KEYS[cyrb53('DAILY-DIFF-' + d) % DIFF_KEYS.length] };
 }
 function applyDailySpec(dateStr) {
@@ -438,7 +459,7 @@ function dailyMissions(dateStr) {
   for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
   return pool.slice(0, 3);
 }
-function missionsDoneKey(w) { return 'sqk24:missions:' + walletKey(w) + ':' + todayStr(); }
+function missionsDoneKey(w) { return 'sqk24:missions:' + walletKey(w) + ':' + squeekTodayStr(); }
 
 let hitOffsets = [];
 let quality = 'ultra';
@@ -655,7 +676,7 @@ function makeAnthem(wallet, randomize = false, seedOverride = null, lanes = 3, m
 // 3. AUDIO ENGINE (INTRO & GAMEPLAY)
 // ==========================================
 let ac = null, master = null, analyser = null, noiseBuf = null, audioDataArray = null;
-let introOsc = null, introGain = null, introInterval = null;
+let introInterval = null; // v38: introOsc/introGain were dead (declared + reset, never assigned a node) — removed
 
 async function initAudio() {
   if (!ac) {
@@ -713,7 +734,7 @@ function playIntroMusic() {
 
 function stopIntroMusic() {
     if (introInterval) { clearInterval(introInterval); introInterval = null; }
-    introOsc = null; introGain = null; introStep = 0;
+    introStep = 0;
 }
 
 function toggleMute() { 
@@ -726,7 +747,7 @@ function toggleMute() {
 
 // --- v30 TOTAL: volume slider (0–100, persisted; master gain = vol% of 0.4) ---
 let vol = loadJSON('sqk30:vol', 80);
-function applyVol() { if (master) master.gain.value = muted ? 0 : (vol / 100) * 0.4; const v = $('volVal'); if (v) v.textContent = vol + '%'; const s = $('volSlider'); if (s && +s.value !== vol) s.value = vol; }
+function applyVol() { if (master) master.gain.value = muted ? 0 : (vol / 100) * 0.4; const v = $('volVal'); if (v) v.textContent = vol + '%'; const s = $('volSlider'); if (s && +s.value !== vol) s.value = vol; const pv = $('pauseVolVal'); if (pv) pv.textContent = vol + '%'; const ps = $('pauseVolSlider'); if (ps && +ps.value !== vol) ps.value = vol; } // v38: also syncs the pause-menu slider/label
 
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 function env(g, t, a, p, d) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(p, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + d) }
@@ -769,6 +790,7 @@ async function play() {
   const w = $('walletInput').value.trim();
   if (w && !isAddr(w)) { $('walletInput').classList.add('invalid'); return say(msg('invalidWallet'), 'pink'); }
   $('walletInput').classList.remove('invalid');
+  saveWallet38(w); // v38: the typed wallet is remembered when a song starts
   try { await initAudio(); stopIntroMusic(); } catch (e) { return say(msgf('audioFail', { err: String(e.message || e).slice(0, 60) }), 'pink'); }
   // v27 LIVE: sample the real wheel right before the song is built — the tempo
   // IS the hamster's tempo at this moment. If the wheel is offline, the song
@@ -780,7 +802,17 @@ async function play() {
     liveStart = await refreshLive();
     if (!liveStart.ok) say(msg('wheelOffline'), 'pink');
   }
-  const seedKey = seedKeyFor(playMode);
+  // v38 SESSION: ask the leaderboard Worker for a verified session before
+  // the song is built. FREE mode plays the server seed; other modes keep
+  // their deterministic seed (same song for everyone / duel replay) and
+  // only carry the sessionId. Offline/failure = local seed, no sessionId —
+  // the score still submits, as unverified.
+  let session38 = null;
+  try {
+    const sr = await tfetch(CONFIG.LB_URL + '/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w || 'GUEST', mode: playMode }) }, 5000);
+    if (sr.ok) { const sj = await sr.json(); if (sj && sj.sessionId) session38 = sj; }
+  } catch (_) { session38 = null; }
+  const seedKey = playMode === 'free' && session38 && session38.seed !== undefined && session38.seed !== null && String(session38.seed).length ? 'FREE-' + String(session38.seed) : seedKeyFor(playMode);
   if (playMode === 'daily') applyDailySpec(); // v28: daily genre+diff come from the date, not the selection
   if (playMode === 'boss') { const bs = weeklySpec(); currentGenre = bs.genre; currentDiff = 'hard'; syncGenreDiffButtons(); } // v29: weekly boss is always HARD
   const lanes = lanesForSong(), mirror = mirrorForSong();
@@ -793,7 +825,7 @@ async function play() {
   glSeed = w ? Math.abs(cyrb53(w) % 1000) / 100 : Math.random() * 10;
   glShockwave = 1.0; // Shockwave saat mulai
 
-  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), glitchT: 0, ended: false, paused: false, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, fever: false, practice: practiceMode, live: (playMode === 'live' || playMode === 'race') ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null, race: playMode === 'race' ? { startDistKm: liveStart && liveStart.ok ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), playerDist: 0, roundKey: roundKeyFor(new Date()), goldenNote: null } : null, boss: playMode === 'boss' };
+  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), glitchT: 0, ended: false, paused: false, taps: 0, sessionId: session38 ? session38.sessionId : null, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, fever: false, practice: practiceMode, live: (playMode === 'live' || playMode === 'race') ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null, race: playMode === 'race' ? { startDistKm: liveStart && liveStart.ok ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), playerDist: 0, roundKey: roundKeyFor(new Date()), goldenNote: null } : null, boss: playMode === 'boss' };
   const themeKey = themeKeyFor(playMode, G.boss); G.theme = THEMES[themeKey]; document.body.dataset.theme = themeKey; // v34: one look per mode
   try { const cg = cx.createLinearGradient(0, 0, 0, GH); cg.addColorStop(0, G.theme.bg[0]); cg.addColorStop(1, G.theme.bg[1]); G.bgGrad = cg; } catch (_) {} // v34: theme gradient background (was the anthem hue)
   if (playMode === 'challenge' && (challengeLanes === 4 || challengeMirror)) say(msgf('duelUnlock', { mods: (challengeLanes === 4 ? '4 LANES ' : '') + (challengeMirror ? 'MIRROR ' : '') }), 'yellow');
@@ -807,6 +839,7 @@ async function play() {
   else if (playMode === 'race') { const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.remove('hidden'); updateRaceHud(); startLivePoll(5000); startRaceTick(); }
   else { const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); }
   setText('pauseBtn', msg('pauseBtn'));
+  disarmPauseExit(); // v38: a TERMINATE tap armed in the previous game must not survive
   clearInterval(sched); sched = setInterval(schedule, 25);
   cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
   cv.focus({ preventScroll: true });
@@ -837,6 +870,7 @@ function addFloatText(txt, color, x) { floatTexts.push({ txt, color, x: x === un
 function judge(lane) {
   if (!G || G.ended || G.paused || !ac) return;
   if (lane < 0 || lane >= G.lanes) return; // v28: lane 3 only exists in 4-lane songs
+  G.taps++; // v38: every tap that reaches the game counts (hit, empty tap or miss alike)
   const st = songTime() - offsetMs / 1000; // v28: PRECISION offset — judge the tap as if it came offsetMs earlier
   let target = null, bd = Infinity;
   for (const n of anthem.chart) {
@@ -947,7 +981,7 @@ const grade = (a, miss) => a >= 95 && miss === 0 ? 'SS' : a >= 95 ? 'S' : a >= 8
 function hud() { $('scoreVal').textContent = G.score; $('comboVal').textContent = G.combo; $('accVal').textContent = Math.round(accuracy()) + '%'; const ft = $('feverTag'); if (ft) ft.classList.toggle('hidden', !(G && G.fever)); } // v33: ACC as an integer — "58.1%" was truncated to "58..." on phones
 
 function finish() {
-  G.ended = true; clearInterval(sched); cancelAnimationFrame(raf); stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night');
+  G.ended = true; disarmPauseExit(); clearInterval(sched); cancelAnimationFrame(raf); stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night');
   const rh = $('raceHud'); if (rh) rh.classList.add('hidden');
   const a = accuracy(), g = grade(a, G.counts.miss), key = (G.wallet || 'GUEST').toLowerCase(), prev = loadBest(G.wallet);
   const rec = { score: G.score, acc: +a.toFixed(2), grade: g, maxCombo: G.maxCombo, at: Date.now() };
@@ -956,7 +990,7 @@ function finish() {
   if (!G.practice && isNew) saveBest(G.wallet, rec);
   const avgOff = hitOffsets.length ? Math.round(hitOffsets.reduce((x, v) => x + v, 0) / hitOffsets.length) : null;
   const res = { score: G.score, acc: +a.toFixed(2), maxCombo: G.maxCombo, miss: G.counts.miss, perfect: G.counts.perfect, diff: G.diff, mode: G.mode, avgOff };
-  const missions = dailyMissions(todayStr());
+  const missions = dailyMissions(squeekTodayStr());
   const doneKey = missionsDoneKey(G.wallet);
   const doneBefore = loadJSON(doneKey, []);
   const newlyDone = G.practice ? [] : missions.filter(m => !doneBefore.includes(m.id) && m.check(res)).map(m => m.id);
@@ -980,14 +1014,14 @@ function finish() {
   if (G.mode === 'daily' && !G.practice) {
     const sk = 'sqk24:streak:' + walletKey(G.wallet);
     const st = loadJSON(sk, { last: null, count: 0 });
-    if (st.last !== todayStr()) {
+    if (st.last !== squeekTodayStr()) {
       const fk = 'sqk29:freeze:' + walletKey(G.wallet);
       const freezes = loadJSON(fk, 0);
       let freezeUsed = false;
-      if (st.last === yesterdayStr()) st.count = st.count + 1;
-      else if (st.last === twoDaysAgoStr() && freezes > 0) { saveJSON(fk, freezes - 1); st.count = st.count + 1; freezeUsed = true; } // v29: a freeze saves a streak after exactly one missed day
+      if (st.last === squeekYesterdayStr()) st.count = st.count + 1;
+      else if (st.last === squeekTwoDaysAgoStr() && freezes > 0) { saveJSON(fk, freezes - 1); st.count = st.count + 1; freezeUsed = true; } // v29: a freeze saves a streak after exactly one missed day
       else st.count = 1;
-      st.last = todayStr(); saveJSON(sk, st);
+      st.last = squeekTodayStr(); saveJSON(sk, st);
       streakTxt = msgf('streakDays', { n: st.count }) + (freezeUsed ? msg('freezeUsed') : '');
     }
   }
@@ -1009,7 +1043,7 @@ function finish() {
     if (achAdded.length && xpEl) xpEl.textContent += ' • +' + (achAdded.length * 25) + ' XP (ACHIEVEMENTS)'; // v30: achievement XP is awarded inside checkAchievements — keep the XP line honest
   }
   renderRaceBox(); renderLeague(); renderAchievements(); renderPredict(); renderBossBox(); renderDiaryList(); renderChamps();
-  lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice }; resetLbSubmit(); // v37: this result is submittable to the global board
+  lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice, sessionId: G.sessionId || null, taps: G.taps || 0, notes: anthem ? anthem.chart.length : 0, durationMs: anthem ? Math.round(anthem.duration * 1000) : 0 }; resetLbSubmit(); // v37: this result is submittable to the global board (v38: + sessionId/taps/notes/durationMs)
   $('gradeVal').textContent = g; $('gradeVal').style.color = g.startsWith('S') ? 'var(--green)' : g === 'A' ? 'var(--cyan)' : 'var(--pink)';
   const c = G.counts;
   $('resultKv').innerHTML = `<span>${rl('score')}</span><b>${G.score}</b><span>${rl('acc')}</span><b>${a.toFixed(2)}%</b><span>${rl('combo')}</span><b>${G.maxCombo}</b><span>${rl('pg')}</span><b>${c.perfect}/${c.great}</b><span>${rl('gm')}</span><b>${c.good}/${c.miss}</b><span>${rl('anthem')}</span><b>"${anthem.name}" • ${anthem.key}</b><span>${rl('setup')}</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? rl('tryCalib') : ''}${G.practice ? rl('practiceTag') : ''}</b>` + (G.live ? `<span>${rl('live')}</span><b>${G.live.offline ? rl('offline') : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '') + (G.race ? `<span>${rl('race')}</span><b>YOU ${G.race.playerDist.toFixed(0)} m vs SQUEEKTOSHI ${oppDist.toFixed(0)} m — ${raceWin ? rl('raceWin') : rl('raceLose')}${G.race.offline ? ' (' + rl('offline') + ')' : ''}</b>` : '') + (G.boss ? `<span>${rl('boss')}</span><b>${rl('bossDefeated')}</b>` : '');
@@ -1034,10 +1068,45 @@ function playResultJingle(g) {
   seq.forEach((m, i) => { tone(mtof(m), t0 + i * 0.11, 'square', 0.16, 0.16); tone(mtof(m + 7), t0 + i * 0.11, 'sawtooth', 0.07, 0.16); });
   if (g === 'SS' || g === 'S') kick(t0);
 }
-function stop() { if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night'); delete document.body.dataset.theme; /* v34: the mode theme leaves with the game */ const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.add('hidden'); document.body.classList.remove('playing'); resumeGL(); show('mainPanel'); playIntroMusic(); startMenuPoll(); }
-async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', msg('resumeBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { run: msg('audioPaused'), bpm: anthem.bpm, state: 'paused', practice: G.practice ? msg('practiceTag2') : '' })); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); } // v33.2: v33.1 only changed the AC state — the template's leading word still said RUNNING
-async function resumeGame() { if (!G || G.ended) return; try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', msg('pauseBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { run: msg('audioRunning'), bpm: anthem.bpm, state: 'running', practice: G.practice ? msg('practiceTag2') : '' })); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
+function stop() { hidePauseOverlay(); syncBackToGameBtn(); if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night'); delete document.body.dataset.theme; /* v34: the mode theme leaves with the game */ const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.add('hidden'); document.body.classList.remove('playing'); resumeGL(); show('mainPanel'); playIntroMusic(); startMenuPoll(); }
+async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', msg('resumeBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { run: msg('audioPaused'), bpm: anthem.bpm, state: 'paused', practice: G.practice ? msg('practiceTag2') : '' })); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); showPauseOverlay(); } // v33.2: v33.1 only changed the AC state — the template's leading word still said RUNNING (v38: the real pause menu opens here)
+async function resumeGame() { if (!G || G.ended) return; hidePauseOverlay(); try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', msg('pauseBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { run: msg('audioRunning'), bpm: anthem.bpm, state: 'running', practice: G.practice ? msg('practiceTag2') : '' })); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
 async function togglePause() { if (!G) return; if (G.paused) await resumeGame(); else await pauseGame(); }
+
+// --- v38 REAL PAUSE MENU (DOM overlay, no window.confirm anywhere) ---
+// EXIT / TERMINATE are two-step armed: first tap arms ("SURE? TAP AGAIN"),
+// second tap executes; arming auto-expires after 3s. CALIBRATE keeps the
+// game paused and jumps to the ME tab (the TAP button lives there); the
+// [ BACK TO GAME ] button in ME returns to the paused game.
+let exitArmed = false, exitArmTimer = null, stopArmed = false, stopArmTimer = null;
+function pauseI18n(k) { const d = I18N[lang] || I18N.en; return d[k] || I18N.en[k] || k; }
+function showPauseOverlay() { const o = $('pauseOverlay'); if (o) o.classList.remove('hidden'); syncBackToGameBtn(); }
+function hidePauseOverlay() { const o = $('pauseOverlay'); if (o) o.classList.add('hidden'); disarmPauseExit(); syncBackToGameBtn(); }
+function disarmPauseExit() {
+  exitArmed = false; stopArmed = false;
+  if (exitArmTimer) { clearTimeout(exitArmTimer); exitArmTimer = null; }
+  if (stopArmTimer) { clearTimeout(stopArmTimer); stopArmTimer = null; }
+  const pe = $('pauseExitBtn'); if (pe) pe.textContent = pauseI18n('pauseExit');
+  const st = $('stopBtn'); if (st) st.textContent = '[ TERMINATE ]';
+}
+function armOrExit(btn, which) {
+  const armed = which === 'pause' ? exitArmed : stopArmed;
+  if (!armed) {
+    if (which === 'pause') { exitArmed = true; exitArmTimer = setTimeout(disarmPauseExit, 3000); }
+    else { stopArmed = true; stopArmTimer = setTimeout(disarmPauseExit, 3000); }
+    btn.textContent = pauseI18n('pauseSure');
+    return;
+  }
+  disarmPauseExit(); hidePauseOverlay(); stop();
+}
+function syncBackToGameBtn() { const b = $('backToGameBtn'); if (!b) return; b.classList.toggle('hidden', !(G && G.paused && !G.ended)); }
+function pauseCalibrate() {
+  if (!G || G.ended) return;
+  hidePauseOverlay(); // G stays paused; audio stays suspended
+  show('mainPanel'); setTab('me');
+  syncBackToGameBtn();
+  const cb = $('calibBox'); if (cb) cb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 
 const KEY_LANES = { ArrowLeft: 0, a: 0, A: 0, '1': 0, ArrowDown: 1, s: 1, S: 1, '2': 1, ArrowRight: 2, d: 2, D: 2, '3': 2, ArrowUp: 3, f: 3, F: 3, '4': 3 }; // v28: lane 3 (4th) = ↑ / F — only active in 4-lane songs (judge() guards the lane)
 document.addEventListener('keydown', (e) => {
@@ -1355,7 +1424,7 @@ async function generateCard() {
   row('WHEEL', wheel.status, 24, 428, wheel.ok ? '#00ff88' : '#ff5ce1');
   row('DISTANCE', wheel.ok ? wheel.dist.toFixed(3) + ' KM' : '-', 224, 428, '#00ff88');
   const achCard = loadJSON('sqk29:ach:' + walletKey(w), []);
-  row('ACHIEVEMENTS', achCard.length ? achCard.length + '/10 — ' + achCard.slice(0, 2).join(', ') : '0/10 — PLAY TO UNLOCK', 24, 472, '#ffe14d');
+  row('ACHIEVEMENTS', achCard.length ? achCard.length + '/11 — ' + achCard.slice(0, 2).join(', ') : '0/11 — PLAY TO UNLOCK', 24, 472, '#ffe14d');
   hair(496);
   // v35.1: the Squeek's own DotGrid art, live from /v1/squeeks/{id}.
   // A failed/slow fetch draws a dashed placeholder — the card never breaks for an image.
@@ -1468,17 +1537,29 @@ function preview() {
   const w = $('walletInput').value.trim();
   if (w && !isAddr(w)) { $('anthemInfo').textContent = msg('invalidAddr'); $('walletInput').classList.add('invalid'); return; }
   $('walletInput').classList.remove('invalid');
+  maybeMigrateLegacy8(w); // v38: one-time legacy check whenever the wallet is (re)entered
   if (playMode === 'daily') applyDailySpec(); // v28: daily genre+diff come from the date
   const lanes = lanesForSong(), mirror = mirrorForSong();
   const a = makeAnthem(w, false, playMode === 'free' ? null : seedKeyFor(playMode), lanes, mirror), b = loadBest(w);
   const liveTag = liveSnapshot && liveSnapshot.ok ? msgf('anthemLiveOk', { rpm: Math.round(liveSnapshot.rpm), bpm: a.bpm }) : msg('anthemLiveOff');
-  const modeTag = playMode === 'free' ? '' : playMode === 'daily' ? msgf('anthemDaily', { date: todayStr(), genre: currentGenre.toUpperCase(), diff: currentDiff.toUpperCase() }) : playMode === 'live' ? msgf('anthemLive', { live: liveTag }) : playMode === 'race' ? msgf('anthemRace', { live: liveTag }) : playMode === 'boss' ? msgf('anthemBoss', { week: weeklyKey() }) : msgf('anthemDuel', { code: String(challengeCode || '').slice(0, 12), lanes: lanes === 4 ? ' • 4 LANES' : '', mirror: mirror ? ' • MIRROR' : '' });
+  const modeTag = playMode === 'free' ? '' : playMode === 'daily' ? msgf('anthemDaily', { date: squeekTodayStr(), genre: currentGenre.toUpperCase(), diff: currentDiff.toUpperCase() }) : playMode === 'live' ? msgf('anthemLive', { live: liveTag }) : playMode === 'race' ? msgf('anthemRace', { live: liveTag }) : playMode === 'boss' ? msgf('anthemBoss', { week: weeklyKey() }) : msgf('anthemDuel', { code: String(challengeCode || '').slice(0, 12), lanes: lanes === 4 ? ' • 4 LANES' : '', mirror: mirror ? ' • MIRROR' : '' });
   $('anthemInfo').textContent = msg('anthemPrefix') + `"${a.name}" • ${a.key} ${a.scaleName} [${a.bpm} BPM] // NOTES: ${a.chart.length}` + (b ? msgf('anthemBest', { score: b.score }) : '') + modeTag;
   renderAvatarPreview(w); renderUnlocks(); applyHue(a.hue);
 }
 
 const walletEl = $('walletInput');
+// v38 WALLET REMEMBERED: refill the saved address on load (autofill only —
+// never auto-request accounts). ?wallet= in the URL still wins (boot code).
+try { const saved38 = localStorage.getItem('sqk38:wallet'); if (walletEl && !walletEl.value && saved38 && isAddr(saved38)) walletEl.value = saved38; } catch (_) {}
+function saveWallet38(addr) { try { if (addr && isAddr(addr)) localStorage.setItem('sqk38:wallet', addr); } catch (_) {} }
+function forgetWallet38() {
+  try { localStorage.removeItem('sqk38:wallet'); } catch (_) {}
+  if (walletEl) walletEl.value = '';
+  preview(); renderUnlocks(); renderDailyBox(); renderMastery(); renderAchievements(); renderLeague(); renderChamps();
+  say(msg('walletForgotten'), 'cyan');
+}
 if (walletEl) walletEl.addEventListener('input', preview);
+if (walletEl) { walletEl.addEventListener('change', () => saveWallet38(walletEl.value.trim())); walletEl.addEventListener('blur', () => saveWallet38(walletEl.value.trim())); }
 
 // v26.1 CONNECT WALLET (read-only): fills the address field from the browser
 // wallet (MetaMask / any EIP-1193 wallet). It only asks the
@@ -1493,6 +1574,7 @@ async function connectWallet() {
     const addr = Array.isArray(accounts) ? accounts[0] : null;
     if (!addr || !isAddr(addr)) return say(msg('walletInvalid'), 'pink');
     if (walletEl) walletEl.value = addr;
+    saveWallet38(addr);
     preview();
     say(msgf('walletConnected', { addr: addr.slice(0, 6) + '...' + addr.slice(-4) }), 'green');
   } catch (e) {
@@ -1504,13 +1586,16 @@ async function connectWallet() {
 if (window.ethereum && typeof window.ethereum.on === 'function') {
   window.ethereum.on('accountsChanged', (accounts) => {
     const addr = Array.isArray(accounts) ? accounts[0] : null;
-    if (addr && isAddr(addr) && walletEl) { walletEl.value = addr; preview(); say(msgf('walletSwitched', { addr: addr.slice(0, 6) + '...' + addr.slice(-4) }), 'cyan'); }
+    if (addr && isAddr(addr) && walletEl) { walletEl.value = addr; saveWallet38(addr); preview(); say(msgf('walletSwitched', { addr: addr.slice(0, 6) + '...' + addr.slice(-4) }), 'cyan'); }
   });
 }
 bindClick('connectBtn', connectWallet);
 bindClick('playBtn', play); bindClick('genBtn', generateCard);
 bindClick('dlBtn', download); bindClick('shareBtn', share);
-bindClick('stopBtn', stop); bindClick('againBtn', play);
+bindClick('stopBtn', () => armOrExit($('stopBtn'), 'stop')); bindClick('againBtn', play);
+bindClick('pauseResumeBtn', resumeGame); bindClick('pauseExitBtn', () => armOrExit($('pauseExitBtn'), 'pause')); bindClick('pauseCalibBtn', pauseCalibrate);
+bindClick('backToGameBtn', () => { if (!G || G.ended) return; show('gamePanel'); showPauseOverlay(); });
+bindClick('forgetWalletBtn', forgetWallet38);
 bindClick('pauseBtn', togglePause); bindClick('muteBtn', toggleMute);
 bindClick('qualityBtn', () => setQuality(quality === 'ultra' ? 'hemat' : 'ultra'));
 bindClick('homeBtn', () => show('mainPanel'));
@@ -1533,11 +1618,11 @@ function renderDailyBox() {
   const st = loadJSON('sqk24:streak:' + walletKey(w), { count: 0 });
   const sl = $('streakLine'); if (sl) sl.textContent = msgf('streakTpl', { n: st.count });
   const fl = $('freezeLine'); if (fl) { const fr = loadJSON('sqk29:freeze:' + walletKey(w), 0); fl.classList.toggle('hidden', fr <= 0); fl.textContent = fr > 0 ? msgf('freezeTpl', { n: fr }) : ''; }
-  const dt = $('dailyTitle'); if (dt) dt.textContent = msgf('dailyTitleTpl', { date: todayStr() });
-  const di = $('dailyInfo'); if (di) { const s = dailySpec(); di.textContent = msgf('dailyInfoTpl', { genre: s.genre.toUpperCase(), diff: s.diff.toUpperCase(), date: todayStr() }); }
+  const dt = $('dailyTitle'); if (dt) dt.textContent = msgf('dailyTitleTpl', { date: squeekTodayStr() });
+  const di = $('dailyInfo'); if (di) { const s = dailySpec(); di.textContent = msgf('dailyInfoTpl', { genre: s.genre.toUpperCase(), diff: s.diff.toUpperCase(), date: squeekTodayStr() }); }
   const done = loadJSON(missionsDoneKey(w), []);
   const ml = $('missionList');
-  if (ml) ml.innerHTML = dailyMissions(todayStr()).map(m => `<div class="mission${done.includes(m.id) ? ' done' : ''}">${msg(m.k)}</div>`).join('');
+  if (ml) ml.innerHTML = dailyMissions(squeekTodayStr()).map(m => `<div class="mission${done.includes(m.id) ? ' done' : ''}">${msg(m.k)}</div>`).join('');
 }
 function renderMastery() {
   const w = $('walletInput') ? $('walletInput').value.trim() : '';
@@ -1659,7 +1744,7 @@ function setMode(m) {
   if (m === 'live') { refreshLive(); startLivePoll(10000); say(msg('modeLive'), 'yellow'); const lb = $('liveBox'); if (lb) lb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   else if (m === 'race') { renderRaceBox(); refreshLive(); startLivePoll(10000); say(msg('modeRace'), 'yellow'); const rb = $('raceBox'); if (rb) rb.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   else stopLivePoll();
-  if (m === 'daily') { const s = dailySpec(); say(msgf('modeDaily', { date: todayStr(), genre: s.genre.toUpperCase(), diff: s.diff.toUpperCase() }), 'yellow'); const db = $('dailyBox'); if (db) db.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  if (m === 'daily') { const s = dailySpec(); say(msgf('modeDaily', { date: squeekTodayStr(), genre: s.genre.toUpperCase(), diff: s.diff.toUpperCase() }), 'yellow'); const db = $('dailyBox'); if (db) db.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   else if (m === 'free') say(msg('modeFree'), 'cyan'); // v32.2: switching back to FREE used to leave the stale "MODE LIVE AKTIF" banner in #message
 }
 function duelLink() { if (!G || !G.seedKey) return null; const base = location.href.split('?')[0]; const from = isAddr(G.wallet) ? G.wallet.slice(0, 6) + '...' + G.wallet.slice(-4) : 'GUEST'; return `${base}?challenge=${encodeURIComponent(G.seedKey)}&genre=${G.genre}&diff=${G.diff}${G.lanes === 4 ? '&lanes=4' : ''}${G.mirror ? '&mirror=1' : ''}&from=${encodeURIComponent(from)}&score=${G.score}`; }
@@ -1697,7 +1782,7 @@ bindClick('mirrorBtn', () => {
 // no recorded samples settles as NO DATA (no XP lost); the league trusts the
 // score carried in the duel link itself (a friendly local table).
 // ==========================================
-function twoDaysAgoStr() { const t = new Date(); t.setDate(t.getDate() - 2); return todayStr(t); }
+// v38: twoDaysAgoStr() removed — the streak now uses squeekTwoDaysAgoStr() (Squeek day, 12:00 UTC).
 
 // --- 10-minute rounds (shared vocabulary: Nap / Jog / Zoomies) ---
 function roundKeyFor(d) { const p = n => String(n).padStart(2, '0'); return `${todayStr(d)}-${p(d.getHours())}:${p(Math.floor(d.getMinutes() / 10) * 10)}`; }
@@ -1752,7 +1837,7 @@ function recordChampion(res) {
   const w = currentWallet();
   const key = 'sqk30:champs:' + walletKey(w);
   const list = loadJSON(key, []);
-  const today = todayStr();
+  const today = squeekTodayStr();
   const entry = list.find(c => c.date === today);
   if (!entry) list.push({ date: today, score: res.score, grade: res.grade, mode: res.mode });
   else if (res.score > entry.score) { entry.score = res.score; entry.grade = res.grade; entry.mode = res.mode; }
@@ -1814,7 +1899,12 @@ function renderPredict() {
   renderRoundHist(); // v30: the history box refreshes with every prediction render
 }
 
-// --- Achievements (10, named) ---
+// --- Achievements (11, named) ---
+// v38 LEGACY LV8: migration-only. Its check is ALWAYS false, so no new
+// player can ever earn it by reaching 4000 XP — only maybeMigrateLegacy8()
+// (below) can add it, once, to players who were already LV8 under the
+// old curve. It pays no XP (added directly to storage, not via
+// checkAchievements()).
 const ACHIEVEMENTS = [
   { id: 'first', name: 'FIRST STEPS', desc: 'Finish 1 song', k: 'achFirst', check: c => c.games >= 1 },
   { id: 'perfect30', name: 'PERFECT 30', desc: '30+ PERFECT in one song', k: 'achPerfect', check: c => c.res && c.res.perfect >= 30 },
@@ -1826,7 +1916,29 @@ const ACHIEVEMENTS = [
   { id: 'gold', name: 'GOLDEN', desc: 'Reach LV8', k: 'achGold', check: c => (c.level || 0) >= 8 },
   { id: 'void', name: 'VOID WALKER', desc: 'Finish a VOID song', k: 'achVoid', check: c => c.genre === 'void' },
   { id: 'mirror', name: 'MIRROR MASTER', desc: 'Finish a Mirror song', k: 'achMirror', check: c => c.mirror === true },
+  { id: 'legacy8', name: 'LEGACY LV8', desc: 'LV8 under the old XP curve (before v38)', k: 'achLegacy8', check: () => false },
 ];
+// --- v38 LEGACY LV8 (one-time migration, no XP) ---
+// Players who already reached LV8 under the old curve (totalXP >= 4000)
+// get the LEGACY LV8 badge once. The guard is per wallet
+// ('sqk38:migrated:<key>') so a wallet typed in later is still checked;
+// the global 'sqk38:migrated' key records that the v38 migration has run
+// at least once (the spec key). Runs inside preview(), i.e. on every boot
+// and every wallet (re)entry. A wallet first seen below 4000 XP is marked
+// and never gets the badge later — reaching 4000 under the new curve is
+// only LV3 (LV4 starts at 4300), not old-LV8.
+function maybeMigrateLegacy8(w) {
+  const key = walletKey(w);
+  if (loadJSON('sqk38:migrated:' + key, 0)) return false;
+  saveJSON('sqk38:migrated:' + key, 1);
+  saveJSON('sqk38:migrated', 1);
+  if (totalXP(w) >= 4000) {
+    const ak = 'sqk29:ach:' + key, have = loadJSON(ak, []);
+    if (!have.includes('legacy8')) { have.push('legacy8'); saveJSON(ak, have); }
+    return true;
+  }
+  return false;
+}
 function achCtx(extra) {
   const w = currentWallet();
   const hist = loadJSON('sqk24:hist:' + walletKey(w), []);
@@ -1939,7 +2051,7 @@ async function submitLb() {
   if (!isAddr(w)) return show(msg('lbNeedWallet'));
   const b = $('lbSubmitBtn'); if (b) b.disabled = true;
   try {
-    const r = await tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode) }) }, 8000);
+    const r = await tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs }) }, 8000);
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();
     if (!d || !d.ok) throw new Error('submit failed');
@@ -2081,6 +2193,7 @@ function addDiaryNote() {
 
 function applyLang(l) {
   lang = (l === 'id') ? 'id' : 'en';
+  disarmPauseExit(); // v38: a language switch rewrites button labels — an armed EXIT must not survive it
   saveJSON('sqk29:lang', lang);
   const dict = I18N[lang];
   document.querySelectorAll('[data-i18n]').forEach(el => { const k = el.dataset.i18n; if (dict[k]) el.textContent = dict[k]; });
@@ -2249,6 +2362,7 @@ try { Object.keys(localStorage).filter(k => k.indexOf('sqk29:samples:') === 0).f
 applyLang(lang); renderPredict(); renderRaceBox(); renderBossBox(); renderLeague(); renderAchievements(); renderPracticeBtn(); renderChamps(); renderTutorial(); settlePredictions(); renderAway();
 renderLbModes(); const ln = $('lbName'); if (ln) { ln.value = loadJSON('sqk37:lbname', ''); ln.addEventListener('input', () => saveJSON('sqk37:lbname', ln.value.slice(0, 16))); } // v37: leaderboard name + mode buttons
 const vs = $('volSlider'); if (vs) { vs.value = vol; applyVol(); vs.addEventListener('input', () => { vol = +vs.value; saveJSON('sqk30:vol', vol); applyVol(); }); } // v30: volume slider
+const pvs = $('pauseVolSlider'); if (pvs) { pvs.value = vol; applyVol(); pvs.addEventListener('input', () => { vol = +pvs.value; saveJSON('sqk30:vol', vol); applyVol(); }); } // v38: the pause menu has its own volume slider, synced with the settings one
 if (overlayMode) { document.body.classList.add('overlay'); const ob = $('overlayBox'); if (ob) ob.classList.remove('hidden'); hideMusicSplash(); refreshLive(); startLivePoll(5000); }
 else startMenuPoll();
 
