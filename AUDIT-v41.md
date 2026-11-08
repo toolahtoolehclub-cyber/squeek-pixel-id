@@ -143,6 +143,47 @@ _(Diisi setelah push — lihat ADDENDUM di bawah.)_
 
 ---
 
-## ADDENDUM — Deploy + verifikasi live (2026-11-08)
+## ADDENDUM — Deploy + verifikasi live (2026-11-08 ~21:2x–21:3x WIB)
 
-_(Diisi setelah push GitHub + cek live.)_
+### A1. Worker v5 deploy
+- Migrasi D1 dulu (7 statement, `migrate-v5.sql`), lalu bundle esbuild
+  152.338 byte → upload via `upload_worker.py`: `success: true`.
+- `GET /` → `{ service: "squeekchain-leaderboard", version: 5 }`.
+- Cron `* * * * *` masih aktif (terverifikasi via API).
+
+### A2. Push GitHub
+- Remote head SEBELUM push diverifikasi via CLI: `778bdb0c` (cleanup
+  stray folder, 8 Nov 2026 13:54 UTC).
+- Push (commit `c914432f2bedf2bc77bc92c115d05443ee9632e0`, approval
+  disetujui): `--source-dir` = folder `squeekchain-v41`, path bare
+  (`index.html`, `script.js`, `style.css`, `worker.js`, `README.md`,
+  `TEST-v34-neo.js`, `build-worker.sh`, `migrate-v5.sql`,
+  `AUDIT-v41.md`) → mendarat di root repo (pola v38–v40.1 yang benar,
+  bukan subfolder).
+
+### A3. Site live
+- `GET https://squeekpixel.web.id/` → 200, `<title>SQUEEKCHAIN //
+  v41</title>`, header `PIXEL ID // v41`.
+- `script.js` live == lokal byte-per-byte: SHA-256
+  `8a6fde1d789014c43b35f28a5e8e38eb600a835ace53a76dc99398ccbed5410f`.
+- `worker.js` live == lokal:
+  `067d6587b247e05d037794bc53000e470eb041cc30e0131d2acad76c6b7a2531`.
+- Live `script.js` memuat `fetchShop`/`fetchLeagueWeekly`/`noteColor`/
+  `gameVersion: 'v41'` (13 match); live `index.html` memuat tab SHOP;
+  live `style.css` memuat frame.
+
+### A4. 3 proofs Genesis utuh (live)
+- Meta tag di HTML live: `squeekchain-project` content
+  `05432539-b4e4-4f90-97b3-c258583905b7` (baris 8, byte-identical).
+- Baris terakhir README raw GitHub:
+  `squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7`.
+- TXT DNS via Google DoH (`_squeekchain.squeekpixel.web.id`):
+  `"squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9"`.
+
+### A5. Yang masih terbuka
+- Smoke test browser (satu lagu penuh + submit dari client asli, lihat
+  Keju masuk setelah "TERVERIFIKASI ✓" + liga mingguan terisi) masih
+  tugas parent — subagent ini tidak punya live browser. Verifikasi di
+  atas via curl/Node + D1, bukan browser.
+- Tidak ada submit uji ke board (tidak ada baris uji untuk dibersihkan);
+  semua baris uji D1 sudah dihapus (0 sisa).
