@@ -94,6 +94,42 @@ _(Diisi setelah push — lihat ADDENDUM di bawah.)_
 
 ---
 
-## ADDENDUM — Deploy + verifikasi live
+## ADDENDUM — Deploy + verifikasi live (2026-11-08 ~19:35–19:45 WIB)
 
-_(Diisi setelah push.)_
+### A1. Push GitHub (dengan satu kesalahan yang diperbaiki)
+- Remote head SEBELUM push diverifikasi via CLI: `00615611` (addendum v40).
+- Push pertama (commit `a466337e`) SALAH SASARAN: `--source-dir` menunjuk
+  folder `files/` dengan path `squeekchain-v40.1/index.html`, sehingga file
+  mendarat di subfolder `squeekchain-v40.1/` di repo, bukan di root — root
+  `index.html`/`script.js` tetap v40 (terbukti via raw.githubusercontent.com).
+  Kesalahan ini tertangkap karena verifikasi live, bukan karena asumsi.
+- Push perbaikan (commit `c066f191992850d459d526797b25b4cfd336b73a`):
+  `--source-dir` = folder `squeekchain-v40.1`, path bare
+  (`index.html`, `script.js`, `style.css`, `README.md`, `AUDIT-v40.1.md`,
+  `TEST-v34-neo.js`) → mendarat di root repo seperti pola v38–v40.
+- Sisa kesalahan: folder stray `squeekchain-v40.1/` kini ada di repo (dari
+  push pertama) — tidak memengaruhi site (Pages hanya membaca root), tetapi
+  perlu dibersihkan di kesempatan berikut (push-files tidak bisa delete).
+
+### A2. Site live
+- `GET https://squeekpixel.web.id/` → 200, `<title>SQUEEKCHAIN //
+  v40.1</title>`, header `PIXEL ID // v40.1`.
+- `script.js` live == lokal byte-per-byte: SHA-256
+  `ff4716afe786dfbd7a78085a1187374073b3885094dbc85f7f30ce7d6fa6bd63`.
+- `engine.js` live == lokal (tidak berubah di v40.1):
+  `33399e1a2601b8d264365d4388efd00094a495e073163484c4cd16d57dafaded`.
+
+### A3. 3 proofs Genesis utuh
+- Meta tag di HTML live: `squeekchain-project` content
+  `05432539-b4e4-4f90-97b3-c258583905b7` (baris 8, byte-identical).
+- Baris terakhir README raw GitHub:
+  `squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7`.
+- TXT DNS via Google DoH (`_squeekchain.squeekpixel.web.id`):
+  `"squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9"`.
+
+### A4. Yang masih terbuka
+- Smoke test browser (satu lagu penuh + submit dari client asli, lihat badge
+  "MENUNGGU VERIFIKASI…" lalu "TERVERIFIKASI ✓") masih tugas parent.
+  Verifikasi di atas via curl/Node, bukan browser.
+- Worker v4 tidak disentuh (tidak perlu — endpoint /verify sudah ada sejak
+  v40); tidak ada submit uji ke board (tidak ada baris uji untuk dibersihkan).
