@@ -1,6 +1,7 @@
 # AUDIT v42.4 — Lead-in replay, tombol connect, alasan penolakan, equip skin SQK + audit toko
 
-Client v42.4 + Worker v9. GitHub head: (diisi saat push). Worker v9 LIVE
+Client v42.4 + Worker v9. GitHub head: `56bae44c` (commit
+`56bae44c4375a12c499ff50a66d89ad468988907`). Worker v9 LIVE
 (`GET /` → `{"service":"squeekchain-leaderboard","version":9}`).
 Tes: TEST-v34-neo.js **1677/1677** + TEST-motif.js 11/11.
 
