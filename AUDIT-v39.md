@@ -317,6 +317,105 @@ _(Diisi setelah push — lihat ADDENDUM di bawah.)_
 
 ---
 
-## ADDENDUM — Deploy + verifikasi live (Pekerja C, 2026-11-08)
+## ADDENDUM — Deploy + verifikasi live (Pekerja C, 2026-11-08 ~17:45–18:05 WIB)
 
-_(Diisi setelah push + verifikasi live; commit terpisah seperti pola v38.)_
+### A1. Push GitHub
+
+- Remote head SEBELUM push diverifikasi via CLI: `fb12c154d60813dd33d5c857cd01cefbe9ec7efe`
+  ("Squeekchain v38: AUDIT addendum…", 2026-11-08T10:18:46Z) — sesuai catatan
+  terakhir yang diketahui, bukan asumsi.
+- Push: 8 file (`index.html`, `script.js`, `style.css`, `README.md`,
+  `worker.js`, `AUDIT-v39.md`, `TEST-v34-neo.js`, `TEST-motif.js`).
+  Yang benar-benar berubah vs v38: `index.html`, `script.js`, `README.md`,
+  `worker.js`, `TEST-v34-neo.js`, `AUDIT-v39.md` (baru); `style.css`,
+  `TEST-motif.js`, `CNAME` identik (ikut ter-push tanpa perubahan isi).
+- Commit baru: **`661b3f2ff20b3b6f9bea825847da6d331acc8d07`** —
+  "Squeekchain v39 (Batch 2): Worker v3 EIP-712 attestations + replay
+  recorder, 3 smoke-test bug fixes (result song snapshot, MISS guard, single
+  isNewBest), preview session prefetch; tests 1084/1084 + motif 10/10".
+- Catatan sync diperbarui:
+  `~/workspace/your_files/squeekchain-v31.muse-github-snapshot-sync.json`
+  (entri v39, commit di atas).
+
+### A2. Site live (curl — bukan browser)
+
+- `GET https://squeekpixel.web.id/` → **200**, 26.069 byte. Awalnya masih
+  v38 (cache/deploy Pages), ~2 menit kemudian sudah v39:
+  `<title>SQUEEKCHAIN // v39</title>`, 4 kemunculan `v39`.
+- `script.js` live == lokal byte-per-byte: SHA-256
+  `47759d84a62c9f8a18b3f71200de2a247a418bd88d22ea846a9fb6ca43e837dc`
+  (lokal dan live identik).
+- Raw GitHub `main/index.html` → title v39; `README.md` raw → baris terakhir
+  tetap proof Genesis.
+
+### A3. Worker v3 live + uji verified=1 dengan replay (wallet sekali-pakai)
+
+- `GET /` → 200 `{"service":"squeekchain-leaderboard","version":3}`.
+- `POST /session` wallet `0x0000…dEaD` mode free → 200, sessionId
+  `a25aa107-d3ea-49d0-9a7f-4e871f167566`, seed `1829148350`, nonce
+  `d50cef8f…`, expiresAt +30 menit.
+- Replay v1 dibangun mengikuti bentuk klien (header seed = seed sesi,
+  seedKey `FREE-1829148350`, genre cyber / diff normal / 3 lanes, 100 inputs,
+  claim score 100 / acc 90 / maxCombo 60 / counts 60-20-10-10 = 100 notes);
+  `replayHash` = SHA-256 canonical JSON
+  `0x584494fb281c4a2e1b24e29f34655b0ac36b772b2697908b89536d6bacd32d2a`.
+- `POST /scores` `{score:100, acc:90, mode:free, sessionId, notes:100,
+  taps:100, durationMs:60000, replay, replayHash, gameVersion:'v39'}` → 200
+  **`{ok:true, improved:true, verified:1, signature, replayHash, nonce:1,
+  deadline:1794135607}`** ✅ — jalur attestation Fase 1 bekerja end-to-end.
+  Signature:
+  `0x92604f59243d9ea8681dec3317d9ecc8f0828032e38d917c079f5d16d8a8e5456a75ffc12a7a1c989842d24d4253bc0096816408b39cc7fb296125c9959956fa1b`
+  (v byte 27, recovery 0).
+- **Verifikasi signature independen** (bukan klaim Worker): digest EIP-712
+  dihitung ulang dari domain + struct (`songId =
+  free|cyber|normal|FREE-1829148350`, accuracy 9000, seed 1829148350, nonce 1,
+  deadline 1794135607) dengan `@noble/curves` + `@noble/hashes` lokal;
+  recovery atas signature menghasilkan signer
+  **`0x69f24c0598c8e6b6b938527d84141dd04ec2b3e3`** — sama persis dengan signer
+  Worker ✅. Digest: `0xf6c034db0169812da1adf5cfd55fb5f582c4f924d8630d4ee15fd0c7e94f4d4a`.
+- `GET /scores?mode=free` saat itu: 2 baris — TEST 3000 (rank 1, verified 0)
+  + TEST39 100 (rank 2, verified 1); `GET /rank` dead wallet → rank 2,
+  score 100, total 2 ✅.
+
+### A4. Pembersihan D1 — board kembali bersih
+
+Dihapus via D1 API (hanya baris wallet uji `0x0000…dEaD` + session uji):
+
+| Tabel | Dihapus |
+|---|---|
+| `scores` (wallet, mode free) | 1 |
+| `replays` (replay_hash `0x5844…`) | 1 |
+| `nonces` (wallet) | 1 |
+| `submit_log` (wallet) | 2 |
+| `sessions` (sessionId `a25aa107…`) | 1 |
+
+Verifikasi sesudah hapus: `GET /scores?mode=free` → 1 baris (TEST 3000,
+verified 0); `GET /rank` dead wallet → `rank:null, score:null, total:0`;
+`SELECT COUNT(*)` D1 untuk wallet uji = 0 di kelima tabel; `SELECT * FROM
+scores` hanya 2 baris lama — TEST free **3000 verified 0** dan race
+`0x8853…cf9a` **66805 verified 0** (keduanya tidak berubah) ✅.
+
+### A5. 3 proofs Genesis utuh
+
+- Meta tag di HTML live: `squeekchain-project` content
+  `05432539-b4e4-4f90-97b3-c258583905b7` ✅ (baris 8, byte-identical).
+- Baris terakhir README raw GitHub:
+  `squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7` ✅.
+- TXT DNS via Cloudflare DoH
+  (`_squeekchain.squeekpixel.web.id`): jawaban
+  `"squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9"` ✅
+  (dig langsung tetap ditolak resolver VM, seperti di v38).
+
+### A6. Artifact preview in-app — TIDAK BISA DIPERBARUI oleh Pekerja C
+
+Tool `artifact` yang tersedia untuk subagent ini hanya `restore`, `share`,
+dan `unshare` — TIDAK ADA fungsi create/edit/status. Jadi artifact preview
+slug `squeekchain-v26-fix` TIDAK diperbarui ke v39 oleh Pekerja C. Ini
+bukan kegagalan verifikasi, melainkan keterbatasan tool: butuh agen dengan
+akses artifact edit (parent/main agent). Jangan klaim artifact sudah v39.
+
+### A7. Yang masih terbuka (diulang dari §8)
+
+- Smoke test browser satu lagu penuh tanpa input MASIH tugas parent
+  (panel = lagu dimainkan, MISS = NOTES, tanpa banner untuk skor 0).
+  Semua verifikasi di atas via curl/Node/D1 API, bukan browser.
