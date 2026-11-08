@@ -401,6 +401,19 @@ async function runDreamTests42() {
   t('lullaby: seedKey is LULLABY-<squeek day>', seedKeyFor('lullaby') === 'LULLABY-' + squeekTodayStr());
 }
 
+// --- 10. v42.5.1 app icon + OG image (Worker-served, no binary in repo) ---
+(function () {
+  const W = 'https://squeekchain-leaderboard.pancigoreng.workers.dev';
+  t('v42.5.1 WC metadata icons -> Worker /icon.png', js.includes("icons: ['" + W + "/icon.png']"));
+  t('v42.5.1 og:image -> Worker /og.png', html.includes('<meta property="og:image" content="' + W + '/og.png">'));
+  t('v42.5.1 twitter:image -> Worker /og.png', html.includes('<meta name="twitter:image" content="' + W + '/og.png">'));
+  t('v42.5.1 favicon + apple-touch-icon -> Worker /icon.png', html.includes('<link rel="icon" type="image/png" href="' + W + '/icon.png">') && html.includes('<link rel="apple-touch-icon" href="' + W + '/icon.png">'));
+  t('v42.5.1 gameVersion v42.5.1', js.includes("gameVersion: 'v42.5.1'"));
+  t('v42.5.1 worker routes /icon.png + /og.png exist', worker.includes('"/icon.png"') && worker.includes('"/og.png"') && worker.includes('function pngResponse('));
+  t('v42.5.1 worker version 11', worker.includes('version: 11'));
+  t('v42.5.1 no stale headline-simple.png URL in client', !html.includes('squeekchain-headline-simple.png') && !js.includes('squeekchain-headline-simple.png'));
+})();
+
 (async () => {
   await runRateLimitTests();
   await runWalletTests42();

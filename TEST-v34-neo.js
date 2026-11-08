@@ -45,7 +45,7 @@ t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
 t('html says v42.5', (html.match(/v42\.5/g) || []).length >= 2);
-t('browser tab title is v42.5', html.includes('<title>SQUEEKCHAIN // v42.5</title>'));
+t('browser tab title is v42.5.1', html.includes('<title>SQUEEKCHAIN // v42.5.1</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -399,7 +399,7 @@ t('submit carries sessionId/taps/notes/durationMs', js.includes('sessionId: last
 const htmlLines = html.split('\n');
 t('Genesis meta tag is line 8, byte-identical', htmlLines[7] === '<meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">');
 t('README last line is the Genesis proof', readme.trimEnd().split('\n').pop() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
-t('OG image is absolute on the live domain', html.includes('og:image" content="https://squeekpixel.web.id/squeekchain-headline-simple.png"'));
+t('OG image is absolute on the Worker (v42.5.1)', html.includes('og:image" content="https://squeekchain-leaderboard.pancigoreng.workers.dev/og.png"'));
 t('Twitter card is summary_large_image', html.includes('twitter:card" content="summary_large_image"'));
 t('meta description is v42.5, not v32 NEO', html.includes('SQUEEKCHAIN v42.5') && !html.includes('v32 NEO'));
 t('README documents 11 achievements', readme.includes('11 named achievements'));
@@ -490,7 +490,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v42.5', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.5'"));
+t('submit sends replay + hash + gameVersion v42.5.1', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.5.1'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -846,7 +846,7 @@ const validateReplay42 = new Function(
   'const GENRES = ["cyber","synth","chip","void"]; const DIFFS = ["easy","normal","hard"]; const MAX_EXTRA_TAPS = 50; const MAX_POLLS = 600; const GOLDEN_MAX = 2;\n' +
   fnSrcW('isNonEmptyString') + '\n' + fnSrcW('isInt') + '\n' + fnSrcW('isFiniteNumber') + '\n' + fnSrcW('checkOppDist') + '\n' + fnSrcW('validateReplay') +
   '\nreturn validateReplay;')();
-t('worker v10: GET / version 10', worker.includes('version: 10'));
+t('worker v11: GET / version 11', worker.includes('version: 11'));
 t('worker v9: replay user ASLI lolos validasi bentuk (yang menolaknya simulasi, bukan validasi)', validateReplay42(userRep42, { notes: 148 }, 'daily', 34675, 51.8).ok === true);
 t('worker v9: replay user t=-0.10 LOLOS validasi (lead-in diterima)', validateReplay42(userFixed42, { notes: 148 }, 'daily', 34675, 51.8).ok === true);
 const userTooEarly42 = JSON.parse(JSON.stringify(userRep42));
@@ -1228,7 +1228,7 @@ t('dupCompensation bogus = 0', dupCompensation('bogus') === 0);
 t('catalogItem finds note-gold', catalogItem('note-gold').slot === 'note' && catalogItem('note-gold').rarity === 'rare' && catalogItem('note-gold').price === 800);
 t('catalogItem misses unknown ids', catalogItem('nope') === null);
 // 15b. Worker v5 wiring (string checks — the live D1 + endpoint checks run after deploy).
-t('worker root reports version 10', worker.includes('version: 10'));
+t('worker root reports version 11', worker.includes('version: 11'));
 t('worker has GET /cheese', worker.includes("url.pathname === \"/cheese\" && request.method === \"GET\""));
 t('worker has POST /cheese/buy', worker.includes("url.pathname === \"/cheese/buy\" && request.method === \"POST\""));
 t('worker has POST /cheese/pull', worker.includes("url.pathname === \"/cheese/pull\" && request.method === \"POST\""));
@@ -1296,11 +1296,11 @@ t('README documents the v41 shop catalog', readme.includes('Mint/Golden/Void/Rai
 t('worker v6: /league joins scores for verified', worker.includes("LEFT JOIN scores s ON s.wallet = l.wallet AND s.mode = 'free'") && worker.includes('COALESCE(s.verified, 0) AS verified'));
 t('worker v6: /league rows carry verified', worker.includes('verified: r.verified ? 1 : 0'));
 t('worker v6: /league you carries verified', worker.includes('verified: me.verified ? 1 : 0'));
-t('worker version is 10', worker.includes('{ service: "squeekchain-leaderboard", version: 10 }'));
+t('worker version is 11', worker.includes('{ service: "squeekchain-leaderboard", version: 11 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v42.5', js.includes("gameVersion: 'v42.5'"));
-t('html title is v42.5', html.includes('<title>SQUEEKCHAIN // v42.5</title>'));
+t('submit sends gameVersion v42.5.1', js.includes("gameVersion: 'v42.5.1'"));
+t('html title is v42.5.1', html.includes('<title>SQUEEKCHAIN // v42.5.1</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {
@@ -1378,7 +1378,7 @@ t('no direct window.ethereum in tx paths', !js.slice(js.indexOf('async function 
 t('WC provider is module-level (not on G)', js.includes('let wcProvider = null;') && !js.includes('G.wcProvider'));
 t('no private key anywhere in the WC code', !/privateKey|PRIVATE_KEY|mnemonic|seed phrase/i.test(js.slice(js.indexOf('// --- v42.2: WalletConnect'), js.indexOf("bindClick('connectBtn'"))));
 
-t('no BNB/Binance anywhere incl. worker (v42.1)', !/BNB|Binance/i.test(html + css + js + readme + worker));
+t('no BNB/Binance anywhere incl. worker (v42.1)', !/BNB|Binance/i.test(html + css + js + readme + worker.replace(/const (ICON|OG)_PNG_B64 = "[^"]*";/g, ''))); // v42.5.1: base64 icon/OG is opaque data, excluded from the scan
 t('README documents v42.1 + SQK catalog + split', readme.includes('**v42.1**') && readme.includes('Skin Rare 5') && readme.includes('70% owner / 30% prize pool') && readme.includes('SHOP_CONTRACT'));
 t('worker v8: SCORES_CONTRACT is the Batch 4 address', worker.includes('0x06be1517d7187ec1663c4f26d11a8f6cc217304f'));
 t('worker v8: SHOP_CONTRACT is the deployed shop', worker.includes('const SHOP_CONTRACT = "0x43f568AcfaDcee4333785c9F26596719ED0B02fb"'));
@@ -1476,7 +1476,7 @@ t('v42.5 recheckVerifyOnLeague exists and is called from setTab(league)', js.inc
 // P2-5 analytics.
 t('v42.5 analytics: allowlist + fire-and-forget POST /analytics', js.includes("const ANALYTICS_EVENTS = ['visit', 'play', 'mode_free'") && js.includes("tfetch(CONFIG.LB_URL + '/analytics'") && js.includes("analyticsEvent('visit');") && js.includes("analyticsEvent('shop_open');"));
 // Worker v10: version + new endpoints + helpers.
-t('worker v10: version 10', worker.includes('version: 10'));
+t('worker v11: version 11', worker.includes('version: 11'));
 t('worker v10: rateLimitAllowed helper (count first, insert only if allowed)', worker.includes('async function rateLimitAllowed(env, table, wallet, ip, walletMax, ipMax)'));
 t('worker v10: resolve uses its own resolve_log table', worker.includes('rateLimitAllowed(env, "resolve_log"'));
 t('worker v10: scores 429 carries retryAfterSec', worker.includes('return json({ error: "rate_limited", retryAfterSec: rlScores.retryAfterSec }, 429);'));
@@ -1486,7 +1486,7 @@ t('worker v10: ghost header validation + checkOppDist ghost branch', worker.incl
 t('worker v10: /dream/harvest + /analytics endpoints', worker.includes('url.pathname === "/dream/harvest"') && worker.includes('url.pathname === "/analytics"'));
 t('worker v10: dreamReward helper (25/50/75)', worker.includes('function dreamReward(stage)'));
 t('migrate-v10.sql exists and covers all 5 new objects', (() => { try { const m = fs.readFileSync('migrate-v10.sql', 'utf8'); return m.includes('resolve_log') && m.includes('session_wallets') && m.includes('dream_harvests') && m.includes('idx_cheese_ledger_dream') && m.includes('analytics_daily'); } catch (_) { return false; } })());
-t('build-worker.sh points at v42.5', (() => { try { const b = fs.readFileSync('build-worker.sh', 'utf8'); return b.includes('squeekchain-v42.5') && b.includes('/tmp/v42.5-build') && b.includes('Worker v10'); } catch (_) { return false; } })());
+t('build-worker.sh points at v42.5.1', (() => { try { const b = fs.readFileSync('build-worker.sh', 'utf8'); return b.includes('squeekchain-v42.5.1') && b.includes('/tmp/v42.5.1-build') && b.includes('Worker v11'); } catch (_) { return false; } })());
 
 runVerifyPollTests().then(() => {
   console.log(`\n${pass} passed, ${fail} failed`);

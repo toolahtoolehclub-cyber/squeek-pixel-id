@@ -1938,7 +1938,7 @@ async function wcGetProvider() {
       name: 'Squeek Pixel ID',
       description: 'Pixel rhythm game on Squeekchain — the hamster sets the tempo',
       url: 'https://squeekpixel.web.id/',
-      icons: ['https://squeekpixel.web.id/squeekchain-headline-simple.png'],
+      icons: ['https://squeekchain-leaderboard.pancigoreng.workers.dev/icon.png'],
     },
   });
   wcProvider = p;
@@ -2631,7 +2631,7 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 8000);
   try {
-    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.5' } : bodyBase);
+    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.5.1' } : bodyBase);
     if (r.status === 429) { // v42.5 (P0-1): pesan spesifik + jam retry, bukan "offline" generik
       const d429 = await r.json().catch(() => null);
       const t = d429 && d429.retryAfterSec ? new Date(Date.now() + d429.retryAfterSec * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
