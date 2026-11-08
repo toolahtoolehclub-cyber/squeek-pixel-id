@@ -633,3 +633,111 @@ pada `POST /session` berikutnya.)
   ini) — seperti di v39.
 - **TEST entry di board** (TEST 3000) tetap ada — keputusan hapus/tidak
   masih terbuka, JANGAN hapus tanpa pilihan eksplisit user.
+
+---
+
+## ADDENDUM — Deploy + verifikasi live (Pekerja C, 2026-11-08 ~18:30–18:35 WIB)
+
+### A1. Push GitHub
+
+- Remote head SEBELUM push diverifikasi via public GitHub API:
+  `cae40f74885fc57d73609fddbf24acf030ce8e2d` ("Squeekchain v39: AUDIT
+  addendum…", 2026-11-08T10:52:23Z) — sesuai catatan terakhir yang
+  diketahui, bukan asumsi.
+- Push: 11 file (`index.html`, `script.js`, `engine.js` (baru),
+  `README.md`, `worker.js`, `AUDIT-v40.md`, `TEST-v34-neo.js`,
+  `TEST-motif.js`, `TEST-v40-golden-charts.json` (baru),
+  `migrate-v4.sql` (baru), `build-worker.sh` (baru)). `style.css`
+  identik vs v39 (diff kosong) → TIDAK ikut di-push.
+- Commit baru: **`976cd5ff4902efa96069eb9a5c72eaed79c7f10e`** —
+  "Squeekchain v40 (Batch 3): engine.js extraction + determinism fixes,
+  Worker v4 async replay verification + 422 enforcement; tests
+  1198/1198 + motif 11/11" (2026-11-08T11:31:16Z).
+- Tes sebelum push (cwd folder v40): `node --check` script.js /
+  engine.js / worker.js OK; `node TEST-v34-neo.js` **1198 passed,
+  0 failed**; `node TEST-motif.js` **11 passed, 0 failed**.
+
+### A2. Site live (curl — bukan browser)
+
+- `GET https://squeekpixel.web.id/` → **200**, 26.109 byte, langsung
+  v40 (tanpa jeda cache seperti di v39): `<title>SQUEEKCHAIN //
+  v40</title>`, 4 kemunculan `v40`.
+- `script.js` live == lokal byte-per-byte: SHA-256
+  `89aeefda77c735cd9d22042fae510fccc3a8a35d889374b2a59e5bfe914ec63c`.
+- `engine.js` live == lokal byte-per-byte: SHA-256
+  `33399e1a2601b8d264365d4388efd00094a495e073163484c4cd16d57dafaded`.
+- `index.html` live == lokal byte-per-byte: SHA-256
+  `19c9bb4871fd46a585d93541e7b23906b3dfdb3f87df5f8955df7f4bc608661e`.
+- Raw GitHub `main/index.html` → title v40 ✅.
+
+### A3. Worker v4 live
+
+- `GET /` → 200 `{"service":"squeekchain-leaderboard","version":4}` ✅.
+- **Bundle live cocok dengan repo (cek ulang Pekerja C):** rebuild
+  lokal via `./build-worker.sh bundle-only` (esbuild, node_modules yang
+  sama) → SHA-256
+  `f3afad804958b0804ada4dc729c373efcafb1cea9a354e0265aab295a39b4fbd` —
+  IDENTIK dengan hash yang dilaporkan Pekerja B (§7.7). Ukuran bundle
+  140.292 byte = 137,0 KiB, sesuai §7.7. Tidak ada drift, **tidak perlu
+  re-deploy Worker** (dan tidak dilakukan).
+- **Hasil 3 uji e2e Pekerja B (§7.8) — TIDAK diulang oleh Pekerja C:**
+  mengulang berarti menulis baris uji baru ke board publik (wallet uji
+  sudah dibersihkan). Yang dicatat ulang di sini adalah hasil Pekerja B:
+  (1) replay asli free skor 169800 → 202 pending → Cron → **verified=1**,
+  signature recovery independen = signer
+  `0x69f24c0598c8e6b6b938527d84141dd04ec2b3e3`; (2) replay diubah (+1000)
+  → **rejected 422** `"simulated score mismatch"`, tidak masuk board;
+  (3) submit tanpa replay → **422** `"replay required"`. Tambahan: (4)
+  race imperfect → verified=1 sesudah input diurutkan (percobaan pertama
+  benar ditolak `"replay inputs not in time order"`); (5) duplikat replay
+  (1) → 200 `duplicate:true`, signature sama. Smoke test pasca-redeploy
+  juga PASS (free 123900 → verified=1, recovery = signer).
+
+### A4. Pembersihan D1 — board kembali bersih (verifikasi ulang Pekerja C)
+
+- `GET /scores?mode=free` → 1 baris (TEST 3000, verified 0, wallet
+  `0x372d…a1Db`); `GET /scores?mode=race` → 1 baris (66805, verified 0,
+  wallet `0x8853…cf9a`). Sama persis dengan baseline §7.8 — tidak ada
+  baris uji tersisa ✅. Pekerja C tidak menulis apa pun ke D1.
+
+### A5. 3 proofs Genesis utuh
+
+- Meta tag di HTML live: `squeekchain-project` content
+  `05432539-b4e4-4f90-97b3-c258583905b7` ✅ (baris 8, byte-identical
+  dengan lokal).
+- Baris terakhir README raw GitHub:
+  `squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7` ✅.
+- TXT DNS via Cloudflare DoH
+  (`_squeekchain.squeekpixel.web.id`): jawaban
+  `"squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9"` ✅
+  (dig langsung tetap ditolak resolver VM, seperti di v38/v39).
+
+### A6. Artifact preview in-app — TIDAK BISA DIPERBARUI oleh Pekerja C
+
+Tool `artifact` yang tersedia untuk subagent ini hanya `restore`,
+`share`, dan `unshare` — TIDAK ADA fungsi create/edit/status. Sama
+seperti v39 (AUDIT-v39.md A6). Jadi artifact preview slug
+`squeekchain-v26-fix` TIDAK diperbarui ke v40 oleh Pekerja C. Ini
+bukan kegagalan verifikasi, melainkan keterbatasan tool: butuh agen
+dengan akses artifact edit (parent/main agent). Jangan klaim artifact
+sudah v40.
+
+### A7. Yang masih terbuka
+
+- Smoke test browser satu lagu penuh MASIH tugas parent (panel = lagu
+  dimainkan, MISS = NOTES, tanpa banner untuk skor 0) — plus submit
+  client v40 asli end-to-end dari browser sungguhan, bukti terakhir
+  untuk flip zoomies race + golden di kondisi nyata (§7.9). Semua
+  verifikasi di atas via curl/Node/D1 API, bukan browser.
+- **Celah validasi golden wall-clock (§7.4, 4b) — ITEM TERBUKA, tidak
+  diperbaiki di batch ini:** 4b tidak memvalidasi bahwa event golden
+  terjadi TEPAT di batas ronde 10 menit wall-clock (batas itu memakai
+  waktu lokal pemain, zona waktu tidak ada di replay). Golden palsu di
+  waktu sembarang yang memenuhi 4b masih bisa lolos (+1000 per event,
+  maks 2). Perbaikan penuh butuh replay v2.
+- Kuantisasi 1 ms (§7.4) — false reject yang sangat jarang, belum
+  pernah teramati.
+- Throughput Cron 3 replay/menit — naikkan `VERIFY_BATCH` bila antrean
+  menumpuk.
+- TEST entry di board (TEST 3000) tetap ada — keputusan hapus/tidak
+  masih terbuka, JANGAN hapus tanpa pilihan eksplisit user.
