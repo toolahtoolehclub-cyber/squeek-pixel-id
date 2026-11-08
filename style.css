@@ -530,6 +530,7 @@ body.cardbar { padding-bottom: 72px; }
 #modeRow [data-mode="daily"] { --mode-accent: #ffb020; }
 #modeRow [data-mode="live"] { --mode-accent: #00ff88; }
 #modeRow [data-mode="race"] { --mode-accent: #ff2e63; }
+#modeRow [data-mode="lullaby"] { --mode-accent: #b388ff; } /* v42.5.1 (BUG 3): Lullaby akhirnya punya warna — lavender/ungu tema malam */
 #modeRow .btn-diff { border-color: var(--mode-accent, rgba(255, 255, 255, .2)); color: var(--mode-accent, #fff); }
 #modeRow .btn-diff.active { background: var(--mode-accent, #00e5ff); border-color: var(--mode-accent, #00e5ff); color: #000; }
 /* The game panel glows in the active theme's accent while playing. */

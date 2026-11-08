@@ -1012,15 +1012,17 @@ async function runEquipTests42() {
   const msgfStub = (k, vars) => { let s = msgStub(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; };
   const isAddrStub = s => /^0x[a-fA-F0-9]{40}$/.test(s || '');
   const catSrc = js.slice(js.indexOf('const SQK_SHOP_CATALOG'), js.indexOf('];', js.indexOf('const SQK_SHOP_CATALOG')) + 2);
-  const equipSqkItem = new Function('currentWallet', 'isAddr', 'sqkShopMsg', 'sqkEthCall', 'applyResultFrame', 'renderSqkShop', 'msg', 'msgf', 'CONFIG', 'SQK_SEL', 'loadJSON', 'saveJSON',
-    catSrc + '\n' + fnSrc38('sqkShopItem') + '\n' + fnSrc38('sqkUint') + '\n' + fnSrc38('sqkWordAddr') + '\n' + fnSrc38('sqkWordUint') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('saveShopSkin') + '\n' + fnSrc38('equipSqkItem') +
+  const sqkStateH = { owned: { 1: 1, 2: 0, 3: 1, 4: 1, 5: 0, 6: 0 } }; // pembacaan toko sendiri (fetchSqkShop) — dipakai fallback equip
+  const equipSqkItem = new Function('currentWallet', 'isAddr', 'sqkShopMsg', 'sqkEthCall', 'applyResultFrame', 'renderSqkShop', 'msg', 'msgf', 'CONFIG', 'SQK_SEL', 'loadJSON', 'saveJSON', 'sqkState',
+    catSrc + '\n' + fnSrc38('sqkShopItem') + '\n' + fnSrc38('sqkUint') + '\n' + fnSrc38('sqkWordAddr') + '\n' + fnSrc38('sqkWordUint') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('saveSqkSkin') + '\n' + fnSrc38('saveSkinLast') + '\n' + fnSrc38('equipSqkItem') +
     '\nreturn equipSqkItem;')(
     () => ADDR, isAddrStub, (m) => msgs.push(m), sqkEthCall,
     () => { frameApplied++; }, () => { shopRendered++; },
     msgStub, msgfStub,
     { SHOP_ADDRESS: '0x43f568AcfaDcee4333785c9F26596719ED0B02fb' },
-    { balanceOfItem: '0x4496166b' }, loadJSON, saveJSON);
-  const skinOf = () => loadJSON('sqk41:skin', { note: null, frame: null });
+    { balanceOfItem: '0x4496166b' }, loadJSON, saveJSON, sqkStateH);
+  const shopSkinH = new Function('loadJSON', 'saveJSON', fnSrc38('shopSkin') + '\nreturn shopSkin;')(loadJSON, saveJSON);
+  const skinOf = () => shopSkinH(); // skin EFEKTIF (gabungan Keju + SQK), bukan satu kunci mentah
   await equipSqkItem(1); // owned -> bisa equip
   t('v42.4 equipSqk: item 1 (owned) -> shopSkin.note = note-sqk-rare', skinOf().note === 'note-sqk-rare');
   t('v42.4 equipSqk: pesan EQUIPPED + applyResultFrame + renderSqkShop dipanggil', msgs[msgs.length - 1] === 'EQUIPPED: Skin Rare' && frameApplied === 1 && shopRendered === 1);
@@ -1030,6 +1032,21 @@ async function runEquipTests42() {
   t('v42.4 equipSqk: item 3 (frame) -> shopSkin.frame = frame-sqk, note tetap', skinOf().frame === 'frame-sqk' && skinOf().note === 'note-sqk-rare');
   await equipSqkItem(4); // ganti skin not
   t('v42.4 equipSqk: item 4 mengganti note -> note-sqk-lime', skinOf().note === 'note-sqk-lime' && skinOf().frame === 'frame-sqk');
+  // v42.5.1 (BUG 1) fallback: eth_call gagal TAPI owned sudah diketahui dari
+  // pembacaan toko sendiri -> equip tetap jalan; owned=0 -> tetap ditolak.
+  const sqkEthCallFail = async () => { throw new Error('RPC_DOWN'); };
+  const equipSqkItemNoRpc = new Function('currentWallet', 'isAddr', 'sqkShopMsg', 'sqkEthCall', 'applyResultFrame', 'renderSqkShop', 'msg', 'msgf', 'CONFIG', 'SQK_SEL', 'loadJSON', 'saveJSON', 'sqkState',
+    catSrc + '\n' + fnSrc38('sqkShopItem') + '\n' + fnSrc38('sqkUint') + '\n' + fnSrc38('sqkWordAddr') + '\n' + fnSrc38('sqkWordUint') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('saveSqkSkin') + '\n' + fnSrc38('saveSkinLast') + '\n' + fnSrc38('equipSqkItem') +
+    '\nreturn equipSqkItem;')(
+    () => ADDR, isAddrStub, (m) => msgs.push(m), sqkEthCallFail,
+    () => { frameApplied++; }, () => { shopRendered++; },
+    msgStub, msgfStub,
+    { SHOP_ADDRESS: '0x43f568AcfaDcee4333785c9F26596719ED0B02fb' },
+    { balanceOfItem: '0x4496166b' }, loadJSON, saveJSON, sqkStateH);
+  await equipSqkItemNoRpc(1); // eth_call gagal, owned[1]=1 -> tetap equip
+  t('v42.5.1 equipSqk fallback: eth_call gagal + owned>0 -> tetap terpasang', skinOf().note === 'note-sqk-rare' && msgs[msgs.length - 1] === 'EQUIPPED: Skin Rare');
+  await equipSqkItemNoRpc(2); // eth_call gagal, owned[2]=0 -> ditolak, skin tidak berubah
+  t('v42.5.1 equipSqk fallback: eth_call gagal + owned=0 -> DITOLAK (SHOP OFFLINE)', msgs[msgs.length - 1] === 'SHOP OFFLINE' && skinOf().note === 'note-sqk-rare');
   // renderSqkShop: HTML menampilkan tombol EQUIP / DIPAKAI ✓ / BELI dengan benar.
   const fakeEl = () => ({ textContent: '', innerHTML: '', disabled: false, classList: { toggle() {}, add() {}, remove() {} }, querySelectorAll: () => [] });
   const els = {};
@@ -1038,7 +1055,7 @@ async function runEquipTests42() {
   const renderMsgStub = k => ({ sqkEquippedTpl: 'DIPAKAI ✓', sqkBuyTpl: '[ BELI — {price} SQK ]', sqkOwnedTpl: 'DIMILIKI ×{n}', sqkPoolTpl: 'POOL: {pool} SQK', sqkSeasonTpl: 'MUSIM BERAKHIR: {date}', sqkSweepTpl: 'sapu {date}', sqkBalanceTpl: 'SALDO SQK: {n}', sqkPityTpl: 'PITY: {n} / 20', sqkResolveBtn: '[ RESOLVE KAPSUL ]' }[k] || k);
   const renderMsgfStub = (k, vars) => { let s = renderMsgStub(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; };
   const skinsSrc42 = js.slice(js.indexOf('const NOTE_SKINS'), js.indexOf('function shopSkin'));
-  const renderSqkShop = new Function('sqkState', '$', 'msg', 'msgf', 'fmt', 'sqkDateStr', 'escHtml', 'currentWallet', 'sqkPendingCapsule', 'isAddr', 'CONFIG', 'SQK_ZERO_ADDRESS', 'lang', 'loadJSON',
+  const renderSqkShop = new Function('sqkState', '$', 'msg', 'msgf', 'fmt', 'sqkDateStr', 'escHtml', 'currentWallet', 'sqkPendingCapsule', 'isAddr', 'CONFIG', 'SQK_ZERO_ADDRESS', 'lang', 'loadJSON', 'saveJSON',
     catSrc + '\n' + skinsSrc42 + '\n' + fnSrc38('skinPreviewHtml') + '\n' + fnSrc38('capsulePreviewHtml') + '\n' + fnSrc38('sqkShopDeployed') + '\n' + fnSrc38('sqkIsEquipped') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('renderSqkShop') +
     '\nreturn renderSqkShop;')(
     sqkState42, $stub, renderMsgStub, renderMsgfStub,
@@ -1046,13 +1063,13 @@ async function runEquipTests42() {
     new Function('lang', fnSrc38('sqkDateStr') + '\nreturn sqkDateStr;')('id'),
     new Function(fnSrc38('escHtml') + '\nreturn escHtml;')(),
     () => ADDR, () => null,
-    isAddrStub, { SHOP_ADDRESS: '0x43f568AcfaDcee4333785c9F26596719ED0B02fb' }, '0x0000000000000000000000000000000000000000', 'id', loadJSON);
+    isAddrStub, { SHOP_ADDRESS: '0x43f568AcfaDcee4333785c9F26596719ED0B02fb' }, '0x0000000000000000000000000000000000000000', 'id', loadJSON, saveJSON);
   // NOTE: shopSkin di atas dibaca dari store yang sama — saat ini note =
-  // note-sqk-lime (dari equip item 4) dan frame = frame-sqk.
+  // note-sqk-rare (dari equip fallback item 1) dan frame = frame-sqk.
   renderSqkShop();
   const catHtml = els.sqkShopCatalog.innerHTML;
-  t('v42.4 renderSqk: item 1 (owned, tidak dipakai) -> tombol EQUIP', catHtml.includes('data-sqk-equip="1"'));
-  t('v42.4 renderSqk: item 4 (owned + dipakai) -> DIPAKAI ✓, tanpa tombol EQUIP', catHtml.includes('DIPAKAI ✓') && !catHtml.includes('data-sqk-equip="4"'));
+  t('v42.4 renderSqk: item 4 (owned, tidak dipakai) -> tombol EQUIP', catHtml.includes('data-sqk-equip="4"'));
+  t('v42.4 renderSqk: item 1 (owned + dipakai) -> DIPAKAI ✓, tanpa tombol EQUIP', catHtml.includes('DIPAKAI ✓') && !catHtml.includes('data-sqk-equip="1"'));
   t('v42.4 renderSqk: item 2 (belum dimiliki) -> tombol BELI', catHtml.includes('data-sqk-buy="2"'));
   t('v42.4 renderSqk: tidak ada tombol EQUIP untuk item yang belum dimiliki', !catHtml.includes('data-sqk-equip="2"') && !catHtml.includes('data-sqk-equip="5"') && !catHtml.includes('data-sqk-equip="6"'));
   t('v42.5 renderSqk: tiap item menampilkan preview (dots/frame dari palet)', catHtml.includes('pv-dot') && catHtml.includes('pv-frame frame-sqk'));
@@ -1260,15 +1277,24 @@ t('every catalog note skin has client colors', CHEESE_CATALOG.filter(c => c.slot
 t('every catalog frame skin has a client class', CHEESE_CATALOG.filter(c => c.slot === 'frame').every(c => js.includes("FRAME_SKINS = ['frame-neon', 'frame-gold', 'frame-royal', 'frame-rainbow', 'frame-sqk']") && js.includes("'" + c.id + "'")));
 const skinStore = {};
 const skinLS = { getItem: k => (k in skinStore ? skinStore[k] : null), setItem: (k, v) => { skinStore[k] = String(v); }, removeItem: k => { delete skinStore[k]; } };
-const skinFns = new Function('localStorage', oneLine38('function loadJSON') + '\n' + oneLine38('function saveJSON') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('saveShopSkin') + '\nreturn { shopSkin, saveShopSkin };')(skinLS);
+const skinFns = new Function('localStorage', oneLine38('function loadJSON') + '\n' + oneLine38('function saveJSON') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('saveKejuSkin') + '\n' + fnSrc38('saveSqkSkin') + '\n' + fnSrc38('saveSkinLast') + '\nreturn { shopSkin, saveKejuSkin, saveSqkSkin, saveSkinLast };')(skinLS);
 t('shopSkin defaults to nothing equipped', skinFns.shopSkin().note === null && skinFns.shopSkin().frame === null);
-skinFns.saveShopSkin({ note: 'note-gold', frame: 'frame-neon' });
-t('shopSkin round-trips through sqk41:skin', skinFns.shopSkin().note === 'note-gold' && skinFns.shopSkin().frame === 'frame-neon');
-t('shopSkin survives a corrupt store', (() => { skinStore['sqk41:skin'] = 'not-json'; return skinFns.shopSkin().note === null; })());
+skinFns.saveKejuSkin({ note: 'note-gold', frame: 'frame-neon' });
+t('shopSkin round-trips Keju skin through sqk41:skin-keju', skinFns.shopSkin().note === 'note-gold' && skinFns.shopSkin().frame === 'frame-neon');
+t('shopSkin survives a corrupt store', (() => { skinStore['sqk41:skin-keju'] = 'not-json'; return skinFns.shopSkin().note === null; })());
+// v42.5.1 (BUG 1): migrasi kunci lama sqk41:skin (v42.4) ke dua kunci baru.
+t('shopSkin migrates legacy sqk41:skin to both new keys', (() => {
+  const ls2 = { getItem: k => (k in skinStore ? skinStore[k] : null), setItem: (k, v) => { skinStore[k] = String(v); }, removeItem: k => { delete skinStore[k]; } };
+  const fns2 = new Function('localStorage', oneLine38('function loadJSON') + '\n' + oneLine38('function saveJSON') + '\n' + fnSrc38('shopSkin') + '\nreturn { shopSkin };')(ls2);
+  delete skinStore['sqk41:skin-keju']; delete skinStore['sqk41:skin-sqk']; delete skinStore['sqk41:skin-last'];
+  skinStore['sqk41:skin'] = JSON.stringify({ note: 'note-gold', frame: 'frame-neon' });
+  const eff = fns2.shopSkin();
+  return eff.note === 'note-gold' && eff.frame === 'frame-neon' && skinStore['sqk41:skin-keju'] && skinStore['sqk41:skin-sqk'] && !('sqk41:skin' in skinStore);
+})());
 // 15d. Client wiring: shop tab, league weekly, cosmetics in the game.
 t('setTab fetches the shop on SHOP', js.includes("if (name === 'shop') { analyticsEvent('shop_open'); fetchShop(); fetchSqkShop(); }"));
 t('setTab fetches the weekly league on LEAGUE', js.includes("if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); recheckVerifyOnLeague(); }"));
-['fetchShop', 'renderShop', 'buyItem', 'pullCapsule', 'equipItem', 'fetchLeagueWeekly', 'renderLeagueWeekly', 'applyResultFrame', 'shopSkin', 'saveShopSkin', 'noteColor', 'shopOwned', 'shopEquipped'].forEach(s => t('v41 js has ' + s, js.includes('function ' + s)));
+['fetchShop', 'renderShop', 'buyItem', 'pullCapsule', 'equipItem', 'fetchLeagueWeekly', 'renderLeagueWeekly', 'applyResultFrame', 'shopSkin', 'saveKejuSkin', 'saveSqkSkin', 'saveSkinLast', 'noteColor', 'shopOwned', 'shopEquipped'].forEach(s => t('v41 js has ' + s, js.includes('function ' + s)));
 t('shop fetches GET /cheese', js.includes("CONFIG.LB_URL + '/cheese'"));
 t('buy posts to /cheese/buy', js.includes("CONFIG.LB_URL + '/cheese/buy'"));
 t('pull posts to /cheese/pull', js.includes("CONFIG.LB_URL + '/cheese/pull'"));

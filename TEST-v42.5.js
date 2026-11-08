@@ -2,7 +2,8 @@
 // Covers: GHOST pace + engine ghost branch, poll cross-check, ghost
 // validation (worker), rate-limit v10, dreamReward, shop previews,
 // wallet UX harness (status card + disconnect + txWallet), Dream Seeds,
-// Lullaby seedKey. Static v42.5 checks live in TEST-v34-neo.js.
+// Lullaby seedKey, v42.5.1 two-source skins (BUG 1), Lullaby submit button
+// (BUG 2), Lullaby mode color (BUG 3). Static v42.5 checks live in TEST-v34-neo.js.
 const fs = require('fs');
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
@@ -414,10 +415,85 @@ async function runDreamTests42() {
   t('v42.5.1 no stale headline-simple.png URL in client', !html.includes('squeekchain-headline-simple.png') && !js.includes('squeekchain-headline-simple.png'));
 })();
 
+// --- 11. v42.5.1: dua sumber skin (BUG 1) + tombol submit Lullaby (BUG 2) + warna Lullaby (BUG 3) ---
+async function runBugFixTests4251() {
+  const ADDR = '0x88538a82143065664232422e2dec4309038fcf9a';
+  const store = {};
+  const loadJSON = (k, d) => { try { const v = store[k]; return v === undefined ? d : JSON.parse(v); } catch { return d; } };
+  const saveJSON = (k, v) => { store[k] = JSON.stringify(v); };
+  const skinFns = new Function('loadJSON', 'saveJSON',
+    fnSrcJ('shopSkin') + '\n' + fnSrcJ('saveKejuSkin') + '\n' + fnSrcJ('saveSqkSkin') + '\n' + fnSrcJ('saveSkinLast') +
+    '\nreturn { shopSkin, saveKejuSkin, saveSqkSkin, saveSkinLast };')(loadJSON, saveJSON);
+  const { shopSkin, saveKejuSkin, saveSqkSkin, saveSkinLast } = skinFns;
+  // BUG 1 — skenario persis laporan user: equip SQK -> fetchShop -> tetap terpasang.
+  saveSqkSkin({ note: 'note-sqk-rare', frame: null }); saveSkinLast('note', 'sqk');
+  t('v42.5.1 BUG 1: equip SQK -> shopSkin.note = note-sqk-rare', shopSkin().note === 'note-sqk-rare');
+  saveKejuSkin({ note: null, frame: null }); // simulasi fetchShop: server tanpa Keju terpasang
+  t('v42.5.1 BUG 1: fetchShop tanpa Keju terpasang TIDAK menghapus skin SQK', shopSkin().note === 'note-sqk-rare');
+  saveKejuSkin({ note: 'note-mint', frame: null }); saveSkinLast('note', 'keju'); // equip Keju
+  t('v42.5.1 BUG 1: equip Keju lalu -> Keju menang di slot note', shopSkin().note === 'note-mint');
+  saveKejuSkin({ note: 'note-mint', frame: null }); // fetchShop lagi (server: Keju terpasang)
+  t('v42.5.1 BUG 1: equip Keju -> fetchShop -> Keju tetap terpasang', shopSkin().note === 'note-mint');
+  saveSqkSkin({ note: 'note-sqk-lime', frame: null }); saveSkinLast('note', 'sqk'); // equip SQK lagi
+  t('v42.5.1 BUG 1: equip SQK lalu -> SQK menang di slot note', shopSkin().note === 'note-sqk-lime');
+  saveKejuSkin({ note: 'note-mint', frame: null }); // fetchShop lagi (server: Keju terpasang)
+  t('v42.5.1 BUG 1: equip SQK -> fetchShop -> SQK tetap terpasang', shopSkin().note === 'note-sqk-lime');
+  // Slot independen: note Keju + frame SQK hidup berdampingan.
+  saveSqkSkin({ note: 'note-sqk-lime', frame: 'frame-sqk' }); saveSkinLast('frame', 'sqk');
+  saveKejuSkin({ note: 'note-mint', frame: null }); saveSkinLast('note', 'keju');
+  t('v42.5.1 BUG 1: slot independen (note Keju + frame SQK)', shopSkin().note === 'note-mint' && shopSkin().frame === 'frame-sqk');
+  // Statis: fetchShop HANYA menulis kunci Keju; penulis tunggal lama sudah tidak ada.
+  t('v42.5.1 BUG 1: fetchShop hanya menulis saveKejuSkin, bukan kunci gabungan', js.includes('saveKejuSkin({ note: note ? note.id : null, frame: frame ? frame.id : null })') && !js.includes('saveShopSkin('));
+  t('v42.5.1 BUG 1: equipSqkItem punya fallback owned dari sqkState', js.includes('sqkState.owned[itemId] > 0'));
+  // BUG 1 — fetchShop ASLI (bukan simulasi tulis kunci): mock tfetch + renderShop.
+  let cheeseResp = { catalog: [{ id: 'note-mint', slot: 'note' }], items: [], balance: 0 };
+  const tfetchMock = async () => ({ ok: true, json: async () => cheeseResp });
+  let renderCalls = 0;
+  const fetchShopH = new Function('currentWallet', 'isAddr', 'tfetch', 'CONFIG', 'renderShop', 'loadJSON', 'saveJSON',
+    'let shopState = { balance: 0, items: [], catalog: [] };\n' +
+    fnSrcJ('saveKejuSkin') + '\n' + fnSrcJ('fetchShop') +
+    '\nreturn { fetchShop, getState: () => shopState };')(
+    () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''), tfetchMock, { LB_URL: 'https://lb.test' },
+    () => { renderCalls++; }, loadJSON, saveJSON);
+  saveSqkSkin({ note: 'note-sqk-rare', frame: null }); saveSkinLast('note', 'sqk');
+  await fetchShopH.fetchShop();
+  t('v42.5.1 BUG 1 (fetchShop asli): equip SQK bertahan melewati fetchShop()', shopSkin().note === 'note-sqk-rare' && renderCalls === 1);
+  cheeseResp = { catalog: [{ id: 'note-mint', slot: 'note' }], items: [{ id: 'note-mint', slot: 'note', equipped: true }], balance: 50 };
+  await fetchShopH.fetchShop();
+  t('v42.5.1 BUG 1 (fetchShop asli): sync server tidak menimpa marker SQK terakhir', shopSkin().note === 'note-sqk-rare' && fetchShopH.getState().items.length === 1);
+  saveKejuSkin({ note: 'note-mint', frame: null }); saveSkinLast('note', 'keju');
+  await fetchShopH.fetchShop();
+  t('v42.5.1 BUG 1 (fetchShop asli): equip Keju -> fetchShop -> Keju tetap terpasang', shopSkin().note === 'note-mint');
+  // BUG 2 — resetLbSubmit menyembunyikan tombol untuk Lullaby/Practice saja.
+  const btnEl = { disabled: false, classList: mockClassList() };
+  const msgEl = { textContent: '', classList: mockClassList() };
+  const $h = id => (id === 'lbSubmitBtn' ? btnEl : id === 'lbSubmitMsg' ? msgEl : null);
+  const mkReset = lastResult => new Function('$', 'stopVerifyPoll', 'lastResult',
+    fnSrcJ('resetLbSubmit') + '\nreturn resetLbSubmit;')($h, () => {}, lastResult);
+  mkReset({ lullaby: true, practice: false })();
+  t('v42.5.1 BUG 2: panel hasil Lullaby -> tombol SUBMIT disembunyikan', btnEl.classList.contains('hidden') === true);
+  mkReset({ lullaby: false, practice: true })();
+  t('v42.5.1 BUG 2: panel hasil Practice -> tombol SUBMIT disembunyikan', btnEl.classList.contains('hidden') === true);
+  mkReset({ lullaby: false, practice: false })();
+  t('v42.5.1 BUG 2: lagu biasa -> tombol SUBMIT tetap tampil', btnEl.classList.contains('hidden') === false);
+  t('v42.5.1 BUG 2: submitLb tetap berjaga untuk Lullaby + Practice (lapis kedua)', js.includes("if (lastResult.lullaby) return show(msg('lbLullaby'));") && js.includes("if (lastResult.practice) return show(msg('lbPractice'));"));
+  t('v42.5.1 BUG 2: catatan Lullaby tetap ada di panel hasil (lullabyTag)', js.includes("G.lullaby ? rl('lullabyTag')"));
+  // BUG 3 — tombol mode LULLABY punya warna sendiri (lavender), seperti 4 mode lain.
+  t('v42.5.1 BUG 3: tombol LULLABY punya --mode-accent lavender #b388ff', css.includes('#modeRow [data-mode="lullaby"] { --mode-accent: #b388ff; }'));
+  t('v42.5.1 BUG 3: kelima mode punya --mode-accent', ['free', 'daily', 'live', 'race', 'lullaby'].every(m => css.includes('#modeRow [data-mode="' + m + '"]')));
+  t('v42.5.1 BUG 3: tombol LULLABY ada di modeRow', html.includes('data-mode="lullaby"'));
+  // BUG 4 — pesan 409 resolve kapsul: settlement hanya terjadi saat hamster lari (siang).
+  t('v42.5.1 BUG 4: sqkNotSettled EN+ID menjelaskan settlement butuh hamster lari (siang)',
+    js.includes('SETTLEMENTS ONLY HAPPEN WHEN THE HAMSTER RUNS (DAYTIME). TRY AGAIN AFTER THE MORNING RUN.') &&
+    js.includes('SETTLEMENT HANYA TERJADI SAAT HAMSTER LARI (SIANG HARI). COBA LAGI SETELAH LARI PAGI.') &&
+    !js.includes('HAS NOT SETTLED YET — TRY AGAIN IN A FEW MINUTES.') && !js.includes('BELUM SETTLED — COBA LAGI BEBERAPA MENIT LAGI.'));
+}
+
 (async () => {
   await runRateLimitTests();
   await runWalletTests42();
   await runDreamTests42();
+  await runBugFixTests4251();
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 })();
