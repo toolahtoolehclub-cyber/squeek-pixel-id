@@ -71,11 +71,44 @@ Status: **DI-DEPLOY 2026-11-08 ~23:07 WIB** — user deploy via Remix
 - Sweep (setelah warp ke seasonEnd + 7 hari + 1 detik, dipanggil akun lain bukan owner): pool 2,1 SQK terkirim ke owner, pool 0, isSwept true, saldo owner total 7 SQK — tx `0x1543531db8544605881928b5ea7593f12f7a07072da96c0d6b8a8897542e79ca`, gas 56.559; sweep kedua revert `AlreadySwept`
 - Gas deploy shop: 1.796.574 (Foundry, optimizer on) / 2.780.383 (flat file, solc 0.8.34, optimizer OFF = pengaturan Remix — tx `0xf1edf414c4d59dde701130fa166028fef2b987b81dacaa49a1f82fc2d4a959bd`, kontrak `0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9`)
 
+## Wiring v42.1 — toko tersambung ke Worker + client (2026-11-08 ~23:3x WIB)
+
+- **Worker v8 LIVE**: `SHOP_CONTRACT` di `worker.js` = alamat toko ini;
+  `GET https://squeekchain-leaderboard.pancigoreng.workers.dev/` →
+  `{"service":"squeekchain-leaderboard","version":8}`. Gate 503 "shop not
+  deployed" HILANG: `POST /capsule-resolve` (wallet valid) → 409 "round
+  not settled yet" (settledThroughRound 646); `POST /capsule` → "receipt
+  not found". Tidak ada logika verifikasi/enforcement/Keju/liga yang berubah.
+- **Client v42.1 LIVE**: `CONFIG.SHOP_ADDRESS` di `script.js` = alamat
+  toko ini; submit kirim `gameVersion: 'v42.1'`. Situs
+  https://squeekpixel.web.id/ menampilkan v42.1; root `worker.js` /
+  `script.js` / `index.html` / `engine.js` / `style.css` byte-identik
+  dengan folder v42.1. Tes: `TEST-v34-neo.js` **1574/1574, 0 gagal**
+  (baseline v42 1572 + 2 asersi baru) + `TEST-motif.js` **11/11**.
+- **Cek ulang on-chain (selector persis client)**: `prizePool()` = 0,
+  `seasonEnd()` = 1801915200, `sweepAvailableAt()` = 1802520000,
+  `isSwept()` = false, `itemPrice(1..6)` = 5/10/15/20/50/100 SQK.
+- **Artifact preview** `squeekchain-v26-fix` sudah v42.1 (verifikasi
+  builder SUCCEEDED; 0 `location.href`, 0 BNB/Binance, meta Genesis
+  byte-identik, tidak dibagikan publik).
+- **D1 bersih**: scores 0, league 0, cheese 0 (1 baris `submit_log` dari
+  uji gate sudah dihapus).
+- **Commit**: `5a854277` ("Squeekchain v42.1: wire shop contract
+  0x43f568... (Worker v8, SQK shop live); tests 1574/1574 + motif 11/11").
+  Detail lengkap: `AUDIT-v42.1.md` di repo root.
+- **BELUM**: smoke test browser interaktif (tombol beli, COMMIT/RESOLVE
+  kapsul, lagu penuh + TER VERIFIKASI ✓) + uji end-to-end beli/kapsul
+  dengan wallet asli user — butuh tanda tangan wallet user di game;
+  wiring sudah SIAP untuk itu (saldo 25 SQK cukup untuk item 1 = 5 SQK
+  + 1 pull kapsul = 2 SQK).
+
 ## Langkah berikut (setelah deploy)
 
-- Sambungkan Worker ke alamat kontrak ini (endpoint gacha + kredit Keju
-  duplikat, rilis Worker v7 — Worker menandatangani resolve dengan domain
+- [x] Sambungkan Worker ke alamat kontrak ini (endpoint gacha + kredit Keju
+  duplikat, Worker v8 — Worker menandatangani resolve dengan domain
   kontrak ini).
-- Sambungkan client v42 ke alamat kontrak ini (katalog id 1..6 + kapsul,
-  permit dengan domain token name "Squeek").
-- Uji end-to-end di Sepolia: beli 1 item + 1 pull kapsul dengan wallet uji.
+- [x] Sambungkan client v42 ke alamat kontrak ini (katalog id 1..6 + kapsul,
+  permit dengan domain token name "Squeek") — jadi v42.1.
+- [ ] Uji end-to-end di Sepolia: beli 1 item + 1 pull kapsul dengan wallet uji.
+- [ ] Smoke test browser interaktif di situs live (toko SQK aktif, lagu penuh
+  + TER VERIFIKASI ✓, toko Keju + liga tetap jalan).
