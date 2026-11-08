@@ -40,7 +40,7 @@ t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
 t('html says v41', (html.match(/v41/g) || []).length >= 2);
-t('browser tab title is v41', html.includes('<title>SQUEEKCHAIN // v41</title>'));
+t('browser tab title is v41.1', html.includes('<title>SQUEEKCHAIN // v41.1</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -485,7 +485,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v41', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v41'"));
+t('submit sends replay + hash + gameVersion v41.1', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v41.1'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -933,13 +933,13 @@ t('dupCompensation bogus = 0', dupCompensation('bogus') === 0);
 t('catalogItem finds note-gold', catalogItem('note-gold').slot === 'note' && catalogItem('note-gold').rarity === 'rare' && catalogItem('note-gold').price === 800);
 t('catalogItem misses unknown ids', catalogItem('nope') === null);
 // 15b. Worker v5 wiring (string checks — the live D1 + endpoint checks run after deploy).
-t('worker root reports version 5', worker.includes('version: 5'));
+t('worker root reports version 6', worker.includes('version: 6'));
 t('worker has GET /cheese', worker.includes("url.pathname === \"/cheese\" && request.method === \"GET\""));
 t('worker has POST /cheese/buy', worker.includes("url.pathname === \"/cheese/buy\" && request.method === \"POST\""));
 t('worker has POST /cheese/pull', worker.includes("url.pathname === \"/cheese/pull\" && request.method === \"POST\""));
 t('worker has POST /cheese/equip', worker.includes("url.pathname === \"/cheese/equip\" && request.method === \"POST\""));
 t('worker has GET /league', worker.includes("url.pathname === \"/league\" && request.method === \"GET\""));
-t('league returns top 30', worker.includes('LIMIT 30') && worker.includes("ORDER BY best_score DESC, updated_at ASC"));
+t('league returns top 30', worker.includes('LIMIT 30') && worker.includes('ORDER BY l.best_score DESC, l.updated_at ASC'));
 t('league normalizes the week param', worker.includes("weekStartKey(weekMs)") && worker.includes("Date.parse(weekParam + \"T12:00:00Z\")"));
 t('verifyOne credits cheese from sim.grade', worker.includes('cheeseEarned(sim.grade)'));
 t('verifyOne upserts the cheese balance', worker.includes('INSERT INTO cheese_balances') && worker.includes('ON CONFLICT(wallet) DO UPDATE SET balance = cheese_balances.balance + excluded.balance'));
@@ -996,6 +996,49 @@ t('SHOP panel exists once', (html.match(/id="tab-shop"/g) || []).length === 1);
 t('weekly league box lives inside the LEAGUE tab', html.indexOf('id="leagueWeeklyBox"') > html.indexOf('id="tab-league"') && html.indexOf('id="leagueWeeklyBox"') < html.indexOf('id="tab-shop"'));
 t('README documents the v41 cheese economy', readme.includes('**v41**') && readme.includes('100 per verified song') && readme.includes('league_scores'));
 t('README documents the v41 shop catalog', readme.includes('Mint/Golden/Void/Rainbow') && readme.includes('capsule-only legendary'));
+
+// --- 15e. v41.1: weekly league verified ✓ (same badge as the global board) ---
+t('worker v6: /league joins scores for verified', worker.includes("LEFT JOIN scores s ON s.wallet = l.wallet AND s.mode = 'free'") && worker.includes('COALESCE(s.verified, 0) AS verified'));
+t('worker v6: /league rows carry verified', worker.includes('verified: r.verified ? 1 : 0'));
+t('worker v6: /league you carries verified', worker.includes('verified: me.verified ? 1 : 0'));
+t('worker version is 6', worker.includes('{ service: "squeekchain-leaderboard", version: 6 }'));
+t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
+t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
+t('submit sends gameVersion v41.1', js.includes("gameVersion: 'v41.1'"));
+t('html title is v41.1', html.includes('<title>SQUEEKCHAIN // v41.1</title>'));
+t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
+// Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
+(function () {
+  const src = js.slice(js.indexOf('function renderLeagueWeekly()'), js.indexOf('async function fetchLeagueWeekly()'));
+  const els = {};
+  const $ = (id) => (els[id] || (els[id] = { innerHTML: '', textContent: '' }));
+  const fakes = {
+    escHtml: (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+    truncAddr: (w) => (w || '').slice(0, 6) + '...' + (w || '').slice(-4),
+    msg: (k) => k,
+    msgf: (k, o) => k + JSON.stringify(o || {}),
+    currentWallet: () => '',
+    I18N: { en: { leagueWeekNote: 'NOTE', leagueWeeklyEmpty: 'EMPTY' }, id: { leagueWeekNote: 'NOTE', leagueWeeklyEmpty: 'EMPTY' } },
+    lang: 'en',
+  };
+  const run = (state) => {
+    const fn = new Function('$', 'currentWallet', 'escHtml', 'truncAddr', 'msg', 'msgf', 'I18N', 'lang', 'leagueWeeklyState', 'els', src + '; renderLeagueWeekly(); return els;');
+    return fn($, fakes.currentWallet, fakes.escHtml, fakes.truncAddr, fakes.msg, fakes.msgf, fakes.I18N, fakes.lang, state, els);
+  };
+  const rows = [
+    { rank: 1, wallet: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', name: 'AAA', best_score: 500, verified: 1 },
+    { rank: 2, wallet: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', name: 'BBB', best_score: 300, verified: 0 },
+  ];
+  const out = run({ week_start: '2026-11-02', scores: rows, you: { rank: 1, best_score: 500, verified: 1 } });
+  const htmlOut = out.leagueWeeklyList.innerHTML;
+  const badgeCount = (htmlOut.match(/lb-verified/g) || []).length;
+  t('league weekly: verified=1 row shows ✓', badgeCount === 1 && htmlOut.includes('✓'));
+  const rowDivs = htmlOut.split('</div>').filter(Boolean);
+  t('league weekly: verified=0 row shows no ✓', rowDivs.length === 2 && !rowDivs[1].includes('✓') && rowDivs[1].includes('BBB'));
+  t('league weekly: verified row keeps score + name', rowDivs[0].includes('AAA') && rowDivs[0].includes('500'));
+  const outEmpty = run({ week_start: '2026-11-02', scores: [], you: null });
+  t('league weekly: empty board shows the empty message', outEmpty.leagueWeeklyList.innerHTML.includes('EMPTY'));
+})();
 
 runVerifyPollTests().then(() => {
   console.log(`\n${pass} passed, ${fail} failed`);

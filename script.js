@@ -2269,7 +2269,7 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 8000);
   try {
-    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v41' } : bodyBase);
+    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v41.1' } : bodyBase);
     if (!r.ok && r.status === 400 && lastResult.replay) r = await postScores(bodyBase);
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();
@@ -2429,7 +2429,7 @@ function renderLeagueWeekly() {
   if (lbl) lbl.textContent = leagueWeeklyState.week_start ? ('WEEK ' + leagueWeeklyState.week_start + ' — ' + I18N[lang].leagueWeekNote) : '';
   if (!leagueWeeklyState.scores.length) { el.innerHTML = `<p class="msg">${I18N[lang].leagueWeeklyEmpty}</p>`; return; }
   const me = (currentWallet() || '').toLowerCase();
-  el.innerHTML = leagueWeeklyState.scores.map(r => `<div class="league-row lb-row${r.wallet && r.wallet.toLowerCase() === me ? ' lb-me' : ''}"><span class="lb-rank">#${r.rank}</span> <b>${escHtml(r.name || 'GUEST')}</b> <span class="lb-wallet">${escHtml(truncAddr(r.wallet))}</span> <b class="lb-score">${r.best_score}</b></div>`).join('');
+  el.innerHTML = leagueWeeklyState.scores.map(r => `<div class="league-row lb-row${r.wallet && r.wallet.toLowerCase() === me ? ' lb-me' : ''}"><span class="lb-rank">#${r.rank}</span> <b>${escHtml(r.name || 'GUEST')}</b> <span class="lb-wallet">${escHtml(truncAddr(r.wallet))}</span> <b class="lb-score">${r.best_score}</b>${r.verified ? ` <span class="lb-verified" title="${escHtml(msg('lbVerified'))}">✓</span>` : ''}</div>`).join(''); // v41.1: verified=1 league rows carry a ✓, same as the global board; verified=0 rows unchanged
   const rk = $('leagueWeeklyRank');
   if (rk) rk.textContent = (leagueWeeklyState.you && leagueWeeklyState.you.rank) ? msgf('leagueWeeklyYourRank', { rank: leagueWeeklyState.you.rank }) : '';
 }

@@ -50,6 +50,14 @@
 //   are byte-identical to v4; the judge windows, tempo and score formula
 //   live in engine.js and are untouched. No SQK, no contract, no Sepolia
 //   transaction anywhere in v5.
+//
+// Fase 3b (v6, v41.1 patch) — LEAGUE ✓ BADGE. GET /league now returns
+//   `verified` per row (LEFT JOIN scores on wallet + mode='free') and
+//   in `you`, so the client can show the same green ✓ as the global
+//   board. Display-only: no verification, enforcement, replay, cheese
+//   or league-reset logic changed. League rows only ever come from
+//   verifyOne, so verified is 1 for every real league row; the join
+//   only guards the display if the scores row ever disagrees.
 // EIP-712 domain: { name: "Squeek Pixel ID", version: "1",
 //   chainId: 11155111 (Sepolia), verifyingContract: <signer address> }
 // Attestation: player (address), score (uint256), accuracy (uint256 =
@@ -99,7 +107,7 @@
 // It already exists since v3 — do NOT rotate or re-enter it.
 //
 // Endpoints (all JSON, CORS open):
-//   GET  /                  -> { service, version: 5 }
+//   GET  /                  -> { service, version: 6 }
 //   GET  /cheese?wallet=0x...   -> { wallet, balance, items: [{id, slot,
 //                             rarity, name, price, equipped}], catalog }
 //                             (no wallet -> catalog only, balance 0)
@@ -112,8 +120,9 @@
 //                          -> { ok, equipped, slot }
 //   GET  /league?week=YYYY-MM-DD&wallet=0x...
 //                          -> { week_start, reset_at, count,
-//                             scores: [{rank, wallet, name, best_score}]
-//                             (top 30), you: {rank, best_score} | null }
+//                             scores: [{rank, wallet, name, best_score,
+//                                       verified}]
+//                             (top 30), you: {rank, best_score, verified} | null }
 //   GET  /scores?mode=free&limit=20
 //                          -> { mode, count, scores: [{rank, wallet, name,
 //                             score, acc, verified, updated_at}] }
@@ -922,7 +931,7 @@ export default {
 
     try {
       if (url.pathname === "/" && request.method === "GET") {
-        return json({ service: "squeekchain-leaderboard", version: 5 });
+        return json({ service: "squeekchain-leaderboard", version: 6 });
       }
 
       // --- v5: Cheese shop (GET /cheese, POST /cheese/buy|pull|equip) ---
@@ -1074,20 +1083,24 @@ export default {
           if (Number.isFinite(parsed)) weekMs = parsed;
         }
         const weekStart = weekStartKey(weekMs);
+        // v41.1: verified comes from the scores table (league rows only
+        // ever come from verifyOne, so this is 1 for every real row;
+        // the LEFT JOIN only guards the display if the scores row
+        // ever disagrees). No verification logic touched.
         const { results } = await env.DB.prepare(
-          "SELECT wallet, name, best_score FROM league_scores WHERE week_start = ? ORDER BY best_score DESC, updated_at ASC LIMIT 30"
+          "SELECT l.wallet, l.name, l.best_score, COALESCE(s.verified, 0) AS verified FROM league_scores l LEFT JOIN scores s ON s.wallet = l.wallet AND s.mode = 'free' WHERE l.week_start = ? ORDER BY l.best_score DESC, l.updated_at ASC LIMIT 30"
         ).bind(weekStart).all();
         const wallet = (url.searchParams.get("wallet") || "").toLowerCase();
         let you = null;
         if (isWallet(wallet)) {
           const me = await env.DB.prepare(
-            "SELECT best_score FROM league_scores WHERE wallet = ? AND week_start = ?"
+            "SELECT l.best_score, COALESCE(s.verified, 0) AS verified FROM league_scores l LEFT JOIN scores s ON s.wallet = l.wallet AND s.mode = 'free' WHERE l.wallet = ? AND l.week_start = ?"
           ).bind(wallet, weekStart).first();
           if (me) {
             const better = await env.DB.prepare(
               "SELECT COUNT(*) AS n FROM league_scores WHERE week_start = ? AND best_score > ?"
             ).bind(weekStart, me.best_score).first();
-            you = { rank: (better.n || 0) + 1, best_score: me.best_score };
+            you = { rank: (better.n || 0) + 1, best_score: me.best_score, verified: me.verified ? 1 : 0 };
           }
         }
         return json({
@@ -1099,6 +1112,7 @@ export default {
             wallet: r.wallet,
             name: r.name,
             best_score: r.best_score,
+            verified: r.verified ? 1 : 0,
           })),
           you,
         });

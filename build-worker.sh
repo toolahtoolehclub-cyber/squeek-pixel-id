@@ -1,17 +1,17 @@
 #!/bin/bash
-# Build + deploy Worker v5 (squeekchain-leaderboard).
+# Build + deploy Worker v6 (squeekchain-leaderboard).
 # The repo keeps `import { buildChart, simulate } from "./engine.js"`;
 # esbuild inlines engine.js (and @noble) into ONE bundle because
 # upload_worker.py only uploads a single file.
 # Usage: ./build-worker.sh [deploy|bundle-only]
-#   bundle-only : just produce /tmp/v41-build/dist/worker.js
+#   bundle-only : just produce /tmp/v41.1-build/dist/worker.js
 #   deploy      : bundle + upload (default)
 set -euo pipefail
-V41="$HOME/workspace/goals/domain-squeekpixel-is-a-dev-submit-genesis-buildooooor/files/squeekchain-v41"
-BUILD=/tmp/v41-build
+V411="$HOME/workspace/goals/domain-squeekpixel-is-a-dev-submit-genesis-buildooooor/files/squeekchain-v41.1"
+BUILD=/tmp/v41.1-build
 DB_ID=cd6920f3-3efb-491d-ae0c-b287069c8052
 mkdir -p "$BUILD/dist"
-cp "$V41/worker.js" "$V41/engine.js" "$BUILD/"
+cp "$V411/worker.js" "$V411/engine.js" "$BUILD/"
 # node_modules (@noble/* + esbuild): install once in the build dir if missing.
 # (/tmp/v39-build is gone — /tmp is ephemeral — so v41 installs its own.)
 if [ ! -d "$BUILD/node_modules/@noble" ]; then
