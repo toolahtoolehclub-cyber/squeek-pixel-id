@@ -86,6 +86,43 @@ skor tidak berubah (`engine.js` byte-identik dengan v41).
 - Baris liga mingguan kini menampilkan ✓; tidak ada perubahan lain yang
   tertunda untuk patch ini.
 
-## ADDENDUM — Deploy + verifikasi live
+## ADDENDUM — Deploy + verifikasi live (2026-11-08 ~21:4x WIB)
 
-_(Diisi setelah push.)_
+### A1. Worker v6 deploy
+- Deploy via `build-worker.sh` (esbuild bundle 152.631 byte, `startup_time_ms`
+  7, `success: true`). Upload mentah gagal 400 (`No such module
+  "@noble/curves/secp256k1.js"`) — bundle adalah satu-satunya jalur.
+- `GET /` → `{"service":"squeekchain-leaderboard","version":6}`.
+- `GET /league` field `verified` terbukti dua arah dengan baris uji
+  sementara (lalu dihapus): verified=1 → `"verified":1` (baris + `you`);
+  verified=0 → `"verified":0` (keduanya). Board kembali `count: 0`.
+
+### A2. Push GitHub
+- Commit `b9733090` (11 file, source-dir = folder v41.1, tanpa folder
+  stray di repo). Remote head sebelum push `430b0221`; kartu
+  persetujuan disetujui langsung (tidak ada timeout).
+- Raw GitHub terverifikasi: index.html v41.1, script.js
+  `gameVersion: 'v41.1'`, 2x `lb-verified`, SHA-256 cocok dengan lokal.
+
+### A3. Site live
+- `https://squeekpixel.web.id` menampilkan `SQUEEKCHAIN // v41.1`.
+  Catatan: sesaat setelah push situs masih v41 (cache/build GitHub
+  Pages) — setelah ~3 menit berubah ke v41.1; script.js live ==
+  lokal byte-for-byte (SHA-256
+  `98a3f6ce402d38a8c28f2910f0029550e848cc646ce1c0afc34d94eeb9479b89`).
+
+### A4. 3 proofs Genesis utuh (live)
+- Meta tag di HTML live: `squeekchain-project` content
+  `05432539-b4e4-4f90-97b3-c258583905b7` (byte-identical).
+- Baris terakhir README raw GitHub:
+  `squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7`.
+- TXT DNS via Google DoH (`_squeekchain.squeekpixel.web.id`):
+  `"squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9"`.
+
+### A5. Yang masih terbuka
+- Smoke test browser v41.1 (main 1 lagu + submit + lihat ✓ di liga
+  mingguan dari client asli) masih tugas parent.
+- Update artifact preview (slug `squeekchain-v26-fix`) tidak bisa dari
+  subagent (tool artifact tidak tersedia di sesi ini) — perlu parent.
+- Worker v6 tidak disentuh lagi setelah deploy; tidak ada submit uji
+  ke board (tidak ada baris uji untuk dibersihkan).
