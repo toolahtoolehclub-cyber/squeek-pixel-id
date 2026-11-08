@@ -126,7 +126,30 @@ connect from Chrome without opening the site from inside the wallet app.
 
 ## Smoke test (browser, 2026-11-08 ~23:xx WIB)
 
-[PENDING — diisi setelah browser task selesai.]
+**NOT RUN by this builder — browser delegation is unavailable in this
+subagent** (`browser.browse` is not in this agent's tool list; the call
+was refused as non-retryable). The parent agent must run it. What the
+parent's browser task must check, in a plain Chrome with NO injected
+wallet:
+
+1. Open https://squeekpixel.web.id/ (title must say v42.2).
+2. Press CONNECT WALLET → the WalletConnect modal MUST appear (QR +
+   wallet list incl. OKX). Do NOT complete pairing (no approval).
+3. SHOP tab: SQK shop still live (banner gone, 6 buy buttons active,
+   prize pool 0, season end 6 Feb 2027); capsule COMMIT/RESOLVE
+   active. Do not buy/commit/resolve.
+4. One full FREE song + submit with the dead test wallet
+   0x000000000000000000000000000000000000dEaD (never the user's real
+   wallets) → "TERVERIFIKASI ✓" after ~60 s, score on the board with ✓.
+5. Clean ALL test rows from D1 afterwards (9 tables by wallet, use
+   LOWER(wallet); league column is best_score; board back to 0).
+
+Verified WITHOUT a browser by this builder instead (fetch, not a
+visit): GitHub Pages serves v42.2 live (title `SQUEEKCHAIN // v42.2`,
+WC script tag present, `script.js` contains `WC_PROJECT_ID` +
+`gameVersion: 'v42.2'`), and all 3 Genesis proofs are intact (meta
+tag in live HTML, README last line via raw GitHub, DNS TXT via
+Google DoH — all matching).
 
 ## Known limits
 
