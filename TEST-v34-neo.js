@@ -39,8 +39,8 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v42.2', (html.match(/v42\.2/g) || []).length >= 2);
-t('browser tab title is v42.2', html.includes('<title>SQUEEKCHAIN // v42.2</title>'));
+t('html says v42.3', (html.match(/v42\.3/g) || []).length >= 2);
+t('browser tab title is v42.3', html.includes('<title>SQUEEKCHAIN // v42.3</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -396,7 +396,7 @@ t('Genesis meta tag is line 8, byte-identical', htmlLines[7] === '<meta name="sq
 t('README last line is the Genesis proof', readme.trimEnd().split('\n').pop() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 t('OG image is absolute on the live domain', html.includes('og:image" content="https://squeekpixel.web.id/squeekchain-headline-simple.png"'));
 t('Twitter card is summary_large_image', html.includes('twitter:card" content="summary_large_image"'));
-t('meta description is v42.2, not v32 NEO', html.includes('SQUEEKCHAIN v42.2') && !html.includes('v32 NEO'));
+t('meta description is v42.3, not v32 NEO', html.includes('SQUEEKCHAIN v42.3') && !html.includes('v32 NEO'));
 t('README documents 11 achievements', readme.includes('11 named achievements'));
 t('README documents the v38 XP economy', readme.includes('54,000 total XP') && readme.includes('[0, 700, 2000, 4300, 8500, 16000, 29500, 54000]'));
 t('README documents the 19:00 WIB Squeek-day reset', readme.includes('19:00 WIB'));
@@ -485,7 +485,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v42.2', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.2'"));
+t('submit sends replay + hash + gameVersion v42.3', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.3'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -511,7 +511,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v42.2', readme.startsWith('# Squeekchain v42.2'));
+t('README title is v42.3', readme.startsWith('# Squeekchain v42.3'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -1004,8 +1004,8 @@ t('worker v6: /league you carries verified', worker.includes('verified: me.verif
 t('worker version is 8', worker.includes('{ service: "squeekchain-leaderboard", version: 8 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v42.2', js.includes("gameVersion: 'v42.2'"));
-t('html title is v42.2', html.includes('<title>SQUEEKCHAIN // v42.2</title>'));
+t('submit sends gameVersion v42.3', js.includes("gameVersion: 'v42.3'"));
+t('html title is v42.3', html.includes('<title>SQUEEKCHAIN // v42.3</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {
@@ -1059,8 +1059,15 @@ t('client disables sqk buttons while the shop is undeployed', js.includes('commi
 t('sqk i18n exists in EN + ID', js.includes("sqkShopSoon: 'SQK SHOP COMING SOON") && js.includes("sqkShopSoon: 'TOKO SQK SEGERA HADIR") && js.includes("sqkCapsuleOdds: 'ODDS: COMMON 70%") && js.includes("sqkCapsuleOdds: 'PELUANG: COMMON 70%"));
 t('shop tab fetches the SQK shop too', js.includes("if (name === 'shop') { fetchShop(); fetchSqkShop(); }"));
 // --- 15g. v42.2: WalletConnect (Reown) — connect from a plain browser ---
-t('WC UMD script tag is in the HTML (correct path, before script.js)', html.includes('https://unpkg.com/@walletconnect/ethereum-provider@2.26.0/dist/index.umd.js') && !html.includes('dist/umd/index.min.js') && html.indexOf('@walletconnect/ethereum-provider') < html.indexOf('src="script.js"'));
-t('WC script tag is deferred (order preserved)', html.includes('<script src="https://unpkg.com/@walletconnect/ethereum-provider@2.26.0/dist/index.umd.js" defer></script>'));
+// v42.3: the UMD CDN tag is GONE (the unpkg file is not standalone and never
+// loaded). The provider is a vendored esbuild bundle, lazy-loaded on demand.
+t('NO WalletConnect CDN anywhere in the HTML (v42.3: vendored bundle only)', !html.includes('unpkg.com/@walletconnect') && !html.includes('jsdelivr.net/npm/@walletconnect') && !html.includes('esm.sh/@walletconnect') && !html.includes('<script src="wc-provider.bundle.js"'));
+t('vendored WC bundle exists, is self-contained, exposes EthereumProvider', (() => { try { const b = fs.readFileSync('wc-provider.bundle.js', 'utf8'); return b.length > 1000000 && b.includes('EthereumProvider') && !b.includes('unpkg.com/@walletconnect'); } catch (_) { return false; } })());
+t('v42.3 js has wcLoadBundle', js.includes('function wcLoadBundle'));
+t('WC bundle is lazy-loaded on demand (script inject, never a page-load tag)', js.includes("s.src = 'wc-provider.bundle.js'") && js.includes("document.createElement('script')") && !html.includes('src="wc-provider.bundle.js"'));
+t('wcGetProvider lazy-loads the bundle when EthereumProvider is missing', js.includes('await wcLoadBundle()'));
+t('setTab clears stale say() messages (v42.3)', /function setTab\(name\) \{\n  say\(''\);/.test(js));
+t('ID Card dialog has NO auto-open path (openCard only from explicit buttons)', (js.match(/openCard\(/g) || []).length === 4 && !/finish\(\)[\s\S]{0,2000}?openCard\(/.test(js));
 t('CONFIG has WC_PROJECT_ID + WC_CHAINS', js.includes("CONFIG.WC_PROJECT_ID = '1f186dd3221f938c4e0b8c72c233a3be'") && js.includes('CONFIG.WC_CHAINS = [11155111]'));
 ['getEth', 'sqkChainIdHex', 'ensureSepoliaChain', 'wcGetProvider', 'connectWalletConnect', 'restoreWalletConnectSession'].forEach(f => t('v42.2 js has ' + f, js.includes('function ' + f)));
 t('WC init uses the verified API (projectId, chains, showQrModal, rpcMap, metadata)', js.includes('window.EthereumProvider.init({') && js.includes('projectId: CONFIG.WC_PROJECT_ID') && js.includes('chains: CONFIG.WC_CHAINS') && js.includes('showQrModal: true') && js.includes('rpcMap: { 11155111: CONFIG.SEPOLIA_RPC }') && js.includes("name: 'Squeek Pixel ID'") && js.includes("url: 'https://squeekpixel.web.id/'"));

@@ -621,13 +621,20 @@ const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', CORE_URL: 'ht
 CONFIG.SHOP_ADDRESS = '0x43f568AcfaDcee4333785c9F26596719ED0B02fb';
 CONFIG.SQK_TOKEN = CONFIG.TOKEN;
 CONFIG.SEPOLIA_RPC = CONFIG.RPC_URL;
-// --- v42.2: WalletConnect (Reown). WC_PROJECT_ID is PUBLIC by design —
+// --- v42.3: WalletConnect (Reown). WC_PROJECT_ID is PUBLIC by design —
 // it identifies the dApp to the WalletConnect relay, it is not a secret
 // and it grants no access to any wallet. Created by the user at
-// cloud.reown.com (free). The UMD bundle (@walletconnect/ethereum-provider
-// 2.26.0, dist/index.umd.js — the old dist/umd/index.min.js path is 404)
-// sets window.EthereumProvider + the AppKit QR modal. WC_CHAINS is the
-// only chain the game ever uses: Sepolia 11155111.
+// cloud.reown.com (free). The provider is a VENDORED esbuild bundle
+// (wc-provider.bundle.js, @walletconnect/ethereum-provider 2.26.0 +
+// viem/lit/bs58/valtio/qrcode/big.js, IIFE, window.EthereumProvider),
+// lazy-loaded ONLY when CONNECT WALLET is pressed from a plain browser
+// (see wcLoadBundle). v42.2 loaded the unpkg UMD instead — that file is
+// NOT standalone (its global branch needs window.bs58/viem/lit/... as
+// globals, so the factory threw before EthereumProvider was assigned and
+// the modal never opened). The vendored bundle was verified by REAL
+// execution (jsdom load + EthereumProvider.init, see AUDIT-v42.3.md),
+// not by grepping the file. WC_CHAINS is the only chain the game ever
+// uses: Sepolia 11155111.
 CONFIG.WC_PROJECT_ID = '1f186dd3221f938c4e0b8c72c233a3be';
 CONFIG.WC_CHAINS = [11155111];
 const SQK_SHOP_CATALOG = [
@@ -1805,8 +1812,9 @@ if (walletEl) { walletEl.addEventListener('change', () => saveWallet38(walletEl.
 // approval, no transaction, no chain switch. If no provider exists, or the
 // user rejects, manual 0x input stays the way in. Never auto-requests on load.
 // --- v42.2: WalletConnect (Reown) — path B for plain browsers (Chrome)
-// that have no injected wallet. Verified against the published
-// @walletconnect/ethereum-provider 2.26.0 .d.ts + UMD source:
+// that have no injected wallet. v42.3: the provider comes from the
+// lazy-loaded VENDORED bundle (wc-provider.bundle.js), never a CDN tag.
+// @walletconnect/ethereum-provider 2.26.0 .d.ts (API surface, verified):
 // EthereumProvider.init({projectId, chains, optionalChains, showQrModal,
 // rpcMap, metadata}) -> provider.connect() opens the AppKit modal (QR +
 // wallet list) -> provider.request() works like any EIP-1193 provider.
@@ -1847,9 +1855,35 @@ async function ensureSepoliaChain(eth) {
     return false;
   }
 }
+let wcBundlePromise = null; // v42.3: one in-flight load of the vendored WC bundle (deduped)
+function wcLoadBundle() {
+  // Lazy-load the vendored bundle ONLY on demand — never at page load
+  // (~2 MB; plain players must never pay for it). Returns true iff
+  // window.EthereumProvider exists afterwards. Resolves false on any
+  // failure (network, CSP, bundle error) — never throws, never hangs:
+  // the 15 s watchdog covers a script that never fires onload/onerror.
+  if (typeof window.EthereumProvider !== 'undefined') return Promise.resolve(true);
+  if (wcBundlePromise) return wcBundlePromise;
+  wcBundlePromise = new Promise((resolve) => {
+    let done = false;
+    const finish = (ok) => { if (!done) { done = true; resolve(ok); } };
+    try {
+      const s = document.createElement('script');
+      s.src = 'wc-provider.bundle.js';
+      s.onload = () => finish(typeof window.EthereumProvider !== 'undefined');
+      s.onerror = () => finish(false);
+      document.head.appendChild(s);
+      setTimeout(() => finish(typeof window.EthereumProvider !== 'undefined'), 15000);
+    } catch (_) { finish(false); }
+  });
+  return wcBundlePromise;
+}
 async function wcGetProvider() {
   if (wcProvider) return wcProvider;
-  if (typeof window.EthereumProvider === 'undefined') return null;
+  if (typeof window.EthereumProvider === 'undefined') {
+    const ok = await wcLoadBundle(); // v42.3: vendored bundle, loaded on demand
+    if (!ok || typeof window.EthereumProvider === 'undefined') return null;
+  }
   const p = await window.EthereumProvider.init({
     projectId: CONFIG.WC_PROJECT_ID,
     chains: CONFIG.WC_CHAINS,
@@ -2446,7 +2480,7 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 8000);
   try {
-    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.2' } : bodyBase);
+    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.3' } : bodyBase);
     if (!r.ok && r.status === 400 && lastResult.replay) r = await postScores(bodyBase);
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();
@@ -3258,6 +3292,7 @@ else startMenuPoll();
 // Last tab is remembered per browser (sqk31:tab); game data keys stay sqk30.
 const TABS = ['play', 'daily', 'live', 'league', 'shop', 'me'];
 function setTab(name) {
+  say(''); // v42.3: stale status/error messages (e.g. wcLoadFail) must not linger when the user switches tabs
   if (TABS.indexOf(name) < 0) name = 'play';
   TABS.forEach(t => {
     const p = $('tab-' + t); if (p) p.classList.toggle('hidden', t !== name);
