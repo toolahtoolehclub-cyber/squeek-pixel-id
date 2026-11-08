@@ -10,7 +10,7 @@ let pass = 0, fail = 0;
 function t(name, ok) { if (ok) { pass++; } else { fail++; console.log('FAIL:', name); } }
 
 // --- 1. every v31 id still present exactly once (no feature lost) ---
-const IDS = ['mainTitle', 'langBtn', 'qualityBtn', 'muteBtn', 'tabBar', 'tab-play', 'tab-daily', 'tab-live', 'tab-league', 'tab-me',
+const IDS = ['mainTitle', 'langBtn', 'qualityBtn', 'muteBtn', 'tabBar', 'tab-play', 'tab-daily', 'tab-live', 'tab-league', 'tab-shop', 'tab-me',
   'walletInput', 'walletWarn', 'connectBtn', 'anthemInfo', 'avatarPreviewWrap', 'avatar-preview', 'avatarLabel', 'levelLabel', 'anthemHash',
   'genreRow', 'diffRow', 'optionsRow', 'modeRow', 'lanesBtn', 'mirrorBtn', 'raceBox', 'petLine', 'raceInfo', 'raceLast', 'liveBox', 'liveInfo', 'liveLine',
   'dailyBox', 'dailyTitle', 'dailyInfo', 'streakLine', 'freezeLine', 'missionList', 'playBtn', 'genBtn', 'message', 'glStatus', 'card-canvas', 'dlBtn', 'shareBtn',
@@ -20,7 +20,8 @@ const IDS = ['mainTitle', 'langBtn', 'qualityBtn', 'muteBtn', 'tabBar', 'tab-pla
   'gamePanel', 'scoreVal', 'comboVal', 'accVal', 'bpmVal', 'game-canvas', 'precisionBox', 'lastHit', 'avgHit', 'hitDir', 'feverTag', 'raceHud', 'raceYouBar', 'raceOppBar', 'raceYouTxt', 'raceOppTxt', 'cardErrMsg',
   'gameAudioStatus', 'liveHud', 'vizBars', 'pauseBtn', 'stopBtn', 'resultPanel', 'gradeVal', 'resultKv', 'bestMsg', 'xpMsg', 'missionResult', 'againBtn', 'toCardBtn', 'resultCardBtn',
   'duelBtn', 'shareXBtn', 'rivalBackMsg', 'duelMsg', 'duelOut', 'homeBtn', 'overlayBox', 'overlayTitle', 'overlayRpm', 'overlayDist', 'overlayRound', 'overlayZoom', 'overlayPet', 'overlaySong',
-  'musicSplash', 'startMusicBtn', 'startMusicSantaiBtn', 'bg-gl', 'bg-anim', 'crt', 'volSlider', 'volVal', 'musicModeBtn', 'practiceBtn', 'obsBtn', 'howBtn'];
+  'musicSplash', 'startMusicBtn', 'startMusicSantaiBtn', 'bg-gl', 'bg-anim', 'crt', 'volSlider', 'volVal', 'musicModeBtn', 'practiceBtn', 'obsBtn', 'howBtn',
+  'shopBox', 'cheeseBalance', 'shopCatalog', 'capsuleBtn', 'shopMsg', 'leagueWeeklyBox', 'leagueWeekLabel', 'leagueWeeklyRefreshBtn', 'leagueWeeklyList', 'leagueWeeklyRank'];
 IDS.forEach(id => {
   const n = (html.match(new RegExp('id="' + id + '"', 'g')) || []).length;
   t('id present once: ' + id, n === 1);
@@ -38,8 +39,8 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v40.1', (html.match(/v40\.1/g) || []).length >= 2);
-t('browser tab title is v40.1', html.includes('<title>SQUEEKCHAIN // v40.1</title>'));
+t('html says v41', (html.match(/v41/g) || []).length >= 2);
+t('browser tab title is v41', html.includes('<title>SQUEEKCHAIN // v41</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -254,7 +255,7 @@ t('theme gradient background', js.includes('G.theme.bg[0]') && js.includes('G.th
 t('applyLang sets placeholders', js.includes('diaryNote') && js.includes('duelOut') && js.includes('placeholder'));
 // --- 8. setTab still works (stub DOM) ---
 const setTabSrc = js.slice(js.indexOf('function setTab'), js.indexOf('function setTab') + 900);
-t('setTab defined with TABS list', setTabSrc.includes("['play', 'daily', 'live', 'league', 'me']") || js.includes("const TABS = ['play', 'daily', 'live', 'league', 'me']"));
+t('setTab defined with TABS list', setTabSrc.includes("['play', 'daily', 'live', 'league', 'shop', 'me']") || js.includes("const TABS = ['play', 'daily', 'live', 'league', 'shop', 'me']"));
 t('setTab persists sqk31:tab', js.includes("sqk31:tab"));
 // --- 9. no arcade strings in JS UI text ---
 ['INSERT COIN', 'SQUEEKCHAIN</h1>'].forEach(s => t('js free of: ' + s, !js.includes(s)));
@@ -273,7 +274,7 @@ t('LB_URL is the workers.dev endpoint', js.includes("LB_URL: 'https://squeekchai
 t('lb modes are the six game modes', js.includes("const LB_MODES = ['free', 'daily', 'live', 'race', 'boss', 'challenge'];"));
 ['lbLoading', 'lbOffline', 'lbEmpty', 'lbSent', 'lbKept', 'lbNeedWallet', 'lbNoScore', 'lbPractice', 'lbYourRank', 'lbVerifying', 'lbVerified', 'lbVerifyRejected', 'lbVerifyUnknown'].forEach(k => t('MSG has lb key: ' + k, js.includes(k + ':')));
 ['lbTitle', 'lbNote', 'lbRefresh', 'lbSubmit'].forEach(k => t('I18N has lb key: ' + k, js.includes(k + ':')));
-t('setTab fetches the board on LEAGUE', js.includes("if (name === 'league') fetchLb(lbState.mode);"));
+t('setTab fetches the board on LEAGUE', js.includes("if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); }"));
 t('endGame captures the submittable result (v38: + sessionId/taps/notes/durationMs)', js.includes('lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice, sessionId: G.sessionId || null, taps: G.taps || 0, notes:') && js.includes('durationMs: anthem ? Math.round(anthem.duration * 1000) : 0'));
 t('submit is disabled while sending', js.includes('b.disabled = true') && js.includes('resetLbSubmit()'));
 t('submit posts to /scores', js.includes("CONFIG.LB_URL + '/scores'") && js.includes("method: 'POST'"));
@@ -395,7 +396,7 @@ t('Genesis meta tag is line 8, byte-identical', htmlLines[7] === '<meta name="sq
 t('README last line is the Genesis proof', readme.trimEnd().split('\n').pop() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 t('OG image is absolute on the live domain', html.includes('og:image" content="https://squeekpixel.web.id/squeekchain-headline-simple.png"'));
 t('Twitter card is summary_large_image', html.includes('twitter:card" content="summary_large_image"'));
-t('meta description is v40, not v32 NEO', html.includes('SQUEEKCHAIN v40') && !html.includes('v32 NEO'));
+t('meta description is v41, not v32 NEO', html.includes('SQUEEKCHAIN v41') && !html.includes('v32 NEO'));
 t('README documents 11 achievements', readme.includes('11 named achievements'));
 t('README documents the v38 XP economy', readme.includes('54,000 total XP') && readme.includes('[0, 700, 2000, 4300, 8500, 16000, 29500, 54000]'));
 t('README documents the 19:00 WIB Squeek-day reset', readme.includes('19:00 WIB'));
@@ -484,7 +485,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v40.1', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v40.1'"));
+t('submit sends replay + hash + gameVersion v41', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v41'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -510,7 +511,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v40.1', readme.startsWith('# Squeekchain v40.1'));
+t('README title is v41', readme.startsWith('# Squeekchain v41'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -866,6 +867,136 @@ async function runVerifyPollTests() {
     t('pollVerify: restart polls the new hash only', h.urls.every(u => u.includes('0x' + '22'.repeat(32))));
   }
 }
+// --- v41: Toko Keju + Liga Mingguan (Worker v5, off-chain only) ---
+// 15a. Worker pure functions — run the real code from worker.js.
+function oneLineW(prefix) { const l = workerLines.find(x => x.startsWith(prefix)); if (!l) throw new Error('line not found in worker: ' + prefix); return l; }
+function constSrcW(marker) {
+  const start = worker.indexOf(marker);
+  if (start < 0) throw new Error('const not found in worker: ' + marker);
+  let depth = 0, seen = false, end = start;
+  for (let i = start; i < worker.length; i++) { const ch = worker[i]; if (ch === '[' || ch === '{') { depth++; seen = true; } if (ch === ']' || ch === '}') depth--; if (seen && depth === 0) { end = i; break; } }
+  return worker.slice(start, end + 1);
+}
+function constSrc38(marker) {
+  const start = js.indexOf(marker);
+  if (start < 0) throw new Error('const not found in script.js: ' + marker);
+  let depth = 0, seen = false, end = start;
+  for (let i = start; i < js.length; i++) { const ch = js[i]; if (ch === '[' || ch === '{') { depth++; seen = true; } if (ch === ']' || ch === '}') depth--; if (seen && depth === 0) { end = i; break; } }
+  return js.slice(start, end + 1);
+}
+const cheeseEarned = new Function(oneLineW('const CHEESE_PER_SONG =') + '\n' + oneLineW('const CHEESE_GRADE_S_BONUS =') + '\n' + fnSrcW('cheeseEarned') + '\nreturn cheeseEarned;')();
+t('cheeseEarned S = 600', cheeseEarned('S') === 600);
+t('cheeseEarned SS = 600', cheeseEarned('SS') === 600);
+t('cheeseEarned A/B/C/D = 100', ['A', 'B', 'C', 'D'].every(g => cheeseEarned(g) === 100));
+t('cheeseEarned bad grade = 100', cheeseEarned(null) === 100 && cheeseEarned('') === 100 && cheeseEarned('s') === 100);
+const squeekDayKey = new Function(fnSrcW('squeekDayKey') + '\nreturn squeekDayKey;')();
+t('squeekDayKey 11:59 UTC -> yesterday', squeekDayKey(Date.parse('2026-11-08T11:59:00Z')) === '2026-11-07');
+t('squeekDayKey 12:00 UTC -> today', squeekDayKey(Date.parse('2026-11-08T12:00:00Z')) === '2026-11-08');
+t('squeekDayKey 00:30 UTC -> yesterday', squeekDayKey(Date.parse('2026-11-08T00:30:00Z')) === '2026-11-07');
+t('squeekDayKey matches client squeekTodayStr', squeekDayKey(Date.parse('2026-11-08T11:59:59Z')) === '2026-11-07' && squeekDayKey(Date.parse('2026-11-08T12:00:00Z')) === '2026-11-08');
+// Week: Monday 19:00 WIB = Monday 12:00 UTC. 9 Nov 2026 is a Monday.
+const weekStartMs = new Function(fnSrcW('weekStartMs') + '\nreturn weekStartMs;')();
+const weekStartKey = new Function(fnSrcW('weekStartMs') + '\n' + fnSrcW('weekStartKey') + '\nreturn weekStartKey;')();
+t('weekStartMs Sunday 19:00 WIB -> Monday 2 Nov 12:00 UTC', weekStartMs(Date.parse('2026-11-08T12:00:00Z')) === Date.parse('2026-11-02T12:00:00Z'));
+t('weekStartMs Monday 18:59 WIB -> still last week', weekStartMs(Date.parse('2026-11-09T11:59:00Z')) === Date.parse('2026-11-02T12:00:00Z'));
+t('weekStartMs Monday 19:00 WIB -> this Monday', weekStartMs(Date.parse('2026-11-09T12:00:00Z')) === Date.parse('2026-11-09T12:00:00Z'));
+t('weekStartMs Monday 18:00 UTC -> this Monday', weekStartMs(Date.parse('2026-11-09T18:00:00Z')) === Date.parse('2026-11-09T12:00:00Z'));
+t('weekStartMs Saturday -> same Monday', weekStartMs(Date.parse('2026-11-14T03:00:00Z')) === Date.parse('2026-11-09T12:00:00Z'));
+t('weekStartKey Sunday -> 2026-11-02', weekStartKey(Date.parse('2026-11-08T12:00:00Z')) === '2026-11-02');
+t('weekStartKey Monday 19:00 WIB -> 2026-11-09', weekStartKey(Date.parse('2026-11-09T12:00:00Z')) === '2026-11-09');
+t('weekStartKey Monday 18:59 WIB -> 2026-11-02', weekStartKey(Date.parse('2026-11-09T11:59:00Z')) === '2026-11-02');
+t('next reset is weekStart + 7 days', weekStartMs(Date.parse('2026-11-09T12:00:00Z')) + 7 * 24 * 3600 * 1000 === Date.parse('2026-11-16T12:00:00Z'));
+const capsuleRarity = new Function(fnSrcW('capsuleRarity') + '\nreturn capsuleRarity;')();
+[[0, 'common'], [0.6999, 'common'], [0.7, 'rare'], [0.9199, 'rare'], [0.92, 'epic'], [0.9899, 'epic'], [0.99, 'legendary'], [0.9999, 'legendary']].forEach(([r, want]) => t('capsuleRarity(' + r + ') = ' + want, capsuleRarity(r) === want));
+t('capsuleRarity rejects out-of-range', capsuleRarity(-0.1) === null && capsuleRarity(1) === null && capsuleRarity(NaN) === null && capsuleRarity('x') === null);
+const catalogSrcW = constSrcW('const CHEESE_CATALOG = [');
+const CHEESE_CATALOG = new Function(catalogSrcW + '\nreturn CHEESE_CATALOG;')();
+const capsulePool = new Function(catalogSrcW + '\n' + fnSrcW('capsulePool') + '\nreturn capsulePool;')();
+const capsulePick = new Function(catalogSrcW + '\n' + fnSrcW('capsulePool') + '\n' + fnSrcW('capsulePick') + '\nreturn capsulePick;')();
+const dupCompensation = new Function(constSrcW('const CHEESE_DUP_COMP = {') + '\n' + fnSrcW('dupCompensation') + '\nreturn dupCompensation;')();
+const catalogItem = new Function(catalogSrcW + '\n' + fnSrcW('catalogItem') + '\nreturn catalogItem;')();
+t('catalog has 8 items', CHEESE_CATALOG.length === 8);
+t('catalog ids are unique', new Set(CHEESE_CATALOG.map(c => c.id)).size === 8);
+t('catalog has 2 items per rarity', ['common', 'rare', 'epic', 'legendary'].every(r => CHEESE_CATALOG.filter(c => c.rarity === r).length === 2));
+t('catalog has 2 slots x 4 items', ['note', 'frame'].every(s => CHEESE_CATALOG.filter(c => c.slot === s).length === 4));
+t('capsule-only items are legendary with price 0', CHEESE_CATALOG.filter(c => c.capsuleOnly).length === 2 && CHEESE_CATALOG.filter(c => c.capsuleOnly).every(c => c.rarity === 'legendary' && c.price === 0));
+t('buyable items have a Keju price > 0', CHEESE_CATALOG.filter(c => !c.capsuleOnly).every(c => c.price > 0));
+t('capsulePool common = mint + neon', capsulePool('common').map(c => c.id).join(',') === 'note-mint,frame-neon');
+t('capsulePool legendary = rainbow pair', capsulePool('legendary').map(c => c.id).join(',') === 'note-rainbow,frame-rainbow');
+t('capsulePool bogus rarity = empty', capsulePool('bogus').length === 0);
+t('capsulePick common 0 = note-mint', capsulePick('common', 0).id === 'note-mint');
+t('capsulePick common 1 = frame-neon', capsulePick('common', 1).id === 'frame-neon');
+t('capsulePick wraps the pool', capsulePick('common', 2).id === 'note-mint' && capsulePick('rare', -1).id === 'frame-gold');
+t('capsulePick rejects bad input', capsulePick('bogus', 0) === null && capsulePick('common', 1.5) === null);
+t('dupCompensation 25/50/100/250', dupCompensation('common') === 25 && dupCompensation('rare') === 50 && dupCompensation('epic') === 100 && dupCompensation('legendary') === 250);
+t('dupCompensation bogus = 0', dupCompensation('bogus') === 0);
+t('catalogItem finds note-gold', catalogItem('note-gold').slot === 'note' && catalogItem('note-gold').rarity === 'rare' && catalogItem('note-gold').price === 800);
+t('catalogItem misses unknown ids', catalogItem('nope') === null);
+// 15b. Worker v5 wiring (string checks — the live D1 + endpoint checks run after deploy).
+t('worker root reports version 5', worker.includes('version: 5'));
+t('worker has GET /cheese', worker.includes("url.pathname === \"/cheese\" && request.method === \"GET\""));
+t('worker has POST /cheese/buy', worker.includes("url.pathname === \"/cheese/buy\" && request.method === \"POST\""));
+t('worker has POST /cheese/pull', worker.includes("url.pathname === \"/cheese/pull\" && request.method === \"POST\""));
+t('worker has POST /cheese/equip', worker.includes("url.pathname === \"/cheese/equip\" && request.method === \"POST\""));
+t('worker has GET /league', worker.includes("url.pathname === \"/league\" && request.method === \"GET\""));
+t('league returns top 30', worker.includes('LIMIT 30') && worker.includes("ORDER BY best_score DESC, updated_at ASC"));
+t('league normalizes the week param', worker.includes("weekStartKey(weekMs)") && worker.includes("Date.parse(weekParam + \"T12:00:00Z\")"));
+t('verifyOne credits cheese from sim.grade', worker.includes('cheeseEarned(sim.grade)'));
+t('verifyOne upserts the cheese balance', worker.includes('INSERT INTO cheese_balances') && worker.includes('ON CONFLICT(wallet) DO UPDATE SET balance = cheese_balances.balance + excluded.balance'));
+t('verifyOne logs the song credit idempotently', worker.includes("INSERT OR IGNORE INTO cheese_ledger") && worker.includes("'song'"));
+t('verifyOne logs the daily mission once per day', worker.includes("kind = 'daily'") && worker.includes('CHEESE_DAILY_BONUS'));
+t('verifyOne writes the weekly league only for FREE', worker.includes("if (mode === \"free\")") && worker.includes('INSERT INTO league_scores') && worker.includes('MAX(league_scores.best_score, excluded.best_score)'));
+t('buy/pull deduct atomically (balance >= price)', (worker.match(/balance >= \?/g) || []).length >= 2);
+t('pull uses server RNG, never client input', worker.includes('crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296') && worker.includes('capsuleRarity(r)'));
+t('pull refunds a lost buy race', worker.includes('Lost a race with a concurrent buy: refund.'));
+t('equip clears the slot then sets one equipped', worker.includes('UPDATE cheese_inventory SET equipped = 0') && worker.includes('UPDATE cheese_inventory SET equipped = 1'));
+t('cheese endpoints validate the wallet', (worker.match(/url\.pathname === "\/cheese/g) || []).length >= 4);
+t('migrate-v5.sql creates all four v5 tables', (() => { const m = fs.readFileSync('migrate-v5.sql', 'utf8'); return ['cheese_balances', 'cheese_ledger', 'cheese_inventory', 'league_scores'].every(tn => m.includes('CREATE TABLE IF NOT EXISTS ' + tn)); })());
+t('migrate-v5.sql has the replay + daily uniqueness indexes', (() => { const m = fs.readFileSync('migrate-v5.sql', 'utf8'); return m.includes('idx_cheese_ledger_replay') && m.includes('idx_cheese_ledger_daily') && m.includes('idx_league_week'); })());
+// 15c. Client: note skins + result frames — run the real functions.
+const noteSkinsSrc = constSrc38('const NOTE_SKINS = {');
+const noteColor = new Function(noteSkinsSrc + '\n' + fnSrc38('noteColor') + '\nreturn noteColor;')();
+const THEME_NOTES = ['#ff00ff', '#00ffff', '#ffff00', '#ff8800'];
+t('noteColor uses the theme with no skin', noteColor(1, THEME_NOTES, null) === '#00ffff' && noteColor(0, THEME_NOTES, undefined) === '#ff00ff');
+t('noteColor gold skin recolors lane 1', noteColor(1, THEME_NOTES, 'note-gold') === '#ffb020');
+t('noteColor mint skin wraps lane 5 to index 1', noteColor(5, THEME_NOTES, 'note-mint') === '#5ce1e6');
+t('noteColor unknown skin falls back to theme', noteColor(2, THEME_NOTES, 'bogus') === '#ffff00');
+t('every catalog note skin has client colors', CHEESE_CATALOG.filter(c => c.slot === 'note').every(c => { const m = new Function(noteSkinsSrc + '\nreturn NOTE_SKINS;')(); return Array.isArray(m[c.id]) && m[c.id].length === 4; }));
+t('every catalog frame skin has a client class', CHEESE_CATALOG.filter(c => c.slot === 'frame').every(c => js.includes("FRAME_SKINS = ['frame-neon', 'frame-gold', 'frame-royal', 'frame-rainbow']") && js.includes("'" + c.id + "'")));
+const skinStore = {};
+const skinLS = { getItem: k => (k in skinStore ? skinStore[k] : null), setItem: (k, v) => { skinStore[k] = String(v); }, removeItem: k => { delete skinStore[k]; } };
+const skinFns = new Function('localStorage', oneLine38('function loadJSON') + '\n' + oneLine38('function saveJSON') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('saveShopSkin') + '\nreturn { shopSkin, saveShopSkin };')(skinLS);
+t('shopSkin defaults to nothing equipped', skinFns.shopSkin().note === null && skinFns.shopSkin().frame === null);
+skinFns.saveShopSkin({ note: 'note-gold', frame: 'frame-neon' });
+t('shopSkin round-trips through sqk41:skin', skinFns.shopSkin().note === 'note-gold' && skinFns.shopSkin().frame === 'frame-neon');
+t('shopSkin survives a corrupt store', (() => { skinStore['sqk41:skin'] = 'not-json'; return skinFns.shopSkin().note === null; })());
+// 15d. Client wiring: shop tab, league weekly, cosmetics in the game.
+t('setTab fetches the shop on SHOP', js.includes("if (name === 'shop') fetchShop();"));
+t('setTab fetches the weekly league on LEAGUE', js.includes("if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); }"));
+['fetchShop', 'renderShop', 'buyItem', 'pullCapsule', 'equipItem', 'fetchLeagueWeekly', 'renderLeagueWeekly', 'applyResultFrame', 'shopSkin', 'saveShopSkin', 'noteColor', 'shopOwned', 'shopEquipped'].forEach(s => t('v41 js has ' + s, js.includes('function ' + s)));
+t('shop fetches GET /cheese', js.includes("CONFIG.LB_URL + '/cheese'"));
+t('buy posts to /cheese/buy', js.includes("CONFIG.LB_URL + '/cheese/buy'"));
+t('pull posts to /cheese/pull', js.includes("CONFIG.LB_URL + '/cheese/pull'"));
+t('equip posts to /cheese/equip', js.includes("CONFIG.LB_URL + '/cheese/equip'"));
+t('league weekly fetches GET /league', js.includes("CONFIG.LB_URL + '/league'"));
+t('shop buttons are wired at boot', js.includes("bindClick('capsuleBtn'") && js.includes("bindClick('leagueWeeklyRefreshBtn'"));
+t('draw uses noteColor with the equipped skin', js.includes('noteColor(n.lane, th.notes, G.noteSkin)') && js.includes('drawHamster(x, y, 48, col)'));
+t('play() snapshots the equipped note skin', js.includes('noteSkin: shopSkin().note'));
+t('finish() applies the equipped result frame', js.includes('applyResultFrame(); // v41'));
+t('result frame adds exactly one frame class', js.includes("FRAME_SKINS.forEach(f => p.classList.remove(f))") && js.includes("p.classList.add(frame)"));
+t('verified submit refreshes shop + weekly league', js.includes("if (status === 'verified') { fetchLb(lbState.mode); fetchShop(); fetchLeagueWeekly(); }"));
+t('dedupe-verified submit refreshes shop + weekly league', js.includes('fetchShop(); fetchLeagueWeekly(); // v41: dedupe-verified replay'));
+t('shop never computes its own balance', !js.includes('shopState.balance +') && !js.includes('shopState.balance -'));
+t('shop shows the server catalog, never a hardcoded one', js.includes('shopState.catalog.map') && !js.includes('const SHOP_CATALOG'));
+t('CSS has shop items', css.includes('.shop-item') && css.includes('#shopCatalog'));
+t('CSS has all four result frames', ['frame-neon', 'frame-gold', 'frame-royal', 'frame-rainbow'].every(f => css.includes('#resultPanel.' + f)));
+t('CSS hides the empty weekly rank line', css.includes('#leagueWeeklyRank:empty'));
+t('SHOP tab button exists once', (html.match(/data-tab="shop"/g) || []).length === 1);
+t('SHOP panel exists once', (html.match(/id="tab-shop"/g) || []).length === 1);
+t('weekly league box lives inside the LEAGUE tab', html.indexOf('id="leagueWeeklyBox"') > html.indexOf('id="tab-league"') && html.indexOf('id="leagueWeeklyBox"') < html.indexOf('id="tab-shop"'));
+t('README documents the v41 cheese economy', readme.includes('**v41**') && readme.includes('100 per verified song') && readme.includes('league_scores'));
+t('README documents the v41 shop catalog', readme.includes('Mint/Golden/Void/Rainbow') && readme.includes('capsule-only legendary'));
+
 runVerifyPollTests().then(() => {
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);

@@ -164,6 +164,7 @@ const MSG = {
     glStatusTpl: 'WEBGL: {webgl} • QLTY: {q}{tail}', glTailEco: ' • BACKGROUND: STATIC GRADIENT', glTailUltra: ' • BACKGROUND: 3D / MOVING GRID',
     leagueWin: 'WIN ✓', leagueLose: 'LOSE',
     lbLoading: 'LOADING LEADERBOARD…', lbOffline: 'LEADERBOARD OFFLINE — CHECK YOUR CONNECTION.', lbEmpty: 'NO SCORES YET — BE THE FIRST.', lbSent: 'SCORE SENT — NEW BEST!', lbKept: 'SCORE SENT — YOUR BEST STANDS.', lbNeedWallet: 'CONNECT A WALLET FIRST TO SUBMIT YOUR SCORE.', lbNoScore: 'NO SCORE TO SUBMIT.', lbPractice: 'PRACTICE RUNS DO NOT COUNT.', lbYourRank: 'YOUR RANK #{rank} OF {total}', lbVerifying: 'WAITING FOR VERIFICATION…', lbVerified: 'VERIFIED ✓', lbVerifyRejected: 'VERIFICATION REJECTED — SCORE NOT ON THE BOARD.', lbVerifyUnknown: 'VERIFICATION STATUS UNKNOWN — CHECK THE LEAGUE TAB.',
+    shopNeedWallet: 'CONNECT A WALLET FIRST TO USE THE SHOP.', shopOffline: 'SHOP OFFLINE — CHECK YOUR CONNECTION.', shopBought: 'BOUGHT {item} ✓', shopPulled: 'CAPSULE: {item} ({rarity}) ✓', shopDup: 'CAPSULE: {item} (DUPLICATE) → +{n} 🧀', shopEquipped: 'EQUIPPED {item} ✓', shopNoCheese: 'NOT ENOUGH 🧀 — PLAY A VERIFIED SONG TO EARN MORE.', shopOwned: 'ALREADY OWNED.', shopCapsuleOnly: 'CAPSULE ONLY — PULL TO WIN IT.', shopBalanceTpl: '🧀 BALANCE: {n}', shopBuyTpl: '[ BUY — {price} 🧀 ]', leagueWeeklyLoading: 'LOADING WEEKLY LEAGUE…', leagueWeeklyOffline: 'WEEKLY LEAGUE OFFLINE — CHECK YOUR CONNECTION.', leagueWeeklyYourRank: 'YOUR WEEK RANK #{rank}',
     leagueRowTpl: 'YOU {mine} vs {rival} {theirs} — {result} • {date}',
     roundHistRowTpl: '{key} — {label} (AVG {avg} RPM, {n} SAMPLES, ~{work} WORK, {blocks} BLOCKS) — {state}',
     chainUnknown: 'CHAIN STATE UNKNOWN [{status}] — SHOWING NOTHING AS ZERO.',
@@ -290,6 +291,7 @@ const MSG = {
     glStatusTpl: 'WEBGL: {webgl} • KUALITAS: {q}{tail}', glTailEco: ' • LATAR: GRADIEN STATIS', glTailUltra: ' • LATAR: 3D / GRID BERGERAK',
     leagueWin: 'MENANG ✓', leagueLose: 'KALAH',
     lbLoading: 'MEMUAT LEADERBOARD…', lbOffline: 'LEADERBOARD OFFLINE — PERIKSA KONEKSIMU.', lbEmpty: 'BELUM ADA SKOR — JADILAH YANG PERTAMA.', lbSent: 'SKOR TERKIRIM — REKOR BARU!', lbKept: 'SKOR TERKIRIM — REKORMU TETAP.', lbNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK KIRIM SKOR.', lbNoScore: 'TIDAK ADA SKOR UNTUK DIKIRIM.', lbPractice: 'LATIHAN TIDAK DIHITUNG.', lbYourRank: 'PERINGKATMU #{rank} DARI {total}', lbVerifying: 'MENUNGGU VERIFIKASI…', lbVerified: 'TERVERIFIKASI ✓', lbVerifyRejected: 'VERIFIKASI DITOLAK — SKOR TIDAK MASUK BOARD.', lbVerifyUnknown: 'STATUS VERIFIKASI BELUM DIKETAHUI — CEK TAB LEAGUE.',
+    shopNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK MEMAKAI TOKO.', shopOffline: 'TOKO OFFLINE — PERIKSA KONEKSIMU.', shopBought: 'TERBELI {item} ✓', shopPulled: 'KAPSUL: {item} ({rarity}) ✓', shopDup: 'KAPSUL: {item} (DUPLIKAT) → +{n} 🧀', shopEquipped: 'DIPAKAI {item} ✓', shopNoCheese: '🧀 TIDAK CUKUP — MAIN SATU LAGU TERVERIFIKASI UNTUK DAPAT LEBIH.', shopOwned: 'SUDAH DIMILIKI.', shopCapsuleOnly: 'HANYA KAPSUL — TARIK UNTUK MENDAPATKANNYA.', shopBalanceTpl: '🧀 SALDO: {n}', shopBuyTpl: '[ BELI — {price} 🧀 ]', leagueWeeklyLoading: 'MEMUAT LIGA MINGGUAN…', leagueWeeklyOffline: 'LIGA MINGGUAN OFFLINE — PERIKSA KONEKSIMU.', leagueWeeklyYourRank: 'PERINGKAT MINGGUMU #{rank}',
     leagueRowTpl: 'KAMU {mine} vs {rival} {theirs} — {result} • {date}',
     roundHistRowTpl: '{key} — {label} (RATA-RATA {avg} RPM, {n} SAMPEL, ~{work} KERJA, {blocks} BLOK) — {state}',
     chainUnknown: 'STATUS CHAIN TIDAK DIKETAHUI [{status}] — TIDAK ADA YANG DITAMPILKAN SEBAGAI NOL.',
@@ -349,7 +351,8 @@ const I18N = {
     champsEmpty: 'No champions yet — your best score of each day lands here.',
     roundHistEmpty: 'No finished rounds recorded yet — keep this page open and rounds settle here.',
     cardBarLbl: 'ID CARD — TAP TO OPEN',
-    forgetWallet: '[ FORGET SAVED WALLET ]', pauseTitle: 'PAUSED', pauseCalib: '[ CALIBRATE ]', pauseResume: '[ RESUME ]', pauseExit: '[ EXIT ]', pauseSure: '[ SURE? TAP AGAIN ]', backToGame: '[ BACK TO GAME ]' },
+    forgetWallet: '[ FORGET SAVED WALLET ]', pauseTitle: 'PAUSED', pauseCalib: '[ CALIBRATE ]', pauseResume: '[ RESUME ]', pauseExit: '[ EXIT ]', pauseSure: '[ SURE? TAP AGAIN ]', backToGame: '[ BACK TO GAME ]',
+    shopTitle: 'CHEESE SHOP — SPEND KEJU, NOT MONEY', shopNote: 'Keju is earned by playing: 100 per verified song, +500 for grade S, +50 for the daily mission (first verified song of the day). Capsule: 100 Keju per pull. Cosmetics only — nothing here makes you stronger.', capsuleTitle: 'CHEESE CAPSULE — 100 KEJU / PULL', capsuleBtn: '[ PULL CAPSULE — 100 🧀 ]', equipBtn: '[ EQUIP ]', equippedLbl: 'EQUIPPED ✓', ownedLbl: 'OWNED', capsuleOnlyLbl: 'CAPSULE ONLY', leagueWeekly: 'WEEKLY LEAGUE — TOP 30 THIS WEEK', leagueWeekNote: 'Best FREE score of the week. Resets every Monday 19:00 WIB.', leagueWeeklyEmpty: 'No weekly scores yet — play a FREE song and verify it to join this week.' },
   id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', lbTitle: 'LEADERBOARD GLOBAL — SKOR TERATAS', lbNote: 'Skor bersifat publik. Walletmu tampil terpotong.', lbRefresh: '[ MUAT ULANG ]', lbSubmit: '[ KIRIM SKOR ]', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR', chainTitle: 'CHAIN — LIVE DARI SQUEEKCORE', chainLoading: 'MENGAMBIL STATUS CHAIN…', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI',
     warn: '⚠️ Hanya alamat 0x. JANGAN PERNAH memasukkan seed phrase / private key di sini, di mana pun.',
     splashSub: 'PILIH MUSIK PEMBUKA', splashNote: 'Browser memblokir suara sebelum ketukan pertamamu — musik mulai saat kamu pertama kali mengetuk, bukan sebelumnya.',
@@ -369,7 +372,8 @@ const I18N = {
     champsEmpty: 'Belum ada juara — skor terbaikmu setiap hari muncul di sini.',
     roundHistEmpty: 'Belum ada ronde selesai yang tercatat — biarkan halaman ini terbuka dan ronde akan tercatat di sini.',
     cardBarLbl: 'KARTU ID — KETUK UNTUK BUKA',
-    forgetWallet: '[ LUPAKAN WALLET TERSIMPAN ]', pauseTitle: 'DIJEDA', pauseCalib: '[ KALIBRASI ]', pauseResume: '[ LANJUT ]', pauseExit: '[ KELUAR ]', pauseSure: '[ YAKIN? KETUK LAGI ]', backToGame: '[ KEMBALI KE GAME ]' },
+    forgetWallet: '[ LUPAKAN WALLET TERSIMPAN ]', pauseTitle: 'DIJEDA', pauseCalib: '[ KALIBRASI ]', pauseResume: '[ LANJUT ]', pauseExit: '[ KELUAR ]', pauseSure: '[ YAKIN? KETUK LAGI ]', backToGame: '[ KEMBALI KE GAME ]',
+    shopTitle: 'TOKO KEJU — BELANJA PAKAI KEJU', shopNote: 'Keju didapat dari bermain: 100 per lagu terverifikasi, +500 untuk grade S, +50 untuk misi harian (lagu terverifikasi pertama hari itu). Kapsul: 100 Keju per pull. Kosmetik saja — tidak ada yang membuatmu lebih kuat.', capsuleTitle: 'KAPSUL KEJU — 100 KEJU / PULL', capsuleBtn: '[ TARIK KAPSUL — 100 🧀 ]', equipBtn: '[ PAKAI ]', equippedLbl: 'DIPAKAI ✓', ownedLbl: 'DIMILIKI', capsuleOnlyLbl: 'HANYA KAPSUL', leagueWeekly: 'LIGA MINGGUAN — 30 TERATAS MINGGU INI', leagueWeekNote: 'Skor FREE terbaik minggu ini. Reset tiap Senin 19:00 WIB.', leagueWeeklyEmpty: 'Belum ada skor minggu ini — main satu lagu FREE dan verifikasi untuk ikut minggu ini.' },
 };
 let lang = loadJSON('sqk29:lang', 'en');
 
@@ -866,7 +870,7 @@ async function play() {
   glSeed = w ? Math.abs(cyrb53(w) % 1000) / 100 : Math.random() * 10;
   glShockwave = 1.0; // Shockwave saat mulai
 
-  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), glitchT: 0, ended: false, paused: false, taps: 0, sessionId: session38 ? session38.sessionId : null, sessionSeed, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, fever: false, practice: practiceMode, live: (playMode === 'live' || playMode === 'race') ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null, race: playMode === 'race' ? { startDistKm: liveStart && liveStart.ok ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), playerDist: 0, roundKey: roundKeyFor(new Date()), goldenNote: null } : null, boss: playMode === 'boss' };
+  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), glitchT: 0, ended: false, paused: false, taps: 0, sessionId: session38 ? session38.sessionId : null, sessionSeed, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, fever: false, practice: practiceMode, live: (playMode === 'live' || playMode === 'race') ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null, race: playMode === 'race' ? { startDistKm: liveStart && liveStart.ok ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), playerDist: 0, roundKey: roundKeyFor(new Date()), goldenNote: null } : null, boss: playMode === 'boss', noteSkin: shopSkin().note };
   // v39: snapshot lagu yang SEDANG dimainkan (state, bukan DOM) + keadaan
   // zoomies saat lagu mulai. Panel hasil & kartu hasil membaca dari sini —
   // nama lagu di panel tidak boleh lagi datang dari innerText.
@@ -1020,7 +1024,7 @@ function draw(st, dt) {
   cx.strokeStyle = 'rgba(255,255,255,0.1)'; cx.lineWidth = 1; for (let b = Math.ceil(st / spb); b < st / spb + GH / CONFIG.SPEED / spb + 1; b++) { const y = CONFIG.HIT_Y - (b * spb - st) * CONFIG.SPEED; cx.beginPath(); cx.moveTo(0, y); cx.lineTo(GW, y); cx.stroke() }
   cx.globalAlpha = .2 + pulse * .3; cx.fillStyle = G.fever ? '#ffd700' : th.hit; cx.fillRect(0, CONFIG.HIT_Y - 15, GW, 30); cx.globalAlpha = 1; cx.fillRect(0, CONFIG.HIT_Y - 2, GW, 4); // v34: hit line in the theme color (gold in FEVER)
   for (let l = 0; l < lanes; l++) { const rx = l * LW + LW / 2, f = G.flash[l] || 0; cx.strokeStyle = th.notes[l]; cx.lineWidth = 3; cx.beginPath(); cx.arc(rx, CONFIG.HIT_Y, 26 + f * 8, 0, Math.PI * 2); cx.stroke(); cx.globalAlpha = .35; cx.fillStyle = th.notes[l]; cx.beginPath(); cx.arc(rx, CONFIG.HIT_Y, 4, 0, Math.PI * 2); cx.fill(); cx.globalAlpha = 1; } // v34: Guitar Hero receptors — the hamster lands inside the ring; the ring pops on a hit
-  for (const n of anthem.chart) { const y = CONFIG.HIT_Y - (n.t - st) * CONFIG.SPEED; if (y < -30) break; if (y > GH + 30 || (n.judged && n.judged !== 'miss')) continue; const x = n.lane * LW + LW / 2; const golden = G.race && G.race.goldenNote === n; const col = golden ? '#ffd700' : n.judged === 'miss' ? '#ff00ff' : th.notes[n.lane]; drawHamster(x, y, 48, col); if (golden) { cx.strokeStyle = '#ffffff'; cx.lineWidth = 2; cx.strokeRect(Math.round(x - 26), Math.round(y - 26), 52, 52); } }
+  for (const n of anthem.chart) { const y = CONFIG.HIT_Y - (n.t - st) * CONFIG.SPEED; if (y < -30) break; if (y > GH + 30 || (n.judged && n.judged !== 'miss')) continue; const x = n.lane * LW + LW / 2; const golden = G.race && G.race.goldenNote === n; const col = golden ? '#ffd700' : n.judged === 'miss' ? '#ff00ff' : noteColor(n.lane, th.notes, G.noteSkin); drawHamster(x, y, 48, col); if (golden) { cx.strokeStyle = '#ffffff'; cx.lineWidth = 2; cx.strokeRect(Math.round(x - 26), Math.round(y - 26), 52, 52); } }
   cx.restore();
   if (G.glitchT > 0) { G.glitchT -= dt; cx.globalAlpha = Math.min(.45, G.glitchT * 1.5); cx.fillStyle = '#ff00ff'; cx.fillRect(0, Math.random() * GH * .4, GW, 4); cx.fillStyle = '#00ffff'; cx.fillRect(0, GH - Math.random() * GH * .4, GW, 4); cx.globalAlpha = 1; } // v33: miss glitch, in-canvas
   for (let i = G.fx.length - 1; i >= 0; i--) { const p = G.fx[i]; p.life -= dt; if (p.life <= 0) { G.fx.splice(i, 1); continue } if (p.type === 'ring') { p.r += 320 * dt; cx.globalAlpha = Math.max(0, p.life * 2.5); cx.strokeStyle = p.c; cx.lineWidth = 3; cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, Math.PI * 2); cx.stroke(); continue } p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 400 * dt; cx.globalAlpha = Math.max(0, p.life * 1.5); cx.fillStyle = p.c; const s = p.s || 4; cx.fillRect((p.x - s / 2) | 0, (p.y - s / 2) | 0, s, s) } // v33: shockwave rings + bigger particles
@@ -1133,6 +1137,7 @@ async function finish() { // v39: async — hash replay (SHA-256) dihitung di ak
   const rbm = $('rivalBackMsg'); // v30: after answering a duel, tell the player how the challenger sees their score
   if (rbm) { if (wasDuelResponse) { rbm.classList.remove('hidden'); rbm.textContent = msg('rivalBack'); } else rbm.classList.add('hidden'); }
   show('resultPanel');
+  applyResultFrame(); // v41: equipped frame skin restyles the result panel
   $('resultPanel').scrollIntoView({ behavior: 'auto', block: 'start' }); // v33: the grade is at the top of the screen, not below the fold
   playResultJingle(g);
   playIntroMusic(); // Kembalikan intro setelah selesai
@@ -2264,7 +2269,7 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 8000);
   try {
-    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v40.1' } : bodyBase);
+    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v41' } : bodyBase);
     if (!r.ok && r.status === 400 && lastResult.replay) r = await postScores(bodyBase);
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();
@@ -2278,6 +2283,7 @@ async function submitLb() {
       const s8 = String(d.signature).replace(/^0x/, '').slice(0, 8);
       txt += ' • ' + verifyBadgeText('verified', h8, s8, T);
       show(txt);
+      fetchShop(); fetchLeagueWeekly(); // v41: dedupe-verified replay — cheese was already credited; refresh the balance + weekly board
     } else if (d.pending && (d.replayHash || lastResult.replayHash)) {
       // v40.1: Worker v4 memverifikasi async (Cron per menit) — POST hanya
       // mengembalikan 202 pending tanpa signature. Poll GET /verify sampai
@@ -2289,7 +2295,7 @@ async function submitLb() {
         const h8 = String((data && data.replayHash) || hash).replace(/^0x/, '').slice(0, 8);
         const s8 = String((data && data.signature) || '').replace(/^0x/, '').slice(0, 8);
         show(txt + ' • ' + verifyBadgeText(status, h8, s8, T));
-        if (status === 'verified') fetchLb(lbState.mode);
+        if (status === 'verified') { fetchLb(lbState.mode); fetchShop(); fetchLeagueWeekly(); } // v41: cheese is credited server-side on verification — refresh the balance + weekly board
       };
       pollVerify(hash, showStatus);
     } else {
@@ -2300,6 +2306,148 @@ async function submitLb() {
   } catch (_) {
     show(msg('lbOffline'));
     if (b) b.disabled = false;
+  }
+}
+
+// --- v41: TOKO KEJU + LIGA MINGGUAN (off-chain; Worker v5) ---
+// Cheese is earned ONLY on verified songs (server-side, see worker.js):
+// 100/song + 500 grade S/SS + 50 daily mission (first verified song of
+// the Squeek day). The client never computes its own balance — it reads
+// GET /cheese and renders what the server returns. Cosmetics only:
+// note skins recolor the hamster notes, frames restyle the result panel.
+const NOTE_SKINS = {
+  'note-mint': ['#7dffc8', '#5ce1e6', '#a8ffce', '#7dffc8'],
+  'note-gold': ['#ffd700', '#ffb020', '#fff0a8', '#ff8800'],
+  'note-void': ['#a050ff', '#ff5ce1', '#7a50ff', '#ff8800'],
+  'note-rainbow': ['#ff5ce1', '#ffd700', '#00e5ff', '#7dffc8'],
+};
+const FRAME_SKINS = ['frame-neon', 'frame-gold', 'frame-royal', 'frame-rainbow'];
+function shopSkin() { const s = loadJSON('sqk41:skin', { note: null, frame: null }); return (s && typeof s === 'object') ? s : { note: null, frame: null }; }
+function saveShopSkin(s) { saveJSON('sqk41:skin', s); }
+function noteColor(lane, themeNotes, skinId) {
+  if (skinId && NOTE_SKINS[skinId]) return NOTE_SKINS[skinId][lane % NOTE_SKINS[skinId].length];
+  return themeNotes[lane];
+}
+function applyResultFrame() {
+  const p = $('resultPanel'); if (!p) return;
+  FRAME_SKINS.forEach(f => p.classList.remove(f));
+  const frame = shopSkin().frame;
+  if (frame && FRAME_SKINS.indexOf(frame) >= 0) p.classList.add(frame);
+}
+let shopState = { balance: 0, items: [], catalog: [] };
+function shopOwned(id) { return shopState.items.some(i => i.id === id); }
+function shopEquipped(id) { const it = shopState.items.find(i => i.id === id); return !!(it && it.equipped); }
+function shopMsg(t) { const m = $('shopMsg'); if (m) { m.textContent = t; m.classList.remove('hidden'); } }
+function renderShop() {
+  const bal = $('cheeseBalance'); if (bal) bal.textContent = msgf('shopBalanceTpl', { n: shopState.balance });
+  const cat = $('shopCatalog'); if (!cat) return;
+  const w = currentWallet();
+  if (!shopState.catalog.length) { cat.innerHTML = `<p class="msg">${msg('shopOffline')}</p>`; return; }
+  cat.innerHTML = shopState.catalog.map(c => {
+    const owned = shopOwned(c.id), eq = shopEquipped(c.id);
+    const btn = !isAddr(w) ? '' : eq ? `<span class="msg">${I18N[lang].equippedLbl}</span>`
+      : owned ? `<button class="btn-secondary" type="button" data-equip="${c.id}">${I18N[lang].equipBtn}</button>`
+      : c.capsuleOnly ? `<span class="msg">${I18N[lang].capsuleOnlyLbl}</span>`
+      : `<button class="btn-secondary" type="button" data-buy="${c.id}">${msgf('shopBuyTpl', { price: c.price })}</button>`;
+    return `<div class="shop-item"><b>${escHtml(c.name)}</b><span class="shop-meta">${escHtml(c.slot.toUpperCase())} • ${escHtml(c.rarity.toUpperCase())}${owned ? ' • ' + I18N[lang].ownedLbl : ''}</span>${btn}</div>`;
+  }).join('');
+  cat.querySelectorAll('[data-buy]').forEach(b => b.addEventListener('click', () => buyItem(b.dataset.buy)));
+  cat.querySelectorAll('[data-equip]').forEach(b => b.addEventListener('click', () => equipItem(b.dataset.equip)));
+}
+async function fetchShop() {
+  const w = currentWallet();
+  try {
+    const r = await tfetch(CONFIG.LB_URL + '/cheese' + (isAddr(w) ? '?wallet=' + w : ''), null, 8000);
+    if (!r.ok) throw new Error('HTTP_' + r.status);
+    const d = await r.json();
+    if (!d || !Array.isArray(d.catalog)) throw new Error('bad shop');
+    shopState = { balance: d.balance || 0, items: Array.isArray(d.items) ? d.items : [], catalog: d.catalog };
+    // Sync the equipped cosmetics into local state (single source: server).
+    const note = shopState.items.find(i => i.slot === 'note' && i.equipped);
+    const frame = shopState.items.find(i => i.slot === 'frame' && i.equipped);
+    saveShopSkin({ note: note ? note.id : null, frame: frame ? frame.id : null });
+    renderShop();
+  } catch (_) {
+    renderShop();
+  }
+}
+async function buyItem(id) {
+  const w = currentWallet();
+  if (!isAddr(w)) return shopMsg(msg('shopNeedWallet'));
+  try {
+    const r = await tfetch(CONFIG.LB_URL + '/cheese/buy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w, item_id: id }) }, 8000);
+    const d = await r.json().catch(() => null);
+    if (!r.ok) {
+      if (r.status === 402) return shopMsg(msg('shopNoCheese'));
+      if (d && d.error === 'already owned') return shopMsg(msg('shopOwned'));
+      if (d && d.error === 'capsule only') return shopMsg(msg('shopCapsuleOnly'));
+      throw new Error('HTTP_' + r.status);
+    }
+    const item = shopState.catalog.find(c => c.id === id);
+    shopMsg(msgf('shopBought', { item: item ? item.name : id }));
+    await fetchShop();
+  } catch (_) { shopMsg(msg('shopOffline')); }
+}
+async function pullCapsule() {
+  const w = currentWallet();
+  if (!isAddr(w)) return shopMsg(msg('shopNeedWallet'));
+  const b = $('capsuleBtn'); if (b) b.disabled = true;
+  try {
+    const r = await tfetch(CONFIG.LB_URL + '/cheese/pull', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w }) }, 8000);
+    const d = await r.json().catch(() => null);
+    if (!r.ok) {
+      if (r.status === 402) return shopMsg(msg('shopNoCheese'));
+      throw new Error('HTTP_' + r.status);
+    }
+    if (d.duplicate) shopMsg(msgf('shopDup', { item: d.item.name, n: d.compensation }));
+    else shopMsg(msgf('shopPulled', { item: d.item.name, rarity: d.item.rarity }));
+    await fetchShop();
+  } catch (_) { shopMsg(msg('shopOffline')); }
+  finally { if (b) b.disabled = false; }
+}
+async function equipItem(id) {
+  const w = currentWallet();
+  if (!isAddr(w)) return shopMsg(msg('shopNeedWallet'));
+  try {
+    const r = await tfetch(CONFIG.LB_URL + '/cheese/equip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w, item_id: id }) }, 8000);
+    const d = await r.json().catch(() => null);
+    if (!r.ok) throw new Error('HTTP_' + r.status);
+    const item = shopState.catalog.find(c => c.id === id);
+    const cur = shopSkin();
+    if (d.slot === 'note') cur.note = id; else if (d.slot === 'frame') cur.frame = id;
+    saveShopSkin(cur);
+    applyResultFrame();
+    shopMsg(msgf('shopEquipped', { item: item ? item.name : id }));
+    await fetchShop();
+  } catch (_) { shopMsg(msg('shopOffline')); }
+}
+// --- v41: weekly league board (GET /league, top 30, Monday 19:00 WIB) ---
+let leagueWeeklyState = { week_start: '', scores: [], you: null };
+function renderLeagueWeekly() {
+  const el = $('leagueWeeklyList'); if (!el) return;
+  const lbl = $('leagueWeekLabel');
+  if (lbl) lbl.textContent = leagueWeeklyState.week_start ? ('WEEK ' + leagueWeeklyState.week_start + ' — ' + I18N[lang].leagueWeekNote) : '';
+  if (!leagueWeeklyState.scores.length) { el.innerHTML = `<p class="msg">${I18N[lang].leagueWeeklyEmpty}</p>`; return; }
+  const me = (currentWallet() || '').toLowerCase();
+  el.innerHTML = leagueWeeklyState.scores.map(r => `<div class="league-row lb-row${r.wallet && r.wallet.toLowerCase() === me ? ' lb-me' : ''}"><span class="lb-rank">#${r.rank}</span> <b>${escHtml(r.name || 'GUEST')}</b> <span class="lb-wallet">${escHtml(truncAddr(r.wallet))}</span> <b class="lb-score">${r.best_score}</b></div>`).join('');
+  const rk = $('leagueWeeklyRank');
+  if (rk) rk.textContent = (leagueWeeklyState.you && leagueWeeklyState.you.rank) ? msgf('leagueWeeklyYourRank', { rank: leagueWeeklyState.you.rank }) : '';
+}
+async function fetchLeagueWeekly() {
+  const el = $('leagueWeeklyList'); if (!el) return;
+  el.innerHTML = `<p class="msg">${msg('leagueWeeklyLoading')}</p>`;
+  try {
+    const w = currentWallet();
+    const r = await tfetch(CONFIG.LB_URL + '/league' + (isAddr(w) ? '?wallet=' + w : ''), null, 8000);
+    if (!r.ok) throw new Error('HTTP_' + r.status);
+    const d = await r.json();
+    if (!d || !Array.isArray(d.scores)) throw new Error('bad league');
+    leagueWeeklyState = { week_start: d.week_start || '', scores: d.scores, you: d.you || null };
+    renderLeagueWeekly();
+  } catch (_) {
+    leagueWeeklyState = { week_start: '', scores: [], you: null };
+    el.innerHTML = `<p class="msg">${msg('leagueWeeklyOffline')}</p>`;
+    const rk = $('leagueWeeklyRank'); if (rk) rk.textContent = '';
   }
 }
 
@@ -2571,6 +2719,8 @@ function shareToX() {
 // --- v29 wiring ---
 bindClick('shareXBtn', shareToX); // v30: one-tap share of the result to X
 bindClick('lbRefreshBtn', () => fetchLb(lbState.mode)); // v37: reload the global board
+bindClick('capsuleBtn', () => pullCapsule()); // v41: cheese capsule pull
+bindClick('leagueWeeklyRefreshBtn', () => fetchLeagueWeekly()); // v41: reload the weekly league board
 bindClick('lbSubmitBtn', submitLb); // v37: send this result to the global board
 bindClick('tutorialCloseBtn', hideTutorial); // v30
 bindClick('howBtn', showTutorial); // v30: re-open the tutorial
@@ -2614,7 +2764,7 @@ else startMenuPoll();
 // The long single-column menu is gone: PLAY / DAILY / LIVE / LEAGUE / ME.
 // Tab buttons live inside #mainPanel, so they hide with the menu during play.
 // Last tab is remembered per browser (sqk31:tab); game data keys stay sqk30.
-const TABS = ['play', 'daily', 'live', 'league', 'me'];
+const TABS = ['play', 'daily', 'live', 'league', 'shop', 'me'];
 function setTab(name) {
   if (TABS.indexOf(name) < 0) name = 'play';
   TABS.forEach(t => {
@@ -2625,7 +2775,8 @@ function setTab(name) {
   saveJSON('sqk31:tab', name);
   if (name === 'play') preview(); // v39 B2: tab PLAY ditampilkan -> pastikan sesi preview ada (fetch bila belum ada/kedaluwarsa), supaya lagu yang dijanjikan == lagu yang dimainkan
   if (name === 'live') refreshLive(); // v36: the CHAIN panel + Wheel Call fetch immediately when the LIVE tab opens, instead of staring at "FETCHING…" until the 30s menu poll (smoke test 2026-11-07 saw ~8s)
-  if (name === 'league') fetchLb(lbState.mode); // v37: the global board fetches when the LEAGUE tab opens
+  if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); } // v37: the global board fetches when the LEAGUE tab opens; v41: + weekly league board
+  if (name === 'shop') fetchShop(); // v41: the shop fetches the server balance + catalog when the SHOP tab opens
 }
 document.querySelectorAll('#tabBar [data-tab]').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 setTab(loadJSON('sqk31:tab', 'play'));

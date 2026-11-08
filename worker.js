@@ -33,6 +33,23 @@
 //
 // Signer (server-only key, held as Worker secret SIGNING_KEY, never in any
 // file or repo): 0x69f24c0598c8e6b6b938527d84141dd04ec2b3e3
+//
+// Fase 3 (v5, Batch 5-off-chain) — TOKO KEJU + LIGA MINGGUAN (no contract).
+//   Cheese (soft currency, Keju): credited ONLY when a replay is VERIFIED
+//   (verifyOne, inside the same atomic D1 batch as the score upsert),
+//   idempotent per replay_hash via cheese_ledger (UNIQUE replay_hash).
+//   100 per verified song + 500 for grade S/SS + 50 for the daily mission
+//   (first verified song of the Squeek day, day flips 19:00 WIB).
+//   Capsule pull (POST /cheese/pull): 100 Keju, server-side RNG
+//   (crypto.getRandomValues), weighted rarity 70/22/7/1, duplicate ->
+//   compensation Keju. Buy/equip via POST /cheese/buy + /cheese/equip.
+//   League (GET /league): league_scores (wallet, week_start, best_score)
+//   written on every verified FREE score; week starts Monday 19:00 WIB
+//   (= Monday 12:00 UTC), top 30 per week. Nothing here touches the
+//   verification path: validateReplay / verifySimulated / enforcement
+//   are byte-identical to v4; the judge windows, tempo and score formula
+//   live in engine.js and are untouched. No SQK, no contract, no Sepolia
+//   transaction anywhere in v5.
 // EIP-712 domain: { name: "Squeek Pixel ID", version: "1",
 //   chainId: 11155111 (Sepolia), verifyingContract: <signer address> }
 // Attestation: player (address), score (uint256), accuracy (uint256 =
@@ -82,7 +99,21 @@
 // It already exists since v3 — do NOT rotate or re-enter it.
 //
 // Endpoints (all JSON, CORS open):
-//   GET  /                  -> { service, version: 4 }
+//   GET  /                  -> { service, version: 5 }
+//   GET  /cheese?wallet=0x...   -> { wallet, balance, items: [{id, slot,
+//                             rarity, name, price, equipped}], catalog }
+//                             (no wallet -> catalog only, balance 0)
+//   POST /cheese/buy {wallet, item_id}
+//                          -> { ok, item, balance } or 400/402
+//   POST /cheese/pull {wallet}
+//                          -> { ok, item, duplicate, compensation, balance }
+//                             (100 Keju, server RNG, weighted 70/22/7/1)
+//   POST /cheese/equip {wallet, item_id}
+//                          -> { ok, equipped, slot }
+//   GET  /league?week=YYYY-MM-DD&wallet=0x...
+//                          -> { week_start, reset_at, count,
+//                             scores: [{rank, wallet, name, best_score}]
+//                             (top 30), you: {rank, best_score} | null }
 //   GET  /scores?mode=free&limit=20
 //                          -> { mode, count, scores: [{rank, wallet, name,
 //                             score, acc, verified, updated_at}] }
@@ -170,6 +201,78 @@ const W_GOOD = 0.135; // judge window, seconds (CONFIG.W.good).
 const GOLDEN_MAX = 2; // a <=300 s song crosses at most one 10-minute
 // round boundary; +1 slack for a long pause mid-song.
 const REALTIME_SKEW_MS = 5000; // wall-clock vs audio-clock tolerance.
+
+// --- Cheese (Keju) + weekly league (v5) — pure functions, unit-tested ---
+// Economy (Rancangan-v38-OnChain Fase 4, cheese half only — NO SQK here):
+// 100 Keju per verified song, +500 grade S/SS, +50 daily mission (first
+// verified song of the Squeek day). Capsule: 100 Keju/pull, odds
+// 70/22/7/1, duplicate -> compensation. All prices are Keju only.
+const CHEESE_PER_SONG = 100;
+const CHEESE_GRADE_S_BONUS = 500;
+const CHEESE_DAILY_BONUS = 50;
+const CHEESE_PULL_PRICE = 100;
+const CHEESE_DUP_COMP = { common: 25, rare: 50, epic: 100, legendary: 250 };
+const CHEESE_CATALOG = [
+  { id: "note-mint", slot: "note", rarity: "common", price: 300, name: "Mint Notes" },
+  { id: "note-gold", slot: "note", rarity: "rare", price: 800, name: "Golden Notes" },
+  { id: "note-void", slot: "note", rarity: "epic", price: 1500, name: "Void Notes" },
+  { id: "note-rainbow", slot: "note", rarity: "legendary", price: 0, name: "Rainbow Notes", capsuleOnly: true },
+  { id: "frame-neon", slot: "frame", rarity: "common", price: 300, name: "Neon Frame" },
+  { id: "frame-gold", slot: "frame", rarity: "rare", price: 800, name: "Golden Frame" },
+  { id: "frame-royal", slot: "frame", rarity: "epic", price: 1500, name: "Royal Frame" },
+  { id: "frame-rainbow", slot: "frame", rarity: "legendary", price: 0, name: "Rainbow Frame", capsuleOnly: true },
+];
+
+function cheeseEarned(grade) {
+  return CHEESE_PER_SONG + (typeof grade === "string" && grade.startsWith("S") ? CHEESE_GRADE_S_BONUS : 0);
+}
+
+function squeekDayKey(nowMs) {
+  // Squeek day flips at 12:00 UTC (= 19:00 WIB), same rule as the
+  // client's squeekTodayStr().
+  const d = new Date(nowMs - 12 * 3600 * 1000);
+  return d.toISOString().slice(0, 10);
+}
+
+function weekStartMs(nowMs) {
+  // Week starts Monday 19:00 WIB = Monday 12:00 UTC. Most recent such
+  // instant at or before nowMs.
+  const wib = new Date(nowMs + 7 * 3600 * 1000);
+  const daysSinceMonday = (wib.getUTCDay() + 6) % 7;
+  const monday = Date.UTC(wib.getUTCFullYear(), wib.getUTCMonth(), wib.getUTCDate() - daysSinceMonday, 12, 0, 0);
+  return monday <= nowMs ? monday : monday - 7 * 24 * 3600 * 1000;
+}
+
+function weekStartKey(nowMs) {
+  // The Monday's date in WIB (the date players see on the board).
+  return new Date(weekStartMs(nowMs) + 7 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+function capsuleRarity(r) {
+  if (!(r >= 0 && r < 1)) return null;
+  if (r < 0.7) return "common";
+  if (r < 0.92) return "rare";
+  if (r < 0.99) return "epic";
+  return "legendary";
+}
+
+function capsulePool(rarity) {
+  return CHEESE_CATALOG.filter((c) => c.rarity === rarity);
+}
+
+function capsulePick(rarity, idx) {
+  const pool = capsulePool(rarity);
+  if (!pool.length || !Number.isInteger(idx)) return null;
+  return pool[((idx % pool.length) + pool.length) % pool.length];
+}
+
+function dupCompensation(rarity) {
+  return CHEESE_DUP_COMP[rarity] || 0;
+}
+
+function catalogItem(id) {
+  return CHEESE_CATALOG.find((c) => c.id === id) || null;
+}
 
 // --- EIP-712 (Fase 1) ---
 const SIGNER_ADDRESS = "0x69f24c0598c8e6b6b938527d84141dd04ec2b3e3";
@@ -705,10 +808,23 @@ async function verifyOne(env, row, now) {
     nonce,
     deadline,
   });
-  // One D1 batch = one transaction: either everything lands (queue,
-  // replays, nonce, score) or nothing does, so a retry can never sign
-  // twice for the same replay.
-  await env.DB.batch([
+  // --- v5: Cheese credit + weekly league (same atomic batch). Cheese is
+  // credited ONLY here (verified replay), never on raw submit: a song
+  // earns 100 + 500 for grade S/SS + 50 for the daily mission (first
+  // verified song of the Squeek day). The ledger's UNIQUE replay_hash
+  // makes the song credit idempotent; the daily row is unique per
+  // (wallet, day). The cron processes rows strictly sequentially and
+  // claims each row first (pending -> processing), so the hadDaily check
+  // below cannot race with another verification of the same wallet.
+  // League: best FREE score of the current week (Monday 19:00 WIB).
+  const earn = cheeseEarned(sim.grade);
+  const dayKey = squeekDayKey(now);
+  const hadDaily = await env.DB.prepare(
+    "SELECT 1 AS x FROM cheese_ledger WHERE wallet = ? AND kind = 'daily' AND day_key = ?"
+  ).bind(wallet, dayKey).first();
+  const dailyBonus = hadDaily ? 0 : CHEESE_DAILY_BONUS;
+  const totalEarn = earn + dailyBonus;
+  const stmts = [
     env.DB.prepare(
       "UPDATE verify_queue SET status = 'verified', signature = ?, nonce = ?, deadline = ?, updated_at = ? WHERE replay_hash = ?"
     ).bind(signature, nonce, deadline, now, row.replay_hash),
@@ -723,7 +839,28 @@ async function verifyOne(env, row, now) {
         "ON CONFLICT(wallet, mode) DO UPDATE SET name = excluded.name, score = excluded.score, acc = excluded.acc, verified = excluded.verified, updated_at = excluded.updated_at, signature = excluded.signature, replay_hash = excluded.replay_hash " +
         "WHERE excluded.score > scores.score"
     ).bind(wallet, mode, row.name, score, acc, now, signature, row.replay_hash),
-  ]);
+    env.DB.prepare(
+      "INSERT INTO cheese_balances (wallet, balance, updated_at) VALUES (?, ?, ?) ON CONFLICT(wallet) DO UPDATE SET balance = cheese_balances.balance + excluded.balance, updated_at = excluded.updated_at"
+    ).bind(wallet, totalEarn, now),
+    env.DB.prepare(
+      "INSERT OR IGNORE INTO cheese_ledger (wallet, replay_hash, kind, amount, day_key, created_at) VALUES (?, ?, 'song', ?, ?, ?)"
+    ).bind(wallet, row.replay_hash, earn, dayKey, now),
+  ];
+  if (dailyBonus > 0) {
+    stmts.push(
+      env.DB.prepare(
+        "INSERT OR IGNORE INTO cheese_ledger (wallet, replay_hash, kind, amount, day_key, created_at) VALUES (?, NULL, 'daily', ?, ?, ?)"
+      ).bind(wallet, dailyBonus, dayKey, now)
+    );
+  }
+  if (mode === "free") {
+    stmts.push(
+      env.DB.prepare(
+        "INSERT INTO league_scores (wallet, week_start, name, best_score, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(wallet, week_start) DO UPDATE SET name = excluded.name, best_score = MAX(league_scores.best_score, excluded.best_score), updated_at = excluded.updated_at"
+      ).bind(wallet, weekStartKey(now), row.name, score, now)
+    );
+  }
+  await env.DB.batch(stmts);
   return { ok: true, signature, nonce, deadline };
 }
 
@@ -785,7 +922,186 @@ export default {
 
     try {
       if (url.pathname === "/" && request.method === "GET") {
-        return json({ service: "squeekchain-leaderboard", version: 4 });
+        return json({ service: "squeekchain-leaderboard", version: 5 });
+      }
+
+      // --- v5: Cheese shop (GET /cheese, POST /cheese/buy|pull|equip) ---
+      if (url.pathname === "/cheese" && request.method === "GET") {
+        const wallet = (url.searchParams.get("wallet") || "").toLowerCase();
+        const catalog = CHEESE_CATALOG.map((c) => ({ ...c }));
+        if (!isWallet(wallet)) {
+          return json({ wallet: null, balance: 0, items: [], catalog });
+        }
+        const bal = await env.DB.prepare(
+          "SELECT balance FROM cheese_balances WHERE wallet = ?"
+        ).bind(wallet).first();
+        const { results } = await env.DB.prepare(
+          "SELECT item_id, equipped FROM cheese_inventory WHERE wallet = ?"
+        ).bind(wallet).all();
+        const items = results.map((r) => ({
+          ...(catalogItem(r.item_id) || { id: r.item_id, slot: "unknown", rarity: "common", price: 0, name: r.item_id }),
+          equipped: r.equipped === 1,
+        }));
+        return json({ wallet, balance: bal ? bal.balance : 0, items, catalog });
+      }
+
+      if (url.pathname === "/cheese/buy" && request.method === "POST") {
+        const body = await request.json().catch(() => null);
+        if (!body || !isWallet(body.wallet)) {
+          return json({ error: "wallet address is not valid" }, 400);
+        }
+        const wallet = body.wallet.toLowerCase();
+        const item = catalogItem(body.item_id);
+        if (!item) return json({ error: "item not found" }, 400);
+        if (item.capsuleOnly || !(item.price > 0)) {
+          return json({ error: "capsule only" }, 400);
+        }
+        const now = Date.now();
+        const owned = await env.DB.prepare(
+          "SELECT 1 AS x FROM cheese_inventory WHERE wallet = ? AND item_id = ?"
+        ).bind(wallet, item.id).first();
+        if (owned) return json({ error: "already owned" }, 400);
+        // Atomic deduct: the UPDATE only lands when the balance covers
+        // the price, so two concurrent buys cannot both spend it.
+        const paid = await env.DB.prepare(
+          "UPDATE cheese_balances SET balance = balance - ?, updated_at = ? WHERE wallet = ? AND balance >= ?"
+        ).bind(item.price, now, wallet, item.price).run();
+        if ((paid.meta.changes || 0) === 0) {
+          return json({ error: "not enough cheese" }, 402);
+        }
+        const ins = await env.DB.prepare(
+          "INSERT OR IGNORE INTO cheese_inventory (wallet, item_id, equipped, acquired_at) VALUES (?, ?, 0, ?)"
+        ).bind(wallet, item.id, now).run();
+        if ((ins.meta.changes || 0) === 0) {
+          // Lost a race with a concurrent buy: refund.
+          await env.DB.prepare(
+            "UPDATE cheese_balances SET balance = balance + ?, updated_at = ? WHERE wallet = ?"
+          ).bind(item.price, now, wallet).run();
+          return json({ error: "already owned" }, 400);
+        }
+        await env.DB.prepare(
+          "INSERT INTO cheese_ledger (wallet, replay_hash, kind, amount, day_key, created_at) VALUES (?, NULL, 'buy', ?, ?, ?)"
+        ).bind(wallet, -item.price, squeekDayKey(now), now).run();
+        const bal = await env.DB.prepare(
+          "SELECT balance FROM cheese_balances WHERE wallet = ?"
+        ).bind(wallet).first();
+        return json({ ok: true, item: item.id, balance: bal ? bal.balance : 0 });
+      }
+
+      if (url.pathname === "/cheese/pull" && request.method === "POST") {
+        const body = await request.json().catch(() => null);
+        if (!body || !isWallet(body.wallet)) {
+          return json({ error: "wallet address is not valid" }, 400);
+        }
+        const wallet = body.wallet.toLowerCase();
+        const now = Date.now();
+        const paid = await env.DB.prepare(
+          "UPDATE cheese_balances SET balance = balance - ?, updated_at = ? WHERE wallet = ? AND balance >= ?"
+        ).bind(CHEESE_PULL_PRICE, now, wallet, CHEESE_PULL_PRICE).run();
+        if ((paid.meta.changes || 0) === 0) {
+          return json({ error: "not enough cheese" }, 402);
+        }
+        // Server-side RNG: the client never picks the prize.
+        const r = crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;
+        const rarity = capsuleRarity(r);
+        const pool = capsulePool(rarity);
+        const idx = crypto.getRandomValues(new Uint32Array(1))[0] % pool.length;
+        const item = pool[idx];
+        const ins = await env.DB.prepare(
+          "INSERT OR IGNORE INTO cheese_inventory (wallet, item_id, equipped, acquired_at) VALUES (?, ?, 0, ?)"
+        ).bind(wallet, item.id, now).run();
+        let duplicate = false;
+        let compensation = 0;
+        if ((ins.meta.changes || 0) === 0) {
+          duplicate = true;
+          compensation = dupCompensation(rarity);
+          await env.DB.prepare(
+            "UPDATE cheese_balances SET balance = balance + ?, updated_at = ? WHERE wallet = ?"
+          ).bind(compensation, now, wallet).run();
+        }
+        await env.DB.prepare(
+          "INSERT INTO cheese_ledger (wallet, replay_hash, kind, amount, day_key, created_at) VALUES (?, NULL, 'pull', ?, ?, ?)"
+        ).bind(wallet, -CHEESE_PULL_PRICE, squeekDayKey(now), now).run();
+        if (duplicate) {
+          await env.DB.prepare(
+            "INSERT INTO cheese_ledger (wallet, replay_hash, kind, amount, day_key, created_at) VALUES (?, NULL, 'duplicate', ?, ?, ?)"
+          ).bind(wallet, compensation, squeekDayKey(now), now).run();
+        }
+        const bal = await env.DB.prepare(
+          "SELECT balance FROM cheese_balances WHERE wallet = ?"
+        ).bind(wallet).first();
+        return json({
+          ok: true,
+          item: { ...item },
+          duplicate,
+          compensation,
+          balance: bal ? bal.balance : 0,
+        });
+      }
+
+      if (url.pathname === "/cheese/equip" && request.method === "POST") {
+        const body = await request.json().catch(() => null);
+        if (!body || !isWallet(body.wallet)) {
+          return json({ error: "wallet address is not valid" }, 400);
+        }
+        const wallet = body.wallet.toLowerCase();
+        const item = catalogItem(body.item_id);
+        if (!item) return json({ error: "item not found" }, 400);
+        const owned = await env.DB.prepare(
+          "SELECT 1 AS x FROM cheese_inventory WHERE wallet = ? AND item_id = ?"
+        ).bind(wallet, item.id).first();
+        if (!owned) return json({ error: "not owned" }, 400);
+        const slotIds = CHEESE_CATALOG.filter((c) => c.slot === item.slot).map((c) => c.id);
+        await env.DB.batch([
+          env.DB.prepare(
+            "UPDATE cheese_inventory SET equipped = 0 WHERE wallet = ? AND item_id IN (" +
+              slotIds.map(() => "?").join(",") +
+              ")"
+          ).bind(wallet, ...slotIds),
+          env.DB.prepare(
+            "UPDATE cheese_inventory SET equipped = 1 WHERE wallet = ? AND item_id = ?"
+          ).bind(wallet, item.id),
+        ]);
+        return json({ ok: true, equipped: item.id, slot: item.slot });
+      }
+
+      // --- v5: Weekly league (GET /league) ---
+      if (url.pathname === "/league" && request.method === "GET") {
+        const weekParam = url.searchParams.get("week") || "";
+        let weekMs = Date.now();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(weekParam)) {
+          const parsed = Date.parse(weekParam + "T12:00:00Z");
+          if (Number.isFinite(parsed)) weekMs = parsed;
+        }
+        const weekStart = weekStartKey(weekMs);
+        const { results } = await env.DB.prepare(
+          "SELECT wallet, name, best_score FROM league_scores WHERE week_start = ? ORDER BY best_score DESC, updated_at ASC LIMIT 30"
+        ).bind(weekStart).all();
+        const wallet = (url.searchParams.get("wallet") || "").toLowerCase();
+        let you = null;
+        if (isWallet(wallet)) {
+          const me = await env.DB.prepare(
+            "SELECT best_score FROM league_scores WHERE wallet = ? AND week_start = ?"
+          ).bind(wallet, weekStart).first();
+          if (me) {
+            const better = await env.DB.prepare(
+              "SELECT COUNT(*) AS n FROM league_scores WHERE week_start = ? AND best_score > ?"
+            ).bind(weekStart, me.best_score).first();
+            you = { rank: (better.n || 0) + 1, best_score: me.best_score };
+          }
+        }
+        return json({
+          week_start: weekStart,
+          reset_at: weekStartMs(weekMs) + 7 * 24 * 3600 * 1000,
+          count: results.length,
+          scores: results.map((r, i) => ({
+            rank: i + 1,
+            wallet: r.wallet,
+            name: r.name,
+            best_score: r.best_score,
+          })),
+          you,
+        });
       }
 
       if (url.pathname === "/scores" && request.method === "GET") {
@@ -1204,4 +1520,4 @@ export default {
 
 // Named exports for local unit tests (the Worker runtime only uses
 // `default`; esbuild keeps these in the bundle).
-export { canonical, replayHashOf, validateReplay, checkOppDist, verifySimulated };
+export { canonical, replayHashOf, validateReplay, checkOppDist, verifySimulated, cheeseEarned, squeekDayKey, weekStartMs, weekStartKey, capsuleRarity, capsulePool, capsulePick, dupCompensation, catalogItem, CHEESE_CATALOG, CHEESE_PER_SONG, CHEESE_GRADE_S_BONUS, CHEESE_DAILY_BONUS, CHEESE_PULL_PRICE };

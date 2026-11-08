@@ -571,3 +571,22 @@ body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 1
 .pause-title { font-family: 'Press Start 2P', monospace; font-size: 16px; color: #fff; margin: 0 0 6px 0; letter-spacing: 2px; }
 .pause-box .sheet-row { text-align: left; }
 #pauseVolVal { color: rgba(255, 255, 255, .85); font-size: 11px; min-width: 38px; text-align: right; }
+
+/* ==========================================
+   v41 — Cheese Shop + weekly league + result frames
+   ========================================== */
+/* Shop items: name + meta on top, action button below (phone width). */
+#shopCatalog { display: flex; flex-direction: column; gap: 8px; }
+.shop-item { border: 1px solid #333; border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
+.shop-item b { color: #fff; font-size: 12px; }
+.shop-meta { color: #888; font-size: 10px; }
+.shop-item .btn-secondary { width: auto; align-self: flex-start; }
+#cheeseBalance { color: var(--yellow); font-weight: 700; }
+#capsuleBtn:disabled { opacity: .45; }
+/* Weekly league rows reuse .league-row/.lb-row; the rank line hides when empty. */
+#leagueWeeklyRank:empty { display: none; }
+/* Result panel frames (equipped in the shop, slot 'frame'). */
+#resultPanel.frame-neon { border: 3px solid #00ffff; box-shadow: 0 0 24px rgba(0, 255, 255, .45); }
+#resultPanel.frame-gold { border: 3px solid #ffd700; box-shadow: 0 0 24px rgba(255, 215, 0, .5); }
+#resultPanel.frame-royal { border: 3px solid #a050ff; box-shadow: 0 0 24px rgba(160, 80, 255, .5); }
+#resultPanel.frame-rainbow { border: 3px solid transparent; background: linear-gradient(rgba(5, 6, 7, .94), rgba(5, 6, 7, .94)) padding-box, linear-gradient(135deg, #ff5ce1, #ffd700, #00e5ff, #7dffc8) border-box; box-shadow: 0 0 24px rgba(255, 92, 225, .4); }
