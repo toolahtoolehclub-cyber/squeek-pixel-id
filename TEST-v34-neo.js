@@ -1,4 +1,4 @@
-// v38 tests — run: node TEST-v34-neo.js  (cwd = the v38 folder)
+// v39 tests — run: node TEST-v34-neo.js  (cwd = the v39 folder)
 const fs = require('fs');
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
@@ -36,8 +36,8 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v38', (html.match(/v38/g) || []).length >= 2);
-t('browser tab title is v38', html.includes('<title>SQUEEKCHAIN // v38</title>'));
+t('html says v39', (html.match(/v39/g) || []).length >= 2);
+t('browser tab title is v39', html.includes('<title>SQUEEKCHAIN // v39</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -208,12 +208,25 @@ t('card error line exists in the result panel', html.indexOf('id="cardErrMsg"') 
 ['cardErrMsg', "state: 'paused'", "state: 'running'", "document.body.classList.add('cardbar')", "document.body.classList.remove('cardbar')", 'SONG_MOODS', 'const motif', 'motif[bar % 2][s]', 'lastResultIsNew', '★ NEW BEST! ★', 'Math.pow(1 - p, 3)', '"${a.name}"'].forEach(s => t('js has ' + s, js.includes(s)));
 t('generateCard shows the error on the result panel', js.includes("if (em && !$('resultPanel').classList.contains('hidden'))"));
 t('makeAnthem returns a song name', js.includes("name: (SONG_MOODS[scaleName]"));
-t('result card reads the score from G (count-up safe)', js.includes('G.score !== undefined ? G.score : val(0)'));
+// v39 (Batch 2): the result card no longer reads the score from G with a
+// val(0) fallback — drawResultCard() reads STATE (lastResult + G): the score
+// comes from G.score with a lastResult.score fallback, and every other number
+// (acc, combo, counts, anthem, setup) from lastResult, never from DOM
+// innerText. The old expectation ('G.score !== undefined ? G.score : val(0)')
+// described the pre-v39 card and is retired, not deleted.
+t('result card reads the score from state G/lastResult (v39, count-up safe)', js.includes('const r = lastResult || {};') && js.includes("String(G && G.score !== undefined ? G.score : (r.score !== undefined ? r.score : 0))"));
+t('result card never parses the panel DOM', !js.includes("resultKv').innerText") && !js.includes('resultKv").innerText') && !js.includes('val(0)'));
+t('result card anthem row reads the lastResult song snapshot (v39)', js.includes('detail(rl(\'anthem\'), r.song ? `"${r.song.name}" • ${r.song.key}` : \'—\');'));
 
 // --- 6d. v33.2 wiring ---
 t('audio template has a {run} word (v33.2)', js.includes("gameAudioTpl: 'AUDIO: {run}"));
 t('audio run word passed in play/pause/resume', js.includes("run: msg('audioRunning')") && js.includes("run: msg('audioPaused')"));
-t('anthem kv row is name + key only (v33.2)', js.includes('<b>"${anthem.name}" • ${anthem.key}</b>'));
+// v39 (Batch 2): the result panel anthem row reads the snapshot of the song
+// actually PLAYED (G.song, taken in play()), not the global `anthem` which
+// preview may have rebuilt since. The old v33.2 expectation
+// ('"${anthem.name}" • ${anthem.key}') is retired — it allowed the smoke-test
+// bug where the panel showed a different song than the one played.
+t('anthem kv row is name + key from the played-song snapshot G.song (v39)', js.includes('<b>"${G.song.name}" • ${G.song.key}</b>') && !js.includes('<b>"${anthem.name}" • ${anthem.key}</b>'));
 t('ID card anthem row is name + key only, adaptive size (v37.1)', js.includes('const anVal = `"${an.name}" • ${an.key}`;') && js.includes("row('ANTHEM', anVal, 24, 292, '#ff5ce1', anthemSize(anVal))"));
 t('card detail slice is 40 (v33.2)', js.includes('.slice(0, 40)'));
 t('no 34-char card slice left', !js.includes('.slice(0, 34)'));
@@ -378,7 +391,7 @@ t('Genesis meta tag is line 8, byte-identical', htmlLines[7] === '<meta name="sq
 t('README last line is the Genesis proof', readme.trimEnd().split('\n').pop() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 t('OG image is absolute on the live domain', html.includes('og:image" content="https://squeekpixel.web.id/squeekchain-headline-simple.png"'));
 t('Twitter card is summary_large_image', html.includes('twitter:card" content="summary_large_image"'));
-t('meta description is v38, not v32 NEO', html.includes('SQUEEKCHAIN v38') && !html.includes('v32 NEO'));
+t('meta description is v39, not v32 NEO', html.includes('SQUEEKCHAIN v39') && !html.includes('v32 NEO'));
 t('README documents 11 achievements', readme.includes('11 named achievements'));
 t('README documents the v38 XP economy', readme.includes('54,000 total XP') && readme.includes('[0, 700, 2000, 4300, 8500, 16000, 29500, 54000]'));
 t('README documents the 19:00 WIB Squeek-day reset', readme.includes('19:00 WIB'));
@@ -386,6 +399,115 @@ t('README documents the 19:00 WIB Squeek-day reset', readme.includes('19:00 WIB'
 // 12h. dead-code cleanup
 ['.marquee', 'bulbChase', 'neonFlicker', 'spin3D', 'cab-side', 'btn-arcade', 'splash-coin'].forEach(s => t('dead v31 CSS gone from style.css: ' + s, !css.includes(s)));
 t('introOsc/introGain only survive in one v38 comment', (js.match(/introOsc/g) || []).length === 1 && (js.match(/introGain/g) || []).length === 1);
+
+// --- 13. v39 Batch 2: EIP-712 replay recorder, 3 smoke-test bug fixes, preview prefetch ---
+
+// 13a. Panel hasil = lagu yang DIMAINKAN (bug smoke test v38 #1).
+// Akar penyebab: panel membaca global `anthem` (bisa dibangun ulang preview
+// sesudah lagu mulai) dan preview memakai seed wallet sementara play() memakai
+// seed server — lagu yang dijanjikan != lagu yang dimainkan. Perbaikan: snapshot
+// G.song di play(), panel + kartu baca snapshot; preview memakai seed sesi yang sama.
+t('play() snapshots the played song into G.song', js.includes('G.song = { name: anthem.name, key: anthem.key, scaleName: anthem.scaleName, bpm: anthem.bpm, notes: anthem.chart.length };'));
+t('resultKv anthem row reads G.song, not the global anthem', js.includes('<b>"${G.song.name}" • ${G.song.key}</b>'));
+t('lastResult carries the song snapshot', js.includes('song: G.song ? { name: G.song.name, key: G.song.key, scaleName: G.song.scaleName, bpm: G.song.bpm, notes: G.song.notes } : null'));
+t('previewFreeSeedKey derives the FREE seed from the preview session', js.includes("return (previewSessionValid(previewSession) && (previewSession.wallet || 'guest') === w) ? 'FREE-' + String(previewSession.seed) : null;"));
+t('preview builds the anthem from the preview seed', js.includes('seedOverride = previewFreeSeedKey(w);') && js.includes('const a = makeAnthem(w, false, seedOverride, lanes, mirror)'));
+t('play() reuses the preview session and marks it used (one session = one play)', js.includes('session38 = previewSession;') && js.includes('previewSession.used = true;'));
+t('FREE seedKey comes from the session seed', js.includes("'FREE-' + String(session38.seed)"));
+
+// 13a (lanjutan): jalankan fungsi prefetch asli — satu sesi = satu seedKey
+// untuk preview DAN play, jadi lagu yang dijanjikan == lagu yang dimainkan.
+const pvsSrc = fnSrc38('previewSessionValid');
+const pfskSrc = fnSrc38('previewFreeSeedKey');
+const mkPreviewFns = new Function('previewSession', oneLine38('const PREVIEW_SESSION_GRACE_MS =') + '\n' + pvsSrc + '\n' + pfskSrc + '\nreturn { previewSessionValid, previewFreeSeedKey };');
+const W39 = '0x372D48abe5eDccCcDE9BD914a6dE30Dc53e3a1Db';
+const sessOK = { sessionId: 's-1', seed: 123456789, nonce: 'n1', expiresAt: Date.now() + 30 * 60 * 1000, wallet: W39.toLowerCase(), mode: 'free', used: false };
+const pf = mkPreviewFns(sessOK);
+t('preview session valid (fresh, free, same wallet)', pf.previewSessionValid(sessOK) === true);
+t('preview seedKey == play seedKey (same session seed)', pf.previewFreeSeedKey(W39) === 'FREE-123456789' && pf.previewFreeSeedKey(W39.toLowerCase()) === 'FREE-123456789');
+t('used session is invalid (no second play on one session)', pf.previewSessionValid({ ...sessOK, used: true }) === false && mkPreviewFns({ ...sessOK, used: true }).previewFreeSeedKey(W39) === null);
+t('expired session is invalid (grace 5s)', mkPreviewFns({ ...sessOK, expiresAt: Date.now() }).previewFreeSeedKey(W39) === null);
+t('non-free session is invalid', mkPreviewFns({ ...sessOK, mode: 'daily' }).previewFreeSeedKey(W39) === null);
+t('seed out of uint32 range is invalid', mkPreviewFns({ ...sessOK, seed: 4294967296 }).previewFreeSeedKey(W39) === null);
+t('preview seedKey is null for another wallet', pf.previewFreeSeedKey('0x88538a82143065664232422e2dec4309038fcf9a') === null);
+
+// 13b. Hitungan note (bug smoke test v38 #2): MISS 103 vs NOTES 98.
+// Akar penyebab: chart yang dimainkan (seed server, 103 note) bukan chart
+// preview (seed wallet, 98 note). Loop MISS sendiri menghitung tiap note
+// tepat sekali (chartIdx monoton naik + flag judged); guard finish() adalah
+// pengaman bila chart berubah di tengah lagu. Invarian: PERFECT+GREAT+GOOD+MISS = NOTES.
+const guardStart = js.indexOf('const totalNotes = anthem ? anthem.chart.length : 0;');
+const guardEnd = js.indexOf('\n  }', guardStart) + 4;
+const guardSrc = js.slice(guardStart, guardEnd);
+t('finish() has the MISS guard (MISS = NOTES - judged)', guardSrc.includes('G.counts.miss = Math.max(0, totalNotes - (G.counts.perfect + G.counts.great + G.counts.good))'));
+const runGuard = new Function('anthem', 'G', guardSrc + '\nreturn G.counts;');
+function guardCase(notes, counts) { return runGuard({ chart: { length: notes } }, { counts: { ...counts } }); }
+const g1 = guardCase(98, { perfect: 0, great: 0, good: 0, miss: 103 });
+t('guard: 103 MISS on a 98-note chart -> MISS 98, sum = NOTES', g1.miss === 98 && g1.perfect + g1.great + g1.good + g1.miss === 98);
+const g2 = guardCase(98, { perfect: 50, great: 20, good: 10, miss: 30 });
+t('guard: over-counted judgements -> MISS 18, sum = NOTES', g2.miss === 18 && g2.perfect + g2.great + g2.good + g2.miss === 98);
+const g3 = guardCase(98, { perfect: 50, great: 20, good: 10, miss: 18 });
+t('guard: exact counts untouched', g3.miss === 18 && g3.perfect + g3.great + g3.good + g3.miss === 98);
+const g4 = guardCase(0, { perfect: 0, great: 0, good: 0, miss: 5 });
+t('guard: no chart (0 notes) -> counts untouched', g4.miss === 5);
+t('miss loop judges each note once (chartIdx monotonic + judged flag)', js.includes('while (G.chartIdx < anthem.chart.length)') && js.includes("if (n.judged) { G.chartIdx++; continue; }") && js.includes("n.judged = 'miss'"));
+
+// 13c. Banner rekor (bug smoke test v38 #3): skor 0 + rekor 2300 menampilkan
+// "SKOR BARU TERBAIK!" dan bisa menimpa rekor. Akar penyebab: kondisi "rekor
+// baru" tersebar di tiga tempat (banner, kartu, simpan) dan bisa desinkron.
+// Perbaikan v39: SATU kondisi isNewBest di finish() — skor HARUS > 0.
+t('finish() has one explicit isNewBest condition (score must be > 0)', js.includes('const isNewBest = G.score > 0 && (!prev || G.score > prev.score);'));
+const isNewBestSrc = js.slice(js.indexOf('const isNewBest = '), js.indexOf(';', js.indexOf('const isNewBest = ')));
+const isNewBest = new Function('G', 'prev', isNewBestSrc.replace('const isNewBest = ', 'return ') + ';');
+t('score 0 + stored best 2300 -> NOT a new best', isNewBest({ score: 0 }, { score: 2300, grade: 'A' }) === false);
+t('score 0 on the first game -> NOT a new best (no 0 record saved)', isNewBest({ score: 0 }, null) === false);
+t('score 2300 ties the stored best -> NOT a new best', isNewBest({ score: 2300 }, { score: 2300, grade: 'A' }) === false);
+t('score 2301 beats the stored best -> new best', isNewBest({ score: 2301 }, { score: 2300, grade: 'A' }) === true);
+t('first ever score > 0 -> new best', isNewBest({ score: 100 }, null) === true);
+t('best is saved only when isNewBest', js.includes('if (!G.practice && isNewBest) saveBest(G.wallet, rec);'));
+t('bestMsg banner uses the same isNewBest', js.includes("$('bestMsg').textContent = isNewBest ? msg('newHigh')"));
+t('result card ribbon uses the same isNewBest', js.includes('lastResultIsNew = isNewBest;'));
+
+// 13d. Replay v1: canonical JSON client == server (hash stabil), offset clamp, header.seed.
+const worker = fs.readFileSync('worker.js', 'utf8');
+const workerLines = worker.split('\n');
+function fnSrcW(name) {
+  const start = workerLines.findIndex(l => l.startsWith('function ' + name + '('));
+  if (start < 0) throw new Error('function not found in worker: ' + name);
+  let depth = 0, end = start;
+  for (let i = start; i < workerLines.length; i++) { for (const ch of workerLines[i]) { if (ch === '{') depth++; if (ch === '}') depth--; } if (i > start && depth === 0) { end = i; break; } }
+  return workerLines.slice(start, end + 1).join('\n');
+}
+['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
+t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
+t('submit sends replay + hash + gameVersion v39', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v39'"));
+t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
+t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
+const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
+const canonical = new Function(fnSrcW('canonical') + '\nreturn canonical;')();
+const repA = { v: 1, header: { wallet: '0xabc', mode: 'free', seedKey: 'FREE-123', seed: 123, genre: 'cyber', diff: 'normal', lanes: 3, mirror: false, practice: false, offsetMs: 0, wallStartMs: 1700000000000, duration: 60, initialZoomies: false, initialDistKm: 0 }, events: { inputs: [{ t: 0.5, lane: 1 }], polls: [], golden: [], finish: { t: 60, oppDistM: null } }, claim: { score: 100, acc: 90, maxCombo: 60, counts: { perfect: 60, great: 20, good: 10, miss: 10 } } };
+const repB = JSON.parse('{"claim":{"counts":{"miss":10,"good":10,"great":20,"perfect":60},"maxCombo":60,"acc":90,"score":100},"events":{"finish":{"oppDistM":null,"t":60},"golden":[],"inputs":[{"lane":1,"t":0.5}],"polls":[]},"header":{"wallStartMs":1700000000000,"seedKey":"FREE-123","seed":123,"practice":false,"offsetMs":0,"mirror":false,"mode":"free","lanes":3,"initialZoomies":false,"initialDistKm":0,"genre":"cyber","duration":60,"diff":"normal","wallet":"0xabc"},"v":1}');
+t('canonical JSON: client == server on the same replay', canonicalJSON(repA) === canonical(repA));
+t('canonical JSON: stable under key insertion order', canonicalJSON(repA) === canonicalJSON(repB) && canonical(repA) === canonical(repB));
+t('canonical JSON: keys sorted recursively', canonicalJSON({ b: 1, a: { d: 4, c: 3 } }) === '{"a":{"c":3,"d":4},"b":1}');
+const { createHash } = require('crypto');
+const sha = s => '0x' + createHash('sha256').update(s).digest('hex');
+t('replay hash stable across key order', sha(canonicalJSON(repA)) === sha(canonicalJSON(repB)));
+t('replay hash is 0x + 64 lowercase hex', /^0x[0-9a-f]{64}$/.test(sha(canonicalJSON(repA))));
+t('replay hash differs when the claim differs', sha(canonicalJSON(repA)) !== sha(canonicalJSON({ ...repA, claim: { ...repA.claim, score: 101 } })));
+// offset clamp ±150 ms, rounded to 5 ms
+const offsetMsClamp = new Function(oneLine38('function offsetMsClamp') + '\nreturn offsetMsClamp;')();
+[[200, 150], [-200, -150], [153, 150], [152, 150], [148, 150], [147, 145], [7, 5], [-7, -5], [3, 5], [2, 0], [0, 0], [150, 150], [-150, -150]].forEach(([v, want]) => t('offsetMsClamp(' + v + ') = ' + want, offsetMsClamp(v) === want));
+t('replay header carries the clamped offset', js.includes('offsetMs: Math.max(-150, Math.min(150, offsetMs))'));
+// header.seed == session seed
+t('headerSeed is the session seed when a session exists', js.includes('const headerSeed = sessionSeed !== null ? sessionSeed : (cyrb53(seedKey) % 4294967296);'));
+t('replay header.seed is headerSeed', js.includes('seed: headerSeed,'));
+t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: session38 ? session38.sessionId : null, sessionSeed'));
+t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
+
+// 13e. Label versi v39 yang terlihat.
+t('README title is v39', readme.startsWith('# Squeekchain v39'));
+t('README documents the v39 Batch 2 upgrade', readme.includes('**v39**') && readme.includes('EIP-712'));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

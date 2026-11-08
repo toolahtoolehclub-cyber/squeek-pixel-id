@@ -12,6 +12,42 @@
 // the wallet's best, as before) but marked verified=0. Nothing here proves
 // a human played; it only makes blind score spam measurably harder.
 //
+// Fase 1 (v3, Batch 2): EIP-712 attestations over deterministic replays.
+// When the client sends a valid v1 replay together with a valid session,
+// the server signs an EIP-712 Attestation for that run and stores the
+// signature + replay hash on the score row, and the replay itself in D1.
+// NO ENFORCEMENT yet: scores without a replay (or with an invalid one)
+// behave exactly as in v2 (verified 0/1 by session+plausibility, no
+// signature). Enforcement (rejecting scores without a replay) is Batch 3.
+//
+// Signer (server-only key, held as Worker secret SIGNING_KEY, never in any
+// file or repo): 0x69f24c0598c8e6b6b938527d84141dd04ec2b3e3
+// EIP-712 domain: { name: "Squeek Pixel ID", version: "1",
+//   chainId: 11155111 (Sepolia), verifyingContract: <signer address> }
+// Attestation: player (address), score (uint256), accuracy (uint256 =
+//   Math.round(acc*100)), songId (string), gameVersion (string, e.g. "v39"),
+//   seed (uint256), replayHash (bytes32), nonce (uint256), deadline
+//   (uint256, epoch seconds, now+600).
+// songId is FROZEN: mode + "|" + genre + "|" + diff + "|" + seedKey,
+// computed from the replay header. The client uses the same formula.
+// replayHash is SHA-256 (hex) of the canonical JSON of the replay
+// (canonical = JSON.stringify with keys sorted recursively). The hash is
+// NOT keccak — the EIP-712 struct just carries the 32 SHA-256 bytes.
+// Nonce is per-wallet monotonic in D1 table `nonces`, +1 per attestation
+// the server signs. A replay_hash already in D1 table `replays` is never
+// stored twice: the stored signature is returned with duplicate:true.
+// A replay already attested to a DIFFERENT wallet is rejected (400) so a
+// run cannot be replayed under someone else's address.
+//
+// BUILD: this file imports @noble/curves + @noble/hashes, which Workers
+// cannot resolve at deploy time. Bundle first, then deploy the bundle:
+//   cd /tmp/v39-build && npx esbuild <path>/worker.js --bundle \
+//     --format=esm --outfile=dist/worker.js
+//   python3 ~/workspace/custom-connectors/custom.cloudflare/bin/upload_worker.py \
+//     squeekchain-leaderboard dist/worker.js cd6920f3-3efb-491d-ae0c-b287069c8052
+// The secret must exist first (PUT .../workers/scripts/squeekchain-leaderboard/secrets
+// {"name":"SIGNING_KEY","text":"<64-hex>","type":"secret_text"}).
+//
 // Endpoints (all JSON, CORS open):
 //   GET  /                  -> { service, version }
 //   GET  /scores?mode=free&limit=20
@@ -21,13 +57,25 @@
 //                             (seed is server-issued, valid 30 minutes,
 //                             single use)
 //   POST /scores {wallet, name, score, acc, mode,
-//                 sessionId?, notes?, taps?, durationMs?}
+//                 sessionId?, notes?, taps?, durationMs?,
+//                 replay?, replayHash?, gameVersion?}
 //                          -> upserts ONLY when the new score beats the
 //                             wallet's stored best for that mode;
 //                             rate limit 10/wallet/hour, 30/IP/hour (429);
-//                             plausibility failure -> 400, not stored
+//                             plausibility failure -> 400, not stored.
+//                             With a valid replay + valid session:
+//                             { ok, improved, verified:1, signature,
+//                               replayHash, nonce, deadline, wallet, mode,
+//                               score }. Duplicate replay:
+//                             { ok, duplicate:true, improved:false,
+//                               verified:1, signature, replayHash, ... }.
 //   GET  /rank?wallet=0x...&mode=free
 //                          -> { wallet, mode, rank, score, total }
+
+import { secp256k1 } from "@noble/curves/secp256k1.js";
+import { keccak_256 } from "@noble/hashes/sha3.js";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 
 const MODES = ["free", "daily", "live", "race", "boss", "challenge"];
 const MAX_SCORE = 5000000;
@@ -43,6 +91,17 @@ const SCORE_SLACK = 1000;
 const MAX_EXTRA_TAPS = 50;
 const MIN_DURATION_MS = 30000;
 const MAX_DURATION_MS = 300000;
+// Replay limits (v1).
+const MAX_POLLS = 600;
+const MAX_REPLAY_BYTES = 256 * 1024;
+const MAX_GAME_VERSION = 16;
+
+// --- EIP-712 (Fase 1) ---
+const SIGNER_ADDRESS = "0x69f24c0598c8e6b6b938527d84141dd04ec2b3e3";
+const EIP712_NAME = "Squeek Pixel ID";
+const EIP712_VERSION = "1";
+const EIP712_CHAIN_ID = 11155111; // Sepolia
+const ATTESTATION_TTL_S = 600; // deadline = now + 10 minutes
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -86,6 +145,186 @@ function randomNonce() {
   return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// --- EIP-712 helpers (minimal ABI encoding, no ethers) ---
+
+function concatBytes(...parts) {
+  const total = parts.reduce((n, p) => n + p.length, 0);
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const p of parts) {
+    out.set(p, off);
+    off += p.length;
+  }
+  return out;
+}
+
+function encUint256(n) {
+  const b = new Uint8Array(32);
+  let v = BigInt(n);
+  for (let i = 31; i >= 0; i--) {
+    b[i] = Number(v & 0xffn);
+    v >>= 8n;
+  }
+  return b;
+}
+
+function encAddress(addr) {
+  const b = new Uint8Array(32);
+  b.set(hexToBytes(addr.slice(2).toLowerCase()), 12);
+  return b;
+}
+
+function encString(s) {
+  return keccak_256(new TextEncoder().encode(s));
+}
+
+function encBytes32(hex) {
+  const h = hex.startsWith("0x") ? hex.slice(2) : hex;
+  return hexToBytes(h);
+}
+
+const DOMAIN_TYPEHASH = keccak_256(
+  new TextEncoder().encode(
+    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+  )
+);
+const ATTESTATION_TYPEHASH = keccak_256(
+  new TextEncoder().encode(
+    "Attestation(address player,uint256 score,uint256 accuracy,string songId,string gameVersion,uint256 seed,bytes32 replayHash,uint256 nonce,uint256 deadline)"
+  )
+);
+
+const DOMAIN_SEPARATOR = keccak_256(
+  concatBytes(
+    DOMAIN_TYPEHASH,
+    encString(EIP712_NAME),
+    encString(EIP712_VERSION),
+    encUint256(EIP712_CHAIN_ID),
+    encAddress(SIGNER_ADDRESS)
+  )
+);
+
+function attestationDigest(a) {
+  const structHash = keccak_256(
+    concatBytes(
+      ATTESTATION_TYPEHASH,
+      encAddress(a.player),
+      encUint256(a.score),
+      encUint256(a.accuracy),
+      encString(a.songId),
+      encString(a.gameVersion),
+      encUint256(a.seed),
+      encBytes32(a.replayHash),
+      encUint256(a.nonce),
+      encUint256(a.deadline)
+    )
+  );
+  return keccak_256(concatBytes(new Uint8Array([0x19, 0x01]), DOMAIN_SEPARATOR, structHash));
+}
+
+function signAttestation(privHex, a) {
+  const digest = attestationDigest(a);
+  const priv = hexToBytes(privHex);
+  // noble v2 sign() prehashes by default; EIP-712 needs the raw digest.
+  const compact = secp256k1.sign(digest, priv, { prehash: false });
+  // sign() returns only r||s, so find the recovery bit by trial against
+  // the public key derived from the same private key.
+  const pub = secp256k1.getPublicKey(priv, true); // compressed
+  let recovery = -1;
+  for (const bit of [0, 1]) {
+    const rec65 = concatBytes(new Uint8Array([bit]), compact);
+    const recPub = secp256k1.recoverPublicKey(rec65, digest, { prehash: false });
+    if (bytesToHex(recPub) === bytesToHex(pub)) {
+      recovery = bit;
+      break;
+    }
+  }
+  if (recovery < 0) throw new Error("recovery failed");
+  return "0x" + bytesToHex(concatBytes(compact, new Uint8Array([27 + recovery])));
+}
+
+// --- Replay v1 helpers ---
+
+// Canonical JSON: JSON.stringify with object keys sorted recursively.
+// The client MUST hash this exact string; any key order or whitespace
+// difference changes the hash.
+function canonical(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return "[" + value.map(canonical).join(",") + "]";
+  const keys = Object.keys(value).sort();
+  return (
+    "{" +
+    keys.map((k) => JSON.stringify(k) + ":" + canonical(value[k])).join(",") +
+    "}"
+  );
+}
+
+function replayHashOf(replay) {
+  return "0x" + bytesToHex(sha256(new TextEncoder().encode(canonical(replay))));
+}
+
+function isNonEmptyString(v) {
+  return typeof v === "string" && v.length > 0;
+}
+
+function isInt(v) {
+  return typeof v === "number" && Number.isInteger(v);
+}
+
+// Validate a v1 replay against the submitted score/acc/mode/notes.
+// Returns { ok: true } or { ok: false, error }.
+function validateReplay(replay, body, mode, score, acc) {
+  if (!replay || typeof replay !== "object" || Array.isArray(replay)) {
+    return { ok: false, error: "replay is not valid" };
+  }
+  if (replay.v !== 1) return { ok: false, error: "replay version is not 1" };
+  const h = replay.header;
+  if (!h || typeof h !== "object") return { ok: false, error: "replay header is missing" };
+  if (h.mode !== mode) return { ok: false, error: "replay header mode mismatch" };
+  if (!isNonEmptyString(h.genre)) return { ok: false, error: "replay header genre is missing" };
+  if (!isNonEmptyString(h.diff)) return { ok: false, error: "replay header diff is missing" };
+  if (!isNonEmptyString(h.seedKey)) return { ok: false, error: "replay header seedKey is missing" };
+  if (!isInt(h.seed) || h.seed < 0 || h.seed > 4294967295) {
+    return { ok: false, error: "replay header seed is not valid" };
+  }
+  const ev = replay.events;
+  if (!ev || typeof ev !== "object") return { ok: false, error: "replay events are missing" };
+  for (const f of ["inputs", "polls", "golden"]) {
+    if (!Array.isArray(ev[f])) return { ok: false, error: `replay events.${f} is not an array` };
+    for (const e of ev[f]) {
+      if (!e || typeof e !== "object") return { ok: false, error: `replay events.${f} entry is not valid` };
+    }
+  }
+  if (ev.polls.length > MAX_POLLS) return { ok: false, error: "replay polls exceed 600" };
+  const claim = replay.claim;
+  if (!claim || typeof claim !== "object") return { ok: false, error: "replay claim is missing" };
+  if (!isInt(claim.score) || claim.score !== score) {
+    return { ok: false, error: "replay claim score mismatch" };
+  }
+  if (typeof claim.acc !== "number" || Math.abs(claim.acc - acc) > 0.5) {
+    return { ok: false, error: "replay claim acc mismatch" };
+  }
+  if (!isInt(claim.maxCombo) || claim.maxCombo < 0) {
+    return { ok: false, error: "replay claim maxCombo is not valid" };
+  }
+  const counts = claim.counts;
+  if (!counts || typeof counts !== "object") {
+    return { ok: false, error: "replay claim counts are missing" };
+  }
+  let totalNotes = 0;
+  for (const v of Object.values(counts)) {
+    if (!isInt(v) || v < 0) return { ok: false, error: "replay claim counts are not valid" };
+    totalNotes += v;
+  }
+  // Note count for the inputs cap: body.notes when sent, else the sum of
+  // the claim counts.
+  const notes = body.notes !== undefined && body.notes !== null ? Number(body.notes) : totalNotes;
+  if (Number.isFinite(notes) && ev.inputs.length > notes + MAX_EXTRA_TAPS) {
+    return { ok: false, error: "replay inputs exceed notes + 50" };
+  }
+  return { ok: true };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -95,7 +334,7 @@ export default {
 
     try {
       if (url.pathname === "/" && request.method === "GET") {
-        return json({ service: "squeekchain-leaderboard", version: 2 });
+        return json({ service: "squeekchain-leaderboard", version: 3 });
       }
 
       if (url.pathname === "/scores" && request.method === "GET") {
@@ -203,36 +442,174 @@ export default {
         }
         const plausible = true;
 
+        // --- Replay v1 (Fase 1): shape + hash check, BEFORE the session
+        // is consumed, so a bad replay never burns a session.
+        const hasReplay = body.replay !== undefined && body.replay !== null;
+        let replay = null;
+        let serverHash = null;
+        let gameVersion = "v39";
+        if (hasReplay) {
+          if (typeof body.replay === "string") {
+            if (body.replay.length > MAX_REPLAY_BYTES) {
+              return json({ error: "replay too large" }, 400);
+            }
+            try {
+              replay = JSON.parse(body.replay);
+            } catch {
+              return json({ error: "replay is not valid JSON" }, 400);
+            }
+          } else {
+            replay = body.replay;
+            if (JSON.stringify(replay).length > MAX_REPLAY_BYTES) {
+              return json({ error: "replay too large" }, 400);
+            }
+          }
+          const v = validateReplay(replay, body, mode, score, acc);
+          if (!v.ok) return json({ error: v.error }, 400);
+          serverHash = replayHashOf(replay);
+          if (body.replayHash !== undefined && body.replayHash !== null) {
+            const claimed = String(body.replayHash).toLowerCase();
+            if (!/^0x[0-9a-f]{64}$/.test(claimed) && !/^[0-9a-f]{64}$/.test(claimed)) {
+              return json({ error: "replayHash is not valid" }, 400);
+            }
+            if (claimed.replace(/^0x/, "") !== serverHash.slice(2)) {
+              return json({ error: "replayHash mismatch" }, 400);
+            }
+          }
+          if (typeof body.gameVersion === "string" && body.gameVersion) {
+            gameVersion = body.gameVersion.slice(0, MAX_GAME_VERSION);
+          } else if (isNonEmptyString(replay.header.gameVersion)) {
+            gameVersion = String(replay.header.gameVersion).slice(0, MAX_GAME_VERSION);
+          }
+        }
+
+        // --- Dedupe: a replay_hash already in D1 is never stored twice.
+        // Same wallet -> return the stored signature. Different wallet ->
+        // reject: a run cannot be replayed under someone else's address.
+        if (hasReplay) {
+          const prev = await env.DB.prepare(
+            "SELECT wallet, signature FROM replays WHERE replay_hash = ?"
+          )
+            .bind(serverHash)
+            .first();
+          if (prev) {
+            if (prev.wallet !== wallet) {
+              return json({ error: "replay already submitted by another wallet" }, 400);
+            }
+            return json({
+              ok: true,
+              duplicate: true,
+              improved: false,
+              verified: 1,
+              signature: prev.signature,
+              replayHash: serverHash,
+              wallet,
+              mode,
+              score,
+            });
+          }
+        }
+
         // --- Session validation (only when the client sent one). An
         // invalid/expired/used session does NOT reject the score; it only
         // keeps verified=0. A valid session is consumed (used=1) exactly once.
+        // With a replay, the header seed must match the session seed;
+        // a mismatch is rejected BEFORE consuming the session.
         let sessionValid = false;
+        let sessionSeed = null;
         if (typeof body.sessionId === "string" && body.sessionId) {
           const s = await env.DB.prepare(
-            "SELECT session_id, expires_at, used FROM sessions WHERE session_id = ?"
+            "SELECT session_id, seed, expires_at, used FROM sessions WHERE session_id = ?"
           )
             .bind(body.sessionId)
             .first();
           if (s && s.used === 0 && s.expires_at > now) {
+            if (hasReplay && s.seed !== replay.header.seed) {
+              return json({ error: "replay seed mismatch" }, 400);
+            }
             const claimed = await env.DB.prepare(
               "UPDATE sessions SET used = 1 WHERE session_id = ? AND used = 0"
             )
               .bind(body.sessionId)
               .run();
             sessionValid = (claimed.meta.changes || 0) > 0;
+            if (sessionValid) sessionSeed = s.seed;
           }
         }
 
         const verified = sessionValid && plausible ? 1 : 0;
+
+        // --- Attestation (Fase 1): only when session valid + plausibility
+        // + replay valid. No enforcement: without a replay the v2 path
+        // below runs unchanged.
+        let signature = null;
+        let replayHash = null;
+        let nonce = null;
+        let deadline = null;
+        if (hasReplay && verified === 1) {
+          const privHex = env.SIGNING_KEY;
+          if (typeof privHex !== "string" || !/^[0-9a-fA-F]{64}$/.test(privHex)) {
+            return json({ error: "signing unavailable" }, 500);
+          }
+          const songId =
+            replay.header.mode +
+            "|" +
+            replay.header.genre +
+            "|" +
+            replay.header.diff +
+            "|" +
+            replay.header.seedKey;
+          const prevNonce = await env.DB.prepare(
+            "SELECT nonce FROM nonces WHERE wallet = ?"
+          )
+            .bind(wallet)
+            .first();
+          nonce = (prevNonce ? prevNonce.nonce : 0) + 1;
+          await env.DB.prepare(
+            "INSERT INTO nonces (wallet, nonce) VALUES (?, ?) ON CONFLICT(wallet) DO UPDATE SET nonce = excluded.nonce"
+          )
+            .bind(wallet, nonce)
+            .run();
+          deadline = Math.floor(now / 1000) + ATTESTATION_TTL_S;
+          replayHash = serverHash;
+          signature = signAttestation(privHex, {
+            player: wallet,
+            score,
+            accuracy: Math.round(acc * 100),
+            songId,
+            gameVersion,
+            seed: sessionSeed !== null ? sessionSeed : replay.header.seed,
+            replayHash,
+            nonce,
+            deadline,
+          });
+          await env.DB.prepare(
+            "INSERT INTO replays (replay_hash, wallet, mode, replay, signature, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+          )
+            .bind(replayHash, wallet, mode, JSON.stringify(replay), signature, now)
+            .run();
+        }
+
         const res = await env.DB.prepare(
-          "INSERT INTO scores (wallet, mode, name, score, acc, verified, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?) " +
-            "ON CONFLICT(wallet, mode) DO UPDATE SET name = excluded.name, score = excluded.score, acc = excluded.acc, verified = excluded.verified, updated_at = excluded.updated_at " +
+          "INSERT INTO scores (wallet, mode, name, score, acc, verified, updated_at, signature, replay_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+            "ON CONFLICT(wallet, mode) DO UPDATE SET name = excluded.name, score = excluded.score, acc = excluded.acc, verified = excluded.verified, updated_at = excluded.updated_at, signature = excluded.signature, replay_hash = excluded.replay_hash " +
             "WHERE excluded.score > scores.score"
         )
-          .bind(wallet, mode, name, score, acc, verified, now)
+          .bind(wallet, mode, name, score, acc, verified, now, signature, replayHash)
           .run();
         const improved = (res.meta.changes || 0) > 0;
-        return json({ ok: true, improved, verified, wallet, mode, score });
+        // A signed attestation is only stored on the score row when the
+        // run improved the wallet's best; otherwise the signature still
+        // lives in the replays table (and in this response) but the row
+        // keeps the attestation of its stored best score.
+        const out = { ok: true, improved, verified, wallet, mode, score };
+        if (signature) {
+          out.signature = signature;
+          out.replayHash = replayHash;
+          out.nonce = nonce;
+          out.deadline = deadline;
+        }
+        return json(out);
       }
 
       if (url.pathname === "/rank" && request.method === "GET") {

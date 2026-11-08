@@ -31,6 +31,11 @@ let playMode = 'free';
 let challengeCode = null;
 // v27 LIVE state: last wheel snapshot, poll timer, ZOOMIES flag (70+ RPM = x2 score).
 let liveSnapshot = null, livePoll = null, liveZoomies = false;
+// v39 REPLAY RECORDER v1 (tanpa enforcement — Batch 3 yang menegakkan):
+// objek replay lagu yang sedang berjalan, atau null bila tidak ada / gagal
+// dibangun. Caps: inputs max notes+50, polls max 600 (server menolak lebih).
+let replay = null;
+const REPLAY_MAX_POLLS = 600, REPLAY_MAX_EXTRA_INPUTS = 50;
 function todayStr(d) { const t = d || new Date(); const p = n => String(n).padStart(2, '0'); return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`; }
 // v38: yesterdayStr() removed — the streak now uses squeekYesterdayStr() (Squeek day, 12:00 UTC).
 // v38 DAILY RESET 19:00 WIB: the Squeek day runs 12:00 UTC-12:00 UTC
@@ -785,8 +790,57 @@ function loadBest(w) { try { return JSON.parse(localStorage.getItem('sqk20:' + (
 function saveBest(w, rec) { try { localStorage.setItem('sqk20:' + (w || 'GUEST').toLowerCase(), JSON.stringify(rec)); return true; } catch (e) { return false; } }
 const songTime = () => ac ? ac.currentTime - G.start : 0;
 
+// --- v39 REPLAY RECORDER v1 (tanpa enforcement) ---
+// Format replay mengikuti kontrak worker Fase 1 (worker.js): {v:1, header,
+// events:{inputs, polls, golden, finish}, claim}. Hash = SHA-256 atas
+// canonical JSON (key diurutkan rekursif) — HARUS sama persis dengan
+// canonical() di worker, atau server menolak dengan "replayHash mismatch".
+// Semua waktu t = song-time (detik, audio time ac.currentTime - G.start),
+// BUKAN event.timeStamp, BUKAN wall clock. Fail-soft: semua perekaman
+// dibungkus try/catch — bila gagal, replay dibuang dan submit tetap jalan
+// tanpa replay (jalur verified=0 seperti sebelumnya).
+function canonicalJSON(v) {
+  if (v === null || typeof v !== 'object') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(canonicalJSON).join(',') + ']';
+  return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canonicalJSON(v[k])).join(',') + '}';
+}
+async function replayHashOf(rep) {
+  const data = new TextEncoder().encode(canonicalJSON(rep));
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return '0x' + Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+// Song-time detik, presisi 3 desimal, dijepit >= 0 (LEAD_IN 2 detik sebelum
+// lagu mulai memberi song-time negatif — tap di sana tercatat t=0).
+function replaySongT() { return Math.max(0, +songTime().toFixed(3)); }
+function recordReplayInput(lane) {
+  try {
+    if (!replay || !G || G.ended) return;
+    if (replay.events.inputs.length < anthem.chart.length + REPLAY_MAX_EXTRA_INPUTS) replay.events.inputs.push({ t: replaySongT(), lane });
+  } catch (_) {}
+}
+function recordReplayPoll(s) {
+  try {
+    if (!replay || !G || G.ended) return;
+    if (replay.events.polls.length >= REPLAY_MAX_POLLS) return;
+    // Poll GAGAL ikut direkam (ok:false, rpm/dist null) — poll gagal = zoomies mati.
+    replay.events.polls.push({ t: replaySongT(), rpm: s && s.ok ? +s.rpm.toFixed(3) : null, dist: s && s.ok ? +s.dist.toFixed(3) : null, ok: !!(s && s.ok) });
+  } catch (_) {}
+}
+function recordReplayGolden(note, st) {
+  try {
+    if (!replay || !G || !anthem) return;
+    // Satu entri per golden note, saat muncul. Bila kena, TIDAK ada entri
+    // kedua — entri yang sama ini yang dipakai verifikasi.
+    replay.events.golden.push({ t: Math.max(0, +st.toFixed(3)), index: anthem.chart.indexOf(note) });
+  } catch (_) {}
+}
+
 async function play() {
   if (G && !G.ended) return say(msg('gameRunning'), 'cyan');
+  // v39: BUG FIX — liveZoomies di-reset di AWAL play(), sebelum lagu mulai.
+  // Sebelumnya flag ini hanya di-reset di finish()/stop(), jadi sisa ZOOMIES
+  // dari lagu sebelumnya bisa bocor ke lagu berikutnya. replay lama dibuang.
+  liveZoomies = false; replay = null;
   const w = $('walletInput').value.trim();
   if (w && !isAddr(w)) { $('walletInput').classList.add('invalid'); return say(msg('invalidWallet'), 'pink'); }
   $('walletInput').classList.remove('invalid');
@@ -808,11 +862,27 @@ async function play() {
   // only carry the sessionId. Offline/failure = local seed, no sessionId —
   // the score still submits, as unverified.
   let session38 = null;
-  try {
-    const sr = await tfetch(CONFIG.LB_URL + '/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w || 'GUEST', mode: playMode }) }, 5000);
-    if (sr.ok) { const sj = await sr.json(); if (sj && sj.sessionId) session38 = sj; }
-  } catch (_) { session38 = null; }
+  // v39 B2: FREE — pakai ulang sesi preview bila masih valid (belum dipakai,
+  // belum kedaluwarsa, wallet sama). Satu sesi = satu play; sesi yang dipakai
+  // di sini ditandai used supaya play kedua tidak memakai sesi yang sama
+  // (Worker menolak sesi used — skor kedua akan unverified). Bila tidak ada
+  // sesi preview yang valid, ambil sesi baru seperti dulu. Mode non-FREE
+  // selalu ambil sesi baru seperti dulu (sesi preview hanya ada untuk FREE).
+  if (playMode === 'free' && previewSessionValid(previewSession) && (previewSession.wallet || 'guest') === (w || 'GUEST').toLowerCase()) {
+    session38 = previewSession;
+    previewSession.used = true;
+  } else {
+    try {
+      const sr = await tfetch(CONFIG.LB_URL + '/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w || 'GUEST', mode: playMode }) }, 5000);
+      if (sr.ok) { const sj = await sr.json(); if (sj && sj.sessionId) session38 = sj; }
+    } catch (_) { session38 = null; }
+  }
   const seedKey = playMode === 'free' && session38 && session38.seed !== undefined && session38.seed !== null && String(session38.seed).length ? 'FREE-' + String(session38.seed) : seedKeyFor(playMode);
+  // v39: seed numerik sesi (uint32) untuk header replay. Worker menuntut
+  // header.seed == seed sesi bila sessionId ikut dikirim — bila tidak ada
+  // sesi (offline), turunkan deterministik dari seedKey (cyrb53 % 2^32).
+  const sessionSeed = session38 && Number.isInteger(session38.seed) && session38.seed >= 0 && session38.seed <= 4294967295 ? session38.seed : null;
+  const headerSeed = sessionSeed !== null ? sessionSeed : (cyrb53(seedKey) % 4294967296);
   if (playMode === 'daily') applyDailySpec(); // v28: daily genre+diff come from the date, not the selection
   if (playMode === 'boss') { const bs = weeklySpec(); currentGenre = bs.genre; currentDiff = 'hard'; syncGenreDiffButtons(); } // v29: weekly boss is always HARD
   const lanes = lanesForSong(), mirror = mirrorForSong();
@@ -825,7 +895,21 @@ async function play() {
   glSeed = w ? Math.abs(cyrb53(w) % 1000) / 100 : Math.random() * 10;
   glShockwave = 1.0; // Shockwave saat mulai
 
-  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), glitchT: 0, ended: false, paused: false, taps: 0, sessionId: session38 ? session38.sessionId : null, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, fever: false, practice: practiceMode, live: (playMode === 'live' || playMode === 'race') ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null, race: playMode === 'race' ? { startDistKm: liveStart && liveStart.ok ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), playerDist: 0, roundKey: roundKeyFor(new Date()), goldenNote: null } : null, boss: playMode === 'boss' };
+  G = { wallet: w, start: ac.currentTime + CONFIG.LEAD_IN, next: 0, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, great: 0, good: 0, miss: 0 }, fx: [], flash: Array(lanes).fill(0), glitchT: 0, ended: false, paused: false, taps: 0, sessionId: session38 ? session38.sessionId : null, sessionSeed, chartIdx: 0, mode: playMode, seedKey, genre: currentGenre, diff: currentDiff, lanes, mirror, fever: false, practice: practiceMode, live: (playMode === 'live' || playMode === 'race') ? { rpm: liveStart ? liveStart.rpm : 0, dist: liveStart ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), peakRpm: liveStart ? liveStart.rpm : 0, zoomiesEver: false } : null, race: playMode === 'race' ? { startDistKm: liveStart && liveStart.ok ? liveStart.dist : 0, offline: !(liveStart && liveStart.ok), playerDist: 0, roundKey: roundKeyFor(new Date()), goldenNote: null } : null, boss: playMode === 'boss' };
+  // v39: snapshot lagu yang SEDANG dimainkan (state, bukan DOM) + keadaan
+  // zoomies saat lagu mulai. Panel hasil & kartu hasil membaca dari sini —
+  // nama lagu di panel tidak boleh lagi datang dari innerText.
+  G.song = { name: anthem.name, key: anthem.key, scaleName: anthem.scaleName, bpm: anthem.bpm, notes: anthem.chart.length };
+  const snapZoom = (playMode === 'live' || playMode === 'race') && !!(liveStart && liveStart.ok && liveStart.rpm >= ZOOMIES_RPM);
+  liveZoomies = snapZoom; // v39: zoomies saat lagu mulai (poll pertama baru 5 detik lagi; judge() butuh nilai benar dari tap pertama)
+  try {
+    replay = {
+      v: 1,
+      header: { wallet: w || 'GUEST', mode: G.mode, seedKey: G.seedKey, seed: headerSeed, genre: G.genre, diff: G.diff, lanes: G.lanes, mirror: G.mirror, practice: G.practice, offsetMs: Math.max(-150, Math.min(150, offsetMs)), wallStartMs: Date.now(), duration: +anthem.duration.toFixed(3), initialZoomies: snapZoom, initialDistKm: (liveStart && liveStart.ok) ? +liveStart.dist.toFixed(3) : 0 },
+      events: { inputs: [], polls: [], golden: [] },
+      claim: null
+    };
+  } catch (_) { replay = null; }
   const themeKey = themeKeyFor(playMode, G.boss); G.theme = THEMES[themeKey]; document.body.dataset.theme = themeKey; // v34: one look per mode
   try { const cg = cx.createLinearGradient(0, 0, 0, GH); cg.addColorStop(0, G.theme.bg[0]); cg.addColorStop(1, G.theme.bg[1]); G.bgGrad = cg; } catch (_) {} // v34: theme gradient background (was the anthem hue)
   if (playMode === 'challenge' && (challengeLanes === 4 || challengeMirror)) say(msgf('duelUnlock', { mods: (challengeLanes === 4 ? '4 LANES ' : '') + (challengeMirror ? 'MIRROR ' : '') }), 'yellow');
@@ -871,6 +955,7 @@ function judge(lane) {
   if (!G || G.ended || G.paused || !ac) return;
   if (lane < 0 || lane >= G.lanes) return; // v28: lane 3 only exists in 4-lane songs
   G.taps++; // v38: every tap that reaches the game counts (hit, empty tap or miss alike)
+  recordReplayInput(lane); // v39: tiap tap direkam dengan audio time (songTime), bukan event.timeStamp
   const st = songTime() - offsetMs / 1000; // v28: PRECISION offset — judge the tap as if it came offsetMs earlier
   let target = null, bd = Infinity;
   for (const n of anthem.chart) {
@@ -919,7 +1004,7 @@ function loop(ts) {
     const rk = roundKeyFor(new Date());
     if (rk !== G.race.roundKey) {
       G.race.roundKey = rk;
-      for (const n of anthem.chart) { if (!n.judged && n.t > st) { G.race.goldenNote = n; addFloatText('GOLDEN NOTE INCOMING!', '#ffd700'); break; } }
+      for (const n of anthem.chart) { if (!n.judged && n.t > st) { G.race.goldenNote = n; recordReplayGolden(n, st); addFloatText('GOLDEN NOTE INCOMING!', '#ffd700'); break; } }
     }
   }
   while (G.chartIdx < anthem.chart.length) {
@@ -980,15 +1065,26 @@ function accuracy() { const c = G.counts, tot = c.perfect + c.great + c.good + c
 const grade = (a, miss) => a >= 95 && miss === 0 ? 'SS' : a >= 95 ? 'S' : a >= 88 ? 'A' : a >= 75 ? 'B' : a >= 60 ? 'C' : 'D';
 function hud() { $('scoreVal').textContent = G.score; $('comboVal').textContent = G.combo; $('accVal').textContent = Math.round(accuracy()) + '%'; const ft = $('feverTag'); if (ft) ft.classList.toggle('hidden', !(G && G.fever)); } // v33: ACC as an integer — "58.1%" was truncated to "58..." on phones
 
-function finish() {
+async function finish() { // v39: async — hash replay (SHA-256) dihitung di akhir, sebelum panel tampil
   G.ended = true; disarmPauseExit(); clearInterval(sched); cancelAnimationFrame(raf); stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night');
   const rh = $('raceHud'); if (rh) rh.classList.add('hidden');
   const a = accuracy(), g = grade(a, G.counts.miss), key = (G.wallet || 'GUEST').toLowerCase(), prev = loadBest(G.wallet);
   const rec = { score: G.score, acc: +a.toFixed(2), grade: g, maxCombo: G.maxCombo, at: Date.now() };
-  const isNew = !prev || rec.score > prev.score;
-  lastResultIsNew = isNew && G.score > 0; // v33.1: the result card draws a NEW BEST ribbon from this
-  if (!G.practice && isNew) saveBest(G.wallet, rec);
+  const isNewBest = G.score > 0 && (!prev || G.score > prev.score); // v39 (bug smoke test #3): SATU kondisi eksplisit untuk "rekor baru" — skor HARUS > 0 DAN (belum ada rekor ATAU skor > rekor). Skor 0 tidak pernah jadi rekor baru dan tidak pernah menimpa rekor tersimpan. Sebelumnya kondisi yang sama tersebar di tiga tempat (banner, kartu, simpan) sehingga bisa desinkron.
+  lastResultIsNew = isNewBest; // v33.1: the result card draws a NEW BEST ribbon from this
+  if (!G.practice && isNewBest) saveBest(G.wallet, rec);
   const avgOff = hitOffsets.length ? Math.round(hitOffsets.reduce((x, v) => x + v, 0) / hitOffsets.length) : null;
+  // v39 (bug smoke test #2): guard — total judgement tidak boleh melebihi
+  // jumlah note chart. Akar masalah MISS 103 vs NOTES 98: chart yang
+  // DIMAINKAN (seed server, 103 note) bukan chart yang ditampilkan menu
+  // preview (seed wallet, 98 note). Loop MISS di loop() sendiri menghitung
+  // tiap note tepat sekali (chartIdx monoton naik + flag judged), jadi tidak
+  // ada hitung ganda; guard ini pengaman bila chart berubah di tengah lagu.
+  // Invarian: PERFECT+GREAT+GOOD+MISS = NOTES.
+  const totalNotes = anthem ? anthem.chart.length : 0;
+  if (totalNotes > 0 && G.counts.perfect + G.counts.great + G.counts.good + G.counts.miss > totalNotes) {
+    G.counts.miss = Math.max(0, totalNotes - (G.counts.perfect + G.counts.great + G.counts.good));
+  }
   const res = { score: G.score, acc: +a.toFixed(2), maxCombo: G.maxCombo, miss: G.counts.miss, perfect: G.counts.perfect, diff: G.diff, mode: G.mode, avgOff };
   const missions = dailyMissions(squeekTodayStr());
   const doneKey = missionsDoneKey(G.wallet);
@@ -1043,11 +1139,23 @@ function finish() {
     if (achAdded.length && xpEl) xpEl.textContent += ' • +' + (achAdded.length * 25) + ' XP (ACHIEVEMENTS)'; // v30: achievement XP is awarded inside checkAchievements — keep the XP line honest
   }
   renderRaceBox(); renderLeague(); renderAchievements(); renderPredict(); renderBossBox(); renderDiaryList(); renderChamps();
-  lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice, sessionId: G.sessionId || null, taps: G.taps || 0, notes: anthem ? anthem.chart.length : 0, durationMs: anthem ? Math.round(anthem.duration * 1000) : 0 }; resetLbSubmit(); // v37: this result is submittable to the global board (v38: + sessionId/taps/notes/durationMs)
+  lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice, sessionId: G.sessionId || null, taps: G.taps || 0, notes: anthem ? anthem.chart.length : 0, durationMs: anthem ? Math.round(anthem.duration * 1000) : 0, grade: g, maxCombo: G.maxCombo, counts: { perfect: G.counts.perfect, great: G.counts.great, good: G.counts.good, miss: G.counts.miss }, avgOff, song: G.song ? { name: G.song.name, key: G.song.key, scaleName: G.song.scaleName, bpm: G.song.bpm, notes: G.song.notes } : null, lanes: G.lanes, mirror: G.mirror, live: G.live ? { offline: G.live.offline, peakRpm: G.live.peakRpm, dist: G.live.dist, zoomiesEver: G.live.zoomiesEver } : null, race: G.race ? { you: +G.race.playerDist.toFixed(1), opp: +oppDist.toFixed(1), win: raceWin, offline: G.race.offline } : null, boss: !!G.boss }; resetLbSubmit(); // v37: this result is submittable to the global board (v38: + sessionId/taps/notes/durationMs; v39: + grade/maxCombo/counts/avgOff/song/live/race — kartu hasil baca dari sini, bukan DOM)
+  // v39: finalisasi replay + hash SHA-256 (async). Fail-soft: exception apa
+  // pun (termasuk crypto.subtle tak tersedia) = replay dibuang, lastResult
+  // tetap tanpa replay, submit jalan seperti biasa (verified=0).
+  if (replay) {
+    try {
+      replay.events.finish = { t: replaySongT(), oppDistM: G.race ? +oppDist.toFixed(1) : null };
+      replay.claim = { score: G.score, acc: +a.toFixed(2), maxCombo: G.maxCombo, counts: { perfect: G.counts.perfect, great: G.counts.great, good: G.counts.good, miss: G.counts.miss } };
+      if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');
+      lastResult.replay = replay;
+      lastResult.replayHash = await replayHashOf(replay);
+    } catch (_) { replay = null; delete lastResult.replay; delete lastResult.replayHash; }
+  }
   $('gradeVal').textContent = g; $('gradeVal').style.color = g.startsWith('S') ? 'var(--green)' : g === 'A' ? 'var(--cyan)' : 'var(--pink)';
   const c = G.counts;
-  $('resultKv').innerHTML = `<span>${rl('score')}</span><b>${G.score}</b><span>${rl('acc')}</span><b>${a.toFixed(2)}%</b><span>${rl('combo')}</span><b>${G.maxCombo}</b><span>${rl('pg')}</span><b>${c.perfect}/${c.great}</b><span>${rl('gm')}</span><b>${c.good}/${c.miss}</b><span>${rl('anthem')}</span><b>"${anthem.name}" • ${anthem.key}</b><span>${rl('setup')}</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? rl('tryCalib') : ''}${G.practice ? rl('practiceTag') : ''}</b>` + (G.live ? `<span>${rl('live')}</span><b>${G.live.offline ? rl('offline') : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '') + (G.race ? `<span>${rl('race')}</span><b>YOU ${G.race.playerDist.toFixed(0)} m vs SQUEEKTOSHI ${oppDist.toFixed(0)} m — ${raceWin ? rl('raceWin') : rl('raceLose')}${G.race.offline ? ' (' + rl('offline') + ')' : ''}</b>` : '') + (G.boss ? `<span>${rl('boss')}</span><b>${rl('bossDefeated')}</b>` : '');
-  $('bestMsg').textContent = (isNew && G.score > 0) ? msg('newHigh') : (prev ? msgf('bestIs', { score: prev.score, grade: prev.grade }) : ''); // v30.1: a 0-score first game is not a "NEW HIGH SCORE"
+  $('resultKv').innerHTML = `<span>${rl('score')}</span><b>${G.score}</b><span>${rl('acc')}</span><b>${a.toFixed(2)}%</b><span>${rl('combo')}</span><b>${G.maxCombo}</b><span>${rl('pg')}</span><b>${c.perfect}/${c.great}</b><span>${rl('gm')}</span><b>${c.good}/${c.miss}</b><span>${rl('anthem')}</span><b>"${G.song.name}" • ${G.song.key}</b><span>${rl('setup')}</span><b>${G.lanes} LANES${G.mirror ? ' • MIRROR' : ''} • OFFSET ${offsetMs > 0 ? '+' : ''}${offsetMs} ms${avgOff !== null ? ' • AVG ' + (avgOff > 0 ? '+' : '') + avgOff + ' ms' : ''}${avgOff !== null && Math.abs(avgOff) >= 30 ? rl('tryCalib') : ''}${G.practice ? rl('practiceTag') : ''}</b>` + (G.live ? `<span>${rl('live')}</span><b>${G.live.offline ? rl('offline') : 'PEAK RPM ' + Math.round(G.live.peakRpm) + ' • ' + G.live.dist.toFixed(3) + ' KM' + (G.live.zoomiesEver ? ' • ZOOMIES ×2' : '')}</b>` : '') + (G.race ? `<span>${rl('race')}</span><b>YOU ${G.race.playerDist.toFixed(0)} m vs SQUEEKTOSHI ${oppDist.toFixed(0)} m — ${raceWin ? rl('raceWin') : rl('raceLose')}${G.race.offline ? ' (' + rl('offline') + ')' : ''}</b>` : '') + (G.boss ? `<span>${rl('boss')}</span><b>${rl('bossDefeated')}</b>` : ''); // v39: nama lagu dibaca dari snapshot G.song (state lagu yang dimainkan), bukan global anthem — panel tidak bisa lagi menampilkan lagu lain
+  $('bestMsg').textContent = isNewBest ? msg('newHigh') : (prev ? msgf('bestIs', { score: prev.score, grade: prev.grade }) : ''); // v39: satu kondisi isNewBest (skor 0 tidak pernah jadi rekor baru)
   // v33.1: the score counts up instead of appearing instantly (skipped for reduced motion).
   const sb = $('resultKv').querySelector('b');
   if (sb && !prefersReducedMotion && G.score > 0) { const target = G.score, t0 = performance.now(); const tick = now => { const p = Math.min(1, (now - t0) / 700); sb.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(tick); }; requestAnimationFrame(tick); }
@@ -1068,7 +1176,8 @@ function playResultJingle(g) {
   seq.forEach((m, i) => { tone(mtof(m), t0 + i * 0.11, 'square', 0.16, 0.16); tone(mtof(m + 7), t0 + i * 0.11, 'sawtooth', 0.07, 0.16); });
   if (g === 'SS' || g === 'S') kick(t0);
 }
-function stop() { hidePauseOverlay(); syncBackToGameBtn(); if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night'); delete document.body.dataset.theme; /* v34: the mode theme leaves with the game */ const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.add('hidden'); document.body.classList.remove('playing'); resumeGL(); show('mainPanel'); playIntroMusic(); startMenuPoll(); }
+function stop() { hidePauseOverlay(); syncBackToGameBtn(); if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); stopRaceTick(); liveZoomies = false; replay = null; // v39: replay lagu yang dibatalkan dibuang — tidak boleh menempel ke hasil berikutnya
+  document.body.classList.remove('live-day', 'live-night'); delete document.body.dataset.theme; /* v34: the mode theme leaves with the game */ const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.add('hidden'); document.body.classList.remove('playing'); resumeGL(); show('mainPanel'); playIntroMusic(); startMenuPoll(); }
 async function pauseGame() { if (!G || G.ended) return; G.paused = true; setText('pauseBtn', msg('resumeBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { run: msg('audioPaused'), bpm: anthem.bpm, state: 'paused', practice: G.practice ? msg('practiceTag2') : '' })); try { if (ac) await ac.suspend(); } catch (_) {} draw(songTime(), 0); showPauseOverlay(); } // v33.2: v33.1 only changed the AC state — the template's leading word still said RUNNING (v38: the real pause menu opens here)
 async function resumeGame() { if (!G || G.ended) return; hidePauseOverlay(); try { if (ac) await ac.resume(); } catch (_) {} G.paused = false; lastLoopTs = 0; setText('pauseBtn', msg('pauseBtn')); setText('gameAudioStatus', msgf('gameAudioTpl', { run: msg('audioRunning'), bpm: anthem.bpm, state: 'running', practice: G.practice ? msg('practiceTag2') : '' })); cancelAnimationFrame(raf); raf = requestAnimationFrame(loop); }
 async function togglePause() { if (!G) return; if (G.paused) await resumeGame(); else await pauseGame(); }
@@ -1312,6 +1421,7 @@ async function refreshLive() {
   // preview() re-rolls the accent hue, which must not change mid-song.
   if (!G) preview();
   if (G && !G.ended && G.mode === 'live') updateLiveHud();
+  recordReplayPoll(s); // v39: tiap poll live direkam (termasuk yang gagal)
   return s;
 }
 function startLivePoll(ms) { stopLivePoll(); livePoll = setInterval(() => { refreshLive(); }, ms); }
@@ -1533,14 +1643,88 @@ function juiceHit(kind) {
   if (kind === 'miss') { const gp = $('gamePanel'); if (gp) { gp.classList.remove('shake'); void gp.offsetWidth; gp.classList.add('shake'); } }
 }
 
-function preview() {
+// ==========================================
+// v39 B2 — PREFETCH SESI PREVIEW (FREE)
+// Pekerja B membuktikan bug smoke test #1+#2 berakar pada divergensi seed:
+// preview() membangun lagu FREE dari seed wallet, sedangkan play()
+// membangun lagu dari seed server ('FREE-'+session.seed). Panel hasil kini
+// membaca snapshot G.song (benar), tapi preview masih menjanjikan lagu yang
+// berbeda. Prefetch ini menutup separuh itu: preview memakai seed sesi yang
+// SAMA dengan yang akan dipakai play(), jadi preview == lagu yang dimainkan.
+//
+// Aturan hemat (rate limit Worker: 10/wallet/jam, 30/IP/jam):
+// - SATU fetch per kunjungan tab PLAY; sesi yang sama dipakai ulang untuk
+//   semua perubahan genre/diff (anthem dibangun ulang dari seed sesi +
+//   genre/diff baru — tanpa fetch baru).
+// - Sesi yang sudah dipakai play() ditandai used dan TIDAK boleh dipakai
+//   untuk play kedua; preview berikutnya mengambil sesi baru.
+// - Fail-soft: fetch gagal/offline/429 -> preview kembali ke seed wallet
+//   seperti dulu, play() kembali seperti dulu. Game tidak pernah crash.
+// - Hanya FREE yang memakai seed server. DAILY (dailySpec), CHALLENGE
+//   (challengeCode dari duel link — deterministik), BOSS (weeklyKey)
+//   deterministik — tidak disentuh. LIVE/RACE memakai seed dari snapshot
+//   wheel — tidak disentuh.
+let previewSession = null; // { sessionId, seed, nonce, expiresAt, wallet, mode, used }
+let previewFetchInFlight = null; // janji POST /session yang sedang berjalan (dedupe)
+let previewFetchWallet = null; // wallet yang dimintakan fetch in-flight itu
+const PREVIEW_SESSION_GRACE_MS = 5000; // sesi harus hidup > 5 detik lagi agar dipakai
+
+function previewSessionValid(s) {
+  return !!(s && !s.used && s.mode === 'free' && Number.isFinite(s.expiresAt) && s.expiresAt > Date.now() + PREVIEW_SESSION_GRACE_MS && Number.isInteger(s.seed) && s.seed >= 0 && s.seed <= 4294967295);
+}
+
+// Ambil (atau pakai ulang) sesi preview untuk wallet saat ini. Mengembalikan
+// objek sesi, atau null bila offline/gagal — pemanggil WAJIB fail-soft.
+async function ensurePreviewSession(wallet) {
+  const w = (wallet || 'GUEST').toLowerCase();
+  if (previewSessionValid(previewSession) && (previewSession.wallet || 'guest') === w) return previewSession;
+  if (previewFetchInFlight) {
+    if (previewFetchWallet !== w) return null; // fetch untuk wallet lain sedang jalan — jangan tumpuk; preview berikutnya akan mengambil sesi baru
+    try { return await previewFetchInFlight; } catch (_) { return null; }
+  }
+  previewFetchWallet = w;
+  previewFetchInFlight = (async () => {
+    try {
+      const sr = await tfetch(CONFIG.LB_URL + '/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: wallet || 'GUEST', mode: 'free' }) }, 5000);
+      if (!sr.ok) return null;
+      const sj = await sr.json();
+      if (!sj || !sj.sessionId || !Number.isInteger(sj.seed)) return null;
+      const exp = Number.isFinite(+sj.expiresAt) ? +sj.expiresAt : Date.now() + 30 * 60 * 1000; // Worker selalu kirim expiresAt (TTL 30 mnt); fallback = TTL terdokumentasi
+      previewSession = { sessionId: sj.sessionId, seed: sj.seed, nonce: sj.nonce, expiresAt: exp, wallet: w, mode: 'free', used: false };
+      return previewSession;
+    } catch (_) { return null; }
+  })();
+  try { return await previewFetchInFlight; } finally { previewFetchInFlight = null; previewFetchWallet = null; }
+}
+
+// seedKey FREE dari sesi preview (dipakai preview DAN play — SATU sumber
+// kebenaran, jadi lagu yang dijanjikan == lagu yang dimainkan). null =
+// tidak ada sesi valid untuk wallet ini -> pemanggil pakai fallback lama
+// (seed wallet).
+function previewFreeSeedKey(wallet) {
+  const w = (wallet || 'GUEST').toLowerCase();
+  return (previewSessionValid(previewSession) && (previewSession.wallet || 'guest') === w) ? 'FREE-' + String(previewSession.seed) : null;
+}
+
+async function preview() {
   const w = $('walletInput').value.trim();
   if (w && !isAddr(w)) { $('anthemInfo').textContent = msg('invalidAddr'); $('walletInput').classList.add('invalid'); return; }
   $('walletInput').classList.remove('invalid');
   maybeMigrateLegacy8(w); // v38: one-time legacy check whenever the wallet is (re)entered
   if (playMode === 'daily') applyDailySpec(); // v28: daily genre+diff come from the date
   const lanes = lanesForSong(), mirror = mirrorForSong();
-  const a = makeAnthem(w, false, playMode === 'free' ? null : seedKeyFor(playMode), lanes, mirror), b = loadBest(w);
+  // v39 B2: FREE — preview memakai seed sesi server yang SAMA dengan play()
+  // (prefetch; fail-soft ke seed wallet bila offline/tanpa sesi). Mode lain
+  // deterministik (seedKeyFor) dan tidak disentuh. Guard pasca-await: bila
+  // mode/wallet berubah selagi fetch berjalan, preview terbaru sudah
+  // dirender oleh pemanggil lain — jangan timpa dengan render basi.
+  let seedOverride = playMode === 'free' ? null : seedKeyFor(playMode);
+  if (playMode === 'free') {
+    await ensurePreviewSession(w);
+    if (playMode !== 'free' || $('walletInput').value.trim() !== w) return;
+    seedOverride = previewFreeSeedKey(w);
+  }
+  const a = makeAnthem(w, false, seedOverride, lanes, mirror), b = loadBest(w);
   const liveTag = liveSnapshot && liveSnapshot.ok ? msgf('anthemLiveOk', { rpm: Math.round(liveSnapshot.rpm), bpm: a.bpm }) : msg('anthemLiveOff');
   const modeTag = playMode === 'free' ? '' : playMode === 'daily' ? msgf('anthemDaily', { date: squeekTodayStr(), genre: currentGenre.toUpperCase(), diff: currentDiff.toUpperCase() }) : playMode === 'live' ? msgf('anthemLive', { live: liveTag }) : playMode === 'race' ? msgf('anthemRace', { live: liveTag }) : playMode === 'boss' ? msgf('anthemBoss', { week: weeklyKey() }) : msgf('anthemDuel', { code: String(challengeCode || '').slice(0, 12), lanes: lanes === 4 ? ' • 4 LANES' : '', mirror: mirror ? ' • MIRROR' : '' });
   $('anthemInfo').textContent = msg('anthemPrefix') + `"${a.name}" • ${a.key} ${a.scaleName} [${a.bpm} BPM] // NOTES: ${a.chart.length}` + (b ? msgf('anthemBest', { score: b.score }) : '') + modeTag;
@@ -2050,12 +2234,26 @@ async function submitLb() {
   const w = currentWallet();
   if (!isAddr(w)) return show(msg('lbNeedWallet'));
   const b = $('lbSubmitBtn'); if (b) b.disabled = true;
+  // v39: kirim replay + hash + gameVersion bila ada. Fail-soft: bila server
+  // menolak replay (400 — mis. seed mismatch / bentuk replay tidak valid),
+  // kirim ulang SEKALI tanpa replay supaya skor tetap tersimpan (jalur
+  // verified=0). 429 (rate limit) TIDAK pernah di-retry.
+  const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
+  const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 8000);
   try {
-    const r = await tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs }) }, 8000);
+    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v39' } : bodyBase);
+    if (!r.ok && r.status === 400 && lastResult.replay) r = await postScores(bodyBase);
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();
     if (!d || !d.ok) throw new Error('submit failed');
-    show(d.improved ? msg('lbSent') : msg('lbKept'));
+    let txt = d.improved ? msg('lbSent') : msg('lbKept');
+    // v39: respons berisi signature = server menandatangani replay ini.
+    if (d.signature) {
+      const h8 = String(d.replayHash || lastResult.replayHash || '').replace(/^0x/, '').slice(0, 8);
+      const s8 = String(d.signature).replace(/^0x/, '').slice(0, 8);
+      txt += ' • TERVERIFIKASI ✓ ' + h8 + ' • 0x' + s8;
+    }
+    show(txt);
     saveJSON('sqk37:lbname', lbName());
     lbState.mode = lbMode(lastResult.mode); renderLbModes(); fetchLb(lbState.mode);
   } catch (_) {
@@ -2242,11 +2440,14 @@ function drawResultCard() {
   const ctx = c.getContext('2d'); if (!ctx) return false;
   const CW = 400, CH = 560;
   fitCanvas(c, ctx, CW, CH, 3);
-  const g = $('gradeVal') ? $('gradeVal').textContent : '—';
-  const kv = $('resultKv') ? $('resultKv').innerText : '';
-  const parts = kv.split('\n').filter(Boolean);
-  const val = i => (i + 1 < parts.length ? parts[i + 1] : '—');
-  cardFrame(ctx, CW, CH, 'SQUEEK // RESULT CARD', G ? G.mode.toUpperCase() : '');
+  // v39: kartu dibaca dari STATE (lastResult + G), bukan dari DOM innerText
+  // panel hasil. Parsing innerText rapuh: urutan baris berubah menurut mode
+  // (LIVE/RACE/BOSS menambah baris) dan nilainya bisa kedaluwarsa. Semua
+  // angka di sini berasal dari lastResult yang ditulis finish() dari state.
+  const r = lastResult || {};
+  const g = r.grade || ($('gradeVal') ? $('gradeVal').textContent : '—');
+  const cnt = r.counts || { perfect: 0, great: 0, good: 0, miss: 0 };
+  cardFrame(ctx, CW, CH, 'SQUEEK // RESULT CARD', (r.mode || (G && G.mode) || '').toUpperCase());
 
   // Grade — big, glowing, the thing you brag about.
   const gcol = g.startsWith('S') ? '#00ff88' : g === 'A' ? '#00e5ff' : g === 'B' ? '#ffe14d' : '#ff5ce1';
@@ -2259,17 +2460,16 @@ function drawResultCard() {
   const dy = lastResultIsNew ? 12 : 0;
   if (lastResultIsNew) { ctx.fillStyle = '#ffd700'; ctx.font = 'bold 12px "Space Mono"'; ctx.fillText('★ NEW BEST! ★', CW / 2, 152); }
   ctx.fillStyle = '#7d8a8d'; ctx.font = '10px "Space Mono"'; ctx.fillText('SCORE', CW / 2, 168 + dy);
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 30px "Space Mono"'; ctx.fillText(String(G && G.score !== undefined ? G.score : val(0)), CW / 2, 202 + dy);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 30px "Space Mono"'; ctx.fillText(String(G && G.score !== undefined ? G.score : (r.score !== undefined ? r.score : 0)), CW / 2, 202 + dy);
   ctx.font = '10px "Space Mono"'; ctx.fillStyle = '#7d8a8d';
   ctx.fillText('ACCURACY', CW / 2 - 90, 232 + dy); ctx.fillText('MAX COMBO', CW / 2 + 90, 232 + dy);
   ctx.font = 'bold 16px "Space Mono"'; ctx.fillStyle = '#fff';
-  ctx.fillText(val(2), CW / 2 - 90, 254 + dy); ctx.fillText(val(4), CW / 2 + 90, 254 + dy);
+  ctx.fillText(r.acc !== undefined ? (+r.acc).toFixed(2) + '%' : '—', CW / 2 - 90, 254 + dy); ctx.fillText(r.maxCombo !== undefined ? String(r.maxCombo) : '—', CW / 2 + 90, 254 + dy);
 
   // Judgement breakdown — four mini-columns, no more a wall of text.
   ctx.strokeStyle = 'rgba(255,255,255,.14)'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(24, 274); ctx.lineTo(CW - 24, 274); ctx.stroke();
-  const pg = (val(6) || '0/0').split('/'), gm = (val(8) || '0/0').split('/');
-  const cols = [['PERFECT', pg[0] || '0', '#00ff88'], ['GREAT', pg[1] || '0', '#00e5ff'], ['GOOD', gm[0] || '0', '#ffe14d'], ['MISS', gm[1] || '0', '#ff5ce1']];
+  const cols = [['PERFECT', String(cnt.perfect), '#00ff88'], ['GREAT', String(cnt.great), '#00e5ff'], ['GOOD', String(cnt.good), '#ffe14d'], ['MISS', String(cnt.miss), '#ff5ce1']];
   cols.forEach(([lbl, n, col], i) => { const x = 60 + i * 93; ctx.fillStyle = '#7d8a8d'; ctx.font = '9px "Space Mono"'; ctx.fillText(lbl, x, 296); ctx.fillStyle = col; ctx.font = 'bold 18px "Space Mono"'; ctx.fillText(n, x, 320); });
 
   // Details — label left, value right, every line filled, no void.
@@ -2278,9 +2478,12 @@ function drawResultCard() {
   ctx.font = '12px "Space Mono"';
   let y = 366;
   const detail = (l, v) => { ctx.textAlign = 'left'; ctx.fillStyle = '#7d8a8d'; ctx.fillText(l, 24, y); ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.fillText(String(v).slice(0, 40), CW - 24, y); y += 26; }; // v33.2: slice 34 -> 40 (the anthem name made values longer)
-  detail(parts[10] || 'ANTHEM', val(10));
-  detail(parts[12] || 'SETUP', val(12));
-  for (let i = 14; i + 1 < parts.length && y <= 500; i += 2) detail(parts[i], parts[i + 1]);
+  const off = (offsetMs > 0 ? '+' : '') + offsetMs;
+  detail(rl('anthem'), r.song ? `"${r.song.name}" • ${r.song.key}` : '—');
+  detail(rl('setup'), `${r.lanes || 3} LANES${r.mirror ? ' • MIRROR' : ''} • OFFSET ${off} ms${r.avgOff !== null && r.avgOff !== undefined ? ' • AVG ' + (r.avgOff > 0 ? '+' : '') + r.avgOff + ' ms' : ''}${r.practice ? rl('practiceTag') : ''}`);
+  if (r.live && y <= 500) detail(rl('live'), r.live.offline ? rl('offline') : 'PEAK RPM ' + Math.round(r.live.peakRpm) + ' • ' + (+r.live.dist).toFixed(3) + ' KM' + (r.live.zoomiesEver ? ' • ZOOMIES ×2' : ''));
+  if (r.race && y <= 500) detail(rl('race'), `YOU ${(+r.race.you).toFixed(0)} m vs SQUEEKTOSHI ${(+r.race.opp).toFixed(0)} m — ${r.race.win ? rl('raceWin') : rl('raceLose')}${r.race.offline ? ' (' + rl('offline') + ')' : ''}`);
+  if (r.boss && y <= 500) detail(rl('boss'), rl('bossDefeated'));
 
   ctx.textAlign = 'center'; ctx.fillStyle = '#5c6669'; ctx.font = '9px "Space Mono"';
   ctx.fillText('squeekpixel.web.id', CW / 2, CH - 16);
@@ -2379,6 +2582,7 @@ function setTab(name) {
     if (b) { b.classList.toggle('active', t === name); b.setAttribute('aria-selected', String(t === name)); }
   });
   saveJSON('sqk31:tab', name);
+  if (name === 'play') preview(); // v39 B2: tab PLAY ditampilkan -> pastikan sesi preview ada (fetch bila belum ada/kedaluwarsa), supaya lagu yang dijanjikan == lagu yang dimainkan
   if (name === 'live') refreshLive(); // v36: the CHAIN panel + Wheel Call fetch immediately when the LIVE tab opens, instead of staring at "FETCHING…" until the 30s menu poll (smoke test 2026-11-07 saw ~8s)
   if (name === 'league') fetchLb(lbState.mode); // v37: the global board fetches when the LEAGUE tab opens
 }
