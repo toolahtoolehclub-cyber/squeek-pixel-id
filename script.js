@@ -607,17 +607,18 @@ class CircuitBreaker {
 }
 const rpcBreaker = new CircuitBreaker(3, 10000);
 const CONFIG = { API_URL: 'https://api.squeekchain.com/v1/status', CORE_URL: 'https://api.squeekchain.com/v1/core', ECONOMY_URL: 'https://api.squeekchain.com/v1/economy/state', LB_URL: 'https://squeekchain-leaderboard.pancigoreng.workers.dev', RPC_URL: 'https://ethereum-sepolia-rpc.publicnode.com', TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e', BARS: 32, LEAD_IN: 2, HIT_Y: 450, SPEED: 350, W: { perfect: .045, great: .09, good: .135 } }; // BARS 32 (Lagu lebih panjang)
-// --- v42: SQK shop (Batch 5). SHOP_ADDRESS is the ZERO placeholder:
-// the shop contract is NOT deployed yet, so the whole SQK section renders
-// honestly disabled (see renderSqkShop). Fill it with the deployed
-// address after the user deploys via Remix (flat file in repo root ->
-// Import file from URL) and the shop goes live with no other change.
+// --- v42.1: SQK shop (Batch 5, wired). SHOP_ADDRESS is the DEPLOYED
+// shop contract 0x43f568AcfaDcee4333785c9F26596719ED0B02fb (Sepolia,
+// deployed by the user 2026-11-08 via Remix, Sourcify full match):
+// the whole SQK section renders live (see renderSqkShop) — buy buttons
+// enabled, prize pool / season end / sweep read live from the contract.
+// The honest disabled state still exists for the zero address only.
 // SQK_TOKEN duplicates CONFIG.TOKEN on purpose: the shop code reads
 // SQK_TOKEN so a future token change touches one place. SEPOLIA_RPC
 // duplicates RPC_URL for the same reason. Selectors below are the
 // 4-byte keccak selectors of the FROZEN shop interface, precomputed
 // (verified with @noble/hashes 2026-11-08); the client has no keccak.
-CONFIG.SHOP_ADDRESS = '0x0000000000000000000000000000000000000000';
+CONFIG.SHOP_ADDRESS = '0x43f568AcfaDcee4333785c9F26596719ED0B02fb';
 CONFIG.SQK_TOKEN = CONFIG.TOKEN;
 CONFIG.SEPOLIA_RPC = CONFIG.RPC_URL;
 const SQK_SHOP_CATALOG = [
@@ -2330,7 +2331,7 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 8000);
   try {
-    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42' } : bodyBase);
+    let r = await postScores(lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.1' } : bodyBase);
     if (!r.ok && r.status === 400 && lastResult.replay) r = await postScores(bodyBase);
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();
@@ -2482,14 +2483,14 @@ async function equipItem(id) {
     await fetchShop();
   } catch (_) { shopMsg(msg('shopOffline')); }
 }
-// --- v42: SQK shop (Batch 5) — permit buys + golden capsule ---
+// --- v42.1: SQK shop (Batch 5) — permit buys + golden capsule ---
 // The client NEVER touches a private key: every signature goes through
 // the browser wallet provider (eth_signTypedData_v4) and every
 // transaction through eth_sendTransaction (the user confirms in
 // MetaMask). All reads are eth_call (no wallet needed). While
-// CONFIG.SHOP_ADDRESS is the zero placeholder the whole section renders
-// disabled and every action answers with the coming-soon message —
-// v42 never pretends the shop works before the contract exists.
+// CONFIG.SHOP_ADDRESS is the deployed shop: the section renders live
+// and every action works — the coming-soon banner hides when deployed
+// (renderSqkShop toggles it) and only shows for the zero address.
 let sqkState = { pool: null, seasonEnd: null, sweepAt: null, swept: false, sqkBalance: null, owned: {}, pity: null };
 function sqkShopMsg(t) { const m = $('sqkShopMsg'); if (m) { m.textContent = t; m.classList.remove('hidden'); } }
 function sqkPendingCapsule() { const p = loadJSON('sqk42:capsule', null); return (p && typeof p === 'object' && p.pullId) ? p : null; }
@@ -3094,8 +3095,8 @@ function shareToX() {
 bindClick('shareXBtn', shareToX); // v30: one-tap share of the result to X
 bindClick('lbRefreshBtn', () => fetchLb(lbState.mode)); // v37: reload the global board
 bindClick('capsuleBtn', () => pullCapsule()); // v41: cheese capsule pull
-bindClick('sqkCommitBtn', () => commitSqkCapsule()); // v42: golden capsule commit (permit 2 SQK)
-bindClick('sqkResolveBtn', () => resolveSqkCapsule()); // v42: golden capsule resolve (Worker signature + tx)
+bindClick('sqkCommitBtn', () => commitSqkCapsule()); // v42.1: golden capsule commit (permit 2 SQK)
+bindClick('sqkResolveBtn', () => resolveSqkCapsule()); // v42.1: golden capsule resolve (Worker signature + tx)
 bindClick('leagueWeeklyRefreshBtn', () => fetchLeagueWeekly()); // v41: reload the weekly league board
 bindClick('lbSubmitBtn', submitLb); // v37: send this result to the global board
 bindClick('tutorialCloseBtn', hideTutorial); // v30
@@ -3152,7 +3153,7 @@ function setTab(name) {
   if (name === 'play') preview(); // v39 B2: tab PLAY ditampilkan -> pastikan sesi preview ada (fetch bila belum ada/kedaluwarsa), supaya lagu yang dijanjikan == lagu yang dimainkan
   if (name === 'live') refreshLive(); // v36: the CHAIN panel + Wheel Call fetch immediately when the LIVE tab opens, instead of staring at "FETCHING…" until the 30s menu poll (smoke test 2026-11-07 saw ~8s)
   if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); } // v37: the global board fetches when the LEAGUE tab opens; v41: + weekly league board
-  if (name === 'shop') { fetchShop(); fetchSqkShop(); } // v41: the shop fetches the server balance + catalog when the SHOP tab opens; v42: + SQK shop (read-only until deployed)
+  if (name === 'shop') { fetchShop(); fetchSqkShop(); } // v41: the shop fetches the server balance + catalog when the SHOP tab opens; v42.1: + SQK shop (live — reads the deployed contract)
 }
 document.querySelectorAll('#tabBar [data-tab]').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
 setTab(loadJSON('sqk31:tab', 'play'));

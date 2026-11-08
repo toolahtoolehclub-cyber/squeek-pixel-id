@@ -59,18 +59,18 @@
 //   verifyOne, so verified is 1 for every real league row; the join
 //   only guards the display if the scores row ever disagrees.
 //
-// Fase 4 (v7, Batch 5 — TOKO SQK + KAPSUL EMAS, v42) — Worker only signs
+// Fase 4 (v7, Batch 5 — TOKO SQK + KAPSUL EMAS, v42; wired v42.1 / Worker v8) — Worker only signs
 //   and credits; it NEVER holds SQK and NEVER sends a transaction.
 //   On-chain anchors (frozen interface, same spec as the shop contract):
 //     SCORES_CONTRACT 0x06be1517d7187ec1663c4f26d11a8f6cc217304f (Batch 4,
 //       deployed by the user 2026-11-08; signer + DOMAIN_SEPARATOR match
 //       this Worker exactly — see batch4-prep/DEPLOYED.md).
-//     SHOP_CONTRACT — 0x0000...0000 PLACEHOLDER: the shop contract is
-//       NOT deployed yet. Fill this in AFTER the user deploys it via
-//       Remix (flat file in repo root -> Import file from URL). Until
-//       then BOTH new endpoints refuse with 503 "shop not deployed" and
-//       the Worker signs NOTHING for the shop domain (signing for the
-//       zero address would be meaningless and unsafe to cache).
+//     SHOP_CONTRACT 0x43f568AcfaDcee4333785c9F26596719ED0B02fb (deployed
+//       by the user 2026-11-08 via Remix; Sourcify full match — see
+//       batch4-prep/DEPLOYED-SHOP.md). The 503 "shop not deployed"
+//       gate stays in the code as a guard but is now inactive:
+//       sqkShopDeployed() is true, so /capsule-resolve signs for the
+//       real shop domain and /capsule verifies receipts against it.
 //     SQK_TOKEN 0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e (Sepolia,
 //       name "Squeek", symbol "SQK", 18 decimals, EIP-2612 permit;
 //       domain name "Squeek" + version "1" verified live 2026-11-08:
@@ -107,6 +107,8 @@
 //   NOTHING else changed in v7: replay verification, enforcement 422,
 //   EIP-712 score attestation, Keju economy, weekly league, and the
 //   existing rate limits are byte-identical to v6.
+//   v42.1 / Worker v8: ONLY SHOP_CONTRACT wired to the deployed shop
+//   address (above) + GET / version 7 -> 8. No other line changed.
 // EIP-712 domain: { name: "Squeek Pixel ID", version: "1",
 //   chainId: 11155111 (Sepolia), verifyingContract: <signer address> }
 // Attestation: player (address), score (uint256), accuracy (uint256 =
@@ -156,7 +158,7 @@
 // It already exists since v3 — do NOT rotate or re-enter it.
 //
 // Endpoints (all JSON, CORS open):
-//   GET  /                  -> { service, version: 7 }
+//   GET  /                  -> { service, version: 8 }
 //   GET  /cheese?wallet=0x...   -> { wallet, balance, items: [{id, slot,
 //                             rarity, name, price, equipped}], catalog }
 //                             (no wallet -> catalog only, balance 0)
@@ -346,10 +348,10 @@ function catalogItem(id) {
 // Frozen shop interface (same spec as SqueekPixelShop.sol). Prices are
 // whole SQK; the contract works in wei (18 decimals), the client converts.
 const SCORES_CONTRACT = "0x06be1517d7187ec1663c4f26d11a8f6cc217304f"; // Batch 4, live
-const SHOP_CONTRACT = "0x0000000000000000000000000000000000000000"; // PLACEHOLDER —
-//   the shop contract is NOT deployed yet. Set this to the deployed
-//   address after the user deploys it; until then /capsule-resolve and
-//   /capsule answer 503 and nothing is signed for the shop domain.
+const SHOP_CONTRACT = "0x43f568AcfaDcee4333785c9F26596719ED0B02fb"; // DEPLOYED 2026-11-08 —
+//   shop deployed by the user 2026-11-08 (Sepolia, Sourcify full match,
+//   matchId 58821398). /capsule-resolve + /capsule are live; the 503
+//   gate below only fires if this ever becomes zero again.
 const SQK_TOKEN = "0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e"; // Sepolia SQK
 const SHOP_OWNER = "0x88538a82143065664232422e2dec4309038fcf9a";
 const SEPOLIA_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
@@ -1166,7 +1168,7 @@ export default {
 
     try {
       if (url.pathname === "/" && request.method === "GET") {
-        return json({ service: "squeekchain-leaderboard", version: 7 });
+        return json({ service: "squeekchain-leaderboard", version: 8 });
       }
 
       // --- v5: Cheese shop (GET /cheese, POST /cheese/buy|pull|equip) ---

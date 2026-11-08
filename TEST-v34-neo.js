@@ -39,8 +39,8 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v42', (html.match(/v42/g) || []).length >= 2);
-t('browser tab title is v42', html.includes('<title>SQUEEKCHAIN // v42</title>'));
+t('html says v42.1', (html.match(/v42\.1/g) || []).length >= 2);
+t('browser tab title is v42.1', html.includes('<title>SQUEEKCHAIN // v42.1</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -396,7 +396,7 @@ t('Genesis meta tag is line 8, byte-identical', htmlLines[7] === '<meta name="sq
 t('README last line is the Genesis proof', readme.trimEnd().split('\n').pop() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 t('OG image is absolute on the live domain', html.includes('og:image" content="https://squeekpixel.web.id/squeekchain-headline-simple.png"'));
 t('Twitter card is summary_large_image', html.includes('twitter:card" content="summary_large_image"'));
-t('meta description is v42, not v32 NEO', html.includes('SQUEEKCHAIN v42') && !html.includes('v32 NEO'));
+t('meta description is v42.1, not v32 NEO', html.includes('SQUEEKCHAIN v42.1') && !html.includes('v32 NEO'));
 t('README documents 11 achievements', readme.includes('11 named achievements'));
 t('README documents the v38 XP economy', readme.includes('54,000 total XP') && readme.includes('[0, 700, 2000, 4300, 8500, 16000, 29500, 54000]'));
 t('README documents the 19:00 WIB Squeek-day reset', readme.includes('19:00 WIB'));
@@ -485,7 +485,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v42', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42'"));
+t('submit sends replay + hash + gameVersion v42.1', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.1'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -511,7 +511,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v42', readme.startsWith('# Squeekchain v42'));
+t('README title is v42.1', readme.startsWith('# Squeekchain v42.1'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -933,7 +933,7 @@ t('dupCompensation bogus = 0', dupCompensation('bogus') === 0);
 t('catalogItem finds note-gold', catalogItem('note-gold').slot === 'note' && catalogItem('note-gold').rarity === 'rare' && catalogItem('note-gold').price === 800);
 t('catalogItem misses unknown ids', catalogItem('nope') === null);
 // 15b. Worker v5 wiring (string checks — the live D1 + endpoint checks run after deploy).
-t('worker root reports version 7', worker.includes('version: 7'));
+t('worker root reports version 8', worker.includes('version: 8'));
 t('worker has GET /cheese', worker.includes("url.pathname === \"/cheese\" && request.method === \"GET\""));
 t('worker has POST /cheese/buy', worker.includes("url.pathname === \"/cheese/buy\" && request.method === \"POST\""));
 t('worker has POST /cheese/pull', worker.includes("url.pathname === \"/cheese/pull\" && request.method === \"POST\""));
@@ -1001,11 +1001,11 @@ t('README documents the v41 shop catalog', readme.includes('Mint/Golden/Void/Rai
 t('worker v6: /league joins scores for verified', worker.includes("LEFT JOIN scores s ON s.wallet = l.wallet AND s.mode = 'free'") && worker.includes('COALESCE(s.verified, 0) AS verified'));
 t('worker v6: /league rows carry verified', worker.includes('verified: r.verified ? 1 : 0'));
 t('worker v6: /league you carries verified', worker.includes('verified: me.verified ? 1 : 0'));
-t('worker version is 7', worker.includes('{ service: "squeekchain-leaderboard", version: 7 }'));
+t('worker version is 8', worker.includes('{ service: "squeekchain-leaderboard", version: 8 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v42', js.includes("gameVersion: 'v42'"));
-t('html title is v42', html.includes('<title>SQUEEKCHAIN // v42</title>'));
+t('submit sends gameVersion v42.1', js.includes("gameVersion: 'v42.1'"));
+t('html title is v42.1', html.includes('<title>SQUEEKCHAIN // v42.1</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {
@@ -1041,37 +1041,38 @@ t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.
 })();
 
 
-// --- 15f. v42: SQK shop + golden capsule (Worker v7, shop NOT deployed) ---
+// --- 15f. v42.1: SQK shop + golden capsule (Worker v8, shop DEPLOYED) ---
 t('sqk ids are inside the SHOP tab', html.indexOf('id="sqkShopBox"') > html.indexOf('id="tab-shop"') && html.indexOf('id="sqkShopBox"') > html.indexOf('id="shopMsg"'));
 t('sqk commit + resolve buttons are disabled in the HTML', html.includes('id="sqkCommitBtn" data-i18n="sqkCommitBtn" disabled') && html.includes('id="sqkResolveBtn" data-i18n="sqkResolveBtn" disabled'));
-t('sqk coming-soon banner is in the HTML', html.includes('id="sqkShopSoon"') && html.includes('SQK SHOP COMING SOON'));
-t('client SHOP_ADDRESS is the zero placeholder', js.includes("CONFIG.SHOP_ADDRESS = '0x0000000000000000000000000000000000000000'"));
+t('sqk coming-soon banner element is in the HTML (hidden at runtime when deployed)', html.includes('id="sqkShopSoon"') && html.includes('SQK SHOP COMING SOON'));
+t('renderSqkShop hides the banner when the shop is deployed', js.includes("soon.classList.toggle('hidden', deployed)"));
+t('client SHOP_ADDRESS is the deployed shop', js.includes("CONFIG.SHOP_ADDRESS = '0x43f568AcfaDcee4333785c9F26596719ED0B02fb'"));
 t('client has SQK_TOKEN + SEPOLIA_RPC', js.includes('CONFIG.SQK_TOKEN = CONFIG.TOKEN') && js.includes('CONFIG.SEPOLIA_RPC = CONFIG.RPC_URL'));
-['renderSqkShop', 'fetchSqkShop', 'buySqkItem', 'commitSqkCapsule', 'resolveSqkCapsule', 'sqkPermitAndSend', 'sqkWaitReceipt', 'sqkEncodeBuy', 'sqkEncodeCommit', 'sqkEncodeResolve', 'sqkShopDeployed', 'sqkSplitMilli', 'sqkCapsuleRarity', 'sqkPermitDomain'].forEach(f => t('v42 js has ' + f, js.includes('function ' + f)));
+['renderSqkShop', 'fetchSqkShop', 'buySqkItem', 'commitSqkCapsule', 'resolveSqkCapsule', 'sqkPermitAndSend', 'sqkWaitReceipt', 'sqkEncodeBuy', 'sqkEncodeCommit', 'sqkEncodeResolve', 'sqkShopDeployed', 'sqkSplitMilli', 'sqkCapsuleRarity', 'sqkPermitDomain'].forEach(f => t('v42.1 js has ' + f, js.includes('function ' + f)));
 t('client buy/commit/resolve selectors are the frozen ABI selectors', js.includes("buyWithPermit: '0x01a833fb'") && js.includes("commitCapsule: '0x4dd52bb4'") && js.includes("resolveCapsule: '0x6172f59f'"));
 t('client has the CapsuleResolved + CapsuleCommitted topic0s', js.includes('0xb1190a79761e5e0820f774b1613ed3b5022912a9aa445806273a260a8527a502') && js.includes('0xfcdae1bdc0120a94c455ae8babdec61a16a600fcf9f786fd9d0a4b46c835bc25'));
-t('client permit uses eth_signTypedData_v4 + eth_sendTransaction only (no private key)', js.includes("method: 'eth_signTypedData_v4'") && js.includes("method: 'eth_sendTransaction'") && !/privateKey/.test(js.slice(js.indexOf('// --- v42: SQK shop'), js.indexOf('// --- v41: weekly league'))));
+t('client permit uses eth_signTypedData_v4 + eth_sendTransaction only (no private key)', js.includes("method: 'eth_signTypedData_v4'") && js.includes("method: 'eth_sendTransaction'") && !/privateKey/.test(js.slice(js.indexOf('// --- v42.1: SQK shop'), js.indexOf('// --- v41: weekly league'))));
 t('client targetRound is settled + 2', js.includes('const targetRound = settled + 2;'));
 t('client resolves via the Worker first', js.includes("CONFIG.LB_URL + '/capsule-resolve'") && js.includes("CONFIG.LB_URL + '/capsule'"));
 t('client credits Keju only from a Worker-verified receipt', js.includes('Credit the Keju compensation via the Worker (verified receipt)'));
 t('client disables sqk buttons while the shop is undeployed', js.includes('commit.disabled = !deployed') && js.includes('if (!sqkShopDeployed()) return sqkShopMsg(msg(') && js.includes("sqkShopSoon')"));
 t('sqk i18n exists in EN + ID', js.includes("sqkShopSoon: 'SQK SHOP COMING SOON") && js.includes("sqkShopSoon: 'TOKO SQK SEGERA HADIR") && js.includes("sqkCapsuleOdds: 'ODDS: COMMON 70%") && js.includes("sqkCapsuleOdds: 'PELUANG: COMMON 70%"));
 t('shop tab fetches the SQK shop too', js.includes("if (name === 'shop') { fetchShop(); fetchSqkShop(); }"));
-t('no BNB/Binance anywhere incl. worker (v42)', !/BNB|Binance/i.test(html + css + js + readme + worker));
-t('README documents v42 + SQK catalog + split', readme.includes('**v42**') && readme.includes('Skin Rare 5') && readme.includes('70% owner / 30% prize pool') && readme.includes('SHOP_CONTRACT'));
-t('worker v7: SCORES_CONTRACT is the Batch 4 address', worker.includes('0x06be1517d7187ec1663c4f26d11a8f6cc217304f'));
-t('worker v7: SHOP_CONTRACT is the zero placeholder', worker.includes('const SHOP_CONTRACT = "0x0000000000000000000000000000000000000000"'));
-t('worker v7: SQK token address', worker.includes('0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'));
-t('worker v7: capsule endpoints exist', worker.includes('url.pathname === "/capsule-resolve"') && worker.includes('url.pathname === "/capsule"'));
-t('worker v7: 503 shop not deployed gate', (worker.match(/shop not deployed/g) || []).length >= 2);
-t('worker v7: 409 round not settled yet', worker.includes('round not settled yet'));
-t('worker v7: CapsuleResolve typehash field order is frozen', worker.includes('CapsuleResolve(address player,uint256 pullId,uint256 targetRound,bytes32 dataHash,uint256 deadline)'));
-t('worker v7: receipt checks status + from + to + CapsuleResolved log', worker.includes('receipt.status') && worker.includes('receipt.from') && worker.includes('receipt.to') && worker.includes('parseCapsuleResolvedLog'));
-t('worker v7: duplicate credit is idempotent per txHash', worker.includes("'capsule-duplicate'") && worker.includes('UNIQUE replay_hash') || worker.includes('capsule-duplicate'));
-t('worker v7: dataHash is the settlement tx hash (fallback keccak)', worker.includes('dataHashForSettlement') && worker.includes('settlementForRound') && worker.includes("transactionHash"));
-t('worker v7: no new D1 migration (reuses cheese tables)', !/migrate-v6|CREATE TABLE IF NOT EXISTS cheese/.test(worker) && worker.includes('cheese_ledger'));
-t('worker verification path untouched by v7', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated') && worker.includes('function signAttestation'));
-// Functional: run the REAL v42 client pure functions from script.js.
+t('no BNB/Binance anywhere incl. worker (v42.1)', !/BNB|Binance/i.test(html + css + js + readme + worker));
+t('README documents v42.1 + SQK catalog + split', readme.includes('**v42.1**') && readme.includes('Skin Rare 5') && readme.includes('70% owner / 30% prize pool') && readme.includes('SHOP_CONTRACT'));
+t('worker v8: SCORES_CONTRACT is the Batch 4 address', worker.includes('0x06be1517d7187ec1663c4f26d11a8f6cc217304f'));
+t('worker v8: SHOP_CONTRACT is the deployed shop', worker.includes('const SHOP_CONTRACT = "0x43f568AcfaDcee4333785c9F26596719ED0B02fb"'));
+t('worker v8: SQK token address', worker.includes('0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'));
+t('worker v8: capsule endpoints exist', worker.includes('url.pathname === "/capsule-resolve"') && worker.includes('url.pathname === "/capsule"'));
+t('worker v8: 503 shop-not-deployed gate present as a guard (inactive while deployed)', (worker.match(/shop not deployed/g) || []).length >= 2);
+t('worker v8: 409 round not settled yet', worker.includes('round not settled yet'));
+t('worker v8: CapsuleResolve typehash field order is frozen', worker.includes('CapsuleResolve(address player,uint256 pullId,uint256 targetRound,bytes32 dataHash,uint256 deadline)'));
+t('worker v8: receipt checks status + from + to + CapsuleResolved log', worker.includes('receipt.status') && worker.includes('receipt.from') && worker.includes('receipt.to') && worker.includes('parseCapsuleResolvedLog'));
+t('worker v8: duplicate credit is idempotent per txHash', worker.includes("'capsule-duplicate'") && worker.includes('UNIQUE replay_hash') || worker.includes('capsule-duplicate'));
+t('worker v8: dataHash is the settlement tx hash (fallback keccak)', worker.includes('dataHashForSettlement') && worker.includes('settlementForRound') && worker.includes("transactionHash"));
+t('worker v8: no new D1 migration (reuses cheese tables)', !/migrate-v6|CREATE TABLE IF NOT EXISTS cheese/.test(worker) && worker.includes('cheese_ledger'));
+t('worker verification path untouched by v8', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated') && worker.includes('function signAttestation'));
+// Functional: run the REAL v42.1 client pure functions from script.js.
 (function () {
   const isAddr = (s) => /^0x[a-fA-F0-9]{40}$/.test(s);
   const CONFIG = { SHOP_ADDRESS: '0x0000000000000000000000000000000000000000', SQK_TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e' };
@@ -1084,6 +1085,8 @@ t('worker verification path untouched by v7', worker.includes('function verifyOn
   t('sqk odds are 70/22/7/1', S.SQK_CAPSULE_ODDS.common === 70 && S.SQK_CAPSULE_ODDS.rare === 22 && S.SQK_CAPSULE_ODDS.epic === 7 && S.SQK_CAPSULE_ODDS.legendary === 1);
   t('sqk duplicate comp is 25/50/100/250', S.SQK_CAPSULE_DUP_COMP.common === 25 && S.SQK_CAPSULE_DUP_COMP.rare === 50 && S.SQK_CAPSULE_DUP_COMP.epic === 100 && S.SQK_CAPSULE_DUP_COMP.legendary === 250);
   t('sqk shop is NOT deployed while SHOP_ADDRESS is zero', S.sqkShopDeployed() === false);
+  const S2 = fn({ SHOP_ADDRESS: '0x43f568AcfaDcee4333785c9F26596719ED0B02fb', SQK_TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e' }, isAddr);
+  t('sqk shop IS deployed with the real SHOP_ADDRESS', S2.sqkShopDeployed() === true);
   t('sqk split 5 SQK -> 3500/1500 milli', JSON.stringify(S.sqkSplitMilli(5)) === '{"ownerMilli":3500,"poolMilli":1500}');
   t('sqk split 2 SQK -> 1400/600 milli', JSON.stringify(S.sqkSplitMilli(2)) === '{"ownerMilli":1400,"poolMilli":600}');
   t('sqk split 100 SQK -> 70000/30000 milli', JSON.stringify(S.sqkSplitMilli(100)) === '{"ownerMilli":70000,"poolMilli":30000}');
@@ -1106,7 +1109,7 @@ t('worker verification path untouched by v7', worker.includes('function verifyOn
   t('sqk resolve calldata: selector + pullId/dataHash/deadline/offset=128', res.startsWith('0x6172f59f') && res.slice(10, 74) === '0'.repeat(63) + '3' && res.slice(74, 138) === 'cd'.repeat(32) && res.slice(202, 266) === (128).toString(16).padStart(64, '0'));
   t('sqk resolve calldata: tail is length 65 + sig bytes', res.slice(266, 330) === (65).toString(16).padStart(64, '0') && res.slice(330, 330 + 130) === 'ab'.repeat(65));
 })();
-// Functional: run the REAL v42 worker pure functions from worker.js.
+// Functional: run the REAL v42.1 worker pure functions from worker.js.
 (function () {
   const wsrc = worker.slice(worker.indexOf('// --- SQK shop + golden capsule (v7,'), worker.indexOf('// --- EIP-712 (Fase 1) ---'));
   const fn = new Function(wsrc + '; return { SQK_SHOP_CATALOG, SQK_CAPSULE_PRICE, sqkShopItem, sqkShopDeployed, sqkSplitMilli, sqkCapsuleRarity };');
@@ -1114,7 +1117,7 @@ t('worker verification path untouched by v7', worker.includes('function verifyOn
   t('worker sqk catalog matches the client catalog', JSON.stringify(W.SQK_SHOP_CATALOG.map(c => c.priceSqk)) === '[5,10,15,20,50,100]');
   t('worker sqk split matches the client split', JSON.stringify(W.sqkSplitMilli(5)) === '{"ownerMilli":3500,"poolMilli":1500}' && JSON.stringify(W.sqkSplitMilli(2)) === '{"ownerMilli":1400,"poolMilli":600}');
   t('worker sqk pity matches the client pity', W.sqkCapsuleRarity(0.1, 19) === 'rare' && W.sqkCapsuleRarity(0.1, 18) === 'common');
-  t('worker sqk shop is NOT deployed while placeholder', W.sqkShopDeployed() === false);
+  t('worker sqk shop IS deployed (SHOP_CONTRACT is the live shop)', W.sqkShopDeployed() === true);
 })();
 
 runVerifyPollTests().then(() => {
