@@ -1,3 +1,10 @@
+// v43.1 UPDATE (9 Nov 2026): the restore LOGIC is unchanged, but the
+// wallet-card contract changed in v43/v43.1 — the address appears ONCE
+// (dot + short address in the card); when connected, CONNECT is HIDDEN
+// (not relabelled "[ CONNECTED: … ]") and the disconnect button shows.
+// The old walletStatus line is deleted. This file now asserts the v43.1
+// contract (it was 24/28 in v43 — the v43 agent never fixed the 4
+// button-text assertions). Filename kept for continuity.
 // v42.5.4 restore UI — run: node TEST-v42.5.4-restore-ui.js  (cwd = the v42.5.4 folder)
 // Masalah user (08:32 WIB 9 Nov 2026): membuka squeekpixel.web.id dan
 // langsung melihat [ CONNECT WALLET ] + alamatnya sudah terisi, padahal OKX
@@ -90,12 +97,17 @@ const mkHarness = (deps) => {
   const I18Nstub = { en: { connect: '[ CONNECT WALLET ]', connectedTpl: '[ CONNECTED: {addr} ]' }, id: { connect: '[ HUBUNGKAN WALLET ]', connectedTpl: '[ TERHUBUNG: {addr} ]' } };
   const noteEl = mockEl();
   const btn = mockBtn();
-  const walletStatus = mockEl();
   const disconnectBtn = mockEl();
   const walletManualNote = mockEl();
+  // v43.1: the card elements are mocked too (dot/addr/copy) so the
+  // single-address contract is testable; walletStatus is GONE (deleted
+  // from the page — the address appears once, in the card).
+  const walletDot = mockEl();
+  const walletAddr = mockEl();
+  const walletCopyBtn = mockEl();
   const walletEl = { value: '', readOnly: false };
-  const els = { wcRestoreNote: noteEl, connectBtn: btn, walletStatus, disconnectBtn, walletManualNote };
-  const src = ['hasWcSessionKey', 'wcLoadBundle', 'wcGetProvider', 'restoreWalletConnectSession', 'setWcRestoreNote', 'updateConnectBtn'].map(fnSrcJ).join('\n');
+  const els = { wcRestoreNote: noteEl, connectBtn: btn, disconnectBtn, walletManualNote, walletDot, walletAddr, walletCopyBtn };
+  const src = ['hasWcSessionKey', 'wcLoadBundle', 'wcGetProvider', 'restoreWalletConnectSession', 'setWcRestoreNote', 'updateConnectBtn', 'shortAddr'].map(fnSrcJ).join('\n');
   const fn = new Function('window', 'document', 'localStorage', 'CONFIG', '$', 'walletEl', 'saveWallet38', 'preview', 'isAddr', 'msg', 'msgf', 'fakeSetTimeout', 'I18N', 'lang',
     'const setTimeout = fakeSetTimeout;\nlet wcProvider = null;\nlet wcBundlePromise = null;\nlet wcRestoreReason = null;\nlet connectedAddr = null;\n' +
     'function setConnected(a) { connectedAddr = (a && isAddr(a)) ? a : null; if (connectedAddr) setWcRestoreNote(null); updateConnectBtn(); }\n' + src +
@@ -103,7 +115,7 @@ const mkHarness = (deps) => {
   const api = fn(deps.window, deps.document, deps.localStorage,
     { WC_PROJECT_ID: 'x', WC_CHAINS: [11155111], SEPOLIA_RPC: 'https://rpc.test' },
     id => els[id] || null, walletEl, () => {}, () => {}, isAddrH, msgH, msgfH, fakeSetTimeout, I18Nstub, lang);
-  return { api, timers, noteEl, btn, walletStatus, walletEl };
+  return { api, timers, noteEl, btn, disconnectBtn, walletDot, walletAddr, walletCopyBtn, walletEl };
 };
 const mkWindow = (ethProvider) => { const w = {}; if (ethProvider) w.EthereumProvider = ethProvider; return w; };
 
@@ -118,43 +130,45 @@ const mkWindow = (ethProvider) => { const w = {}; if (ethProvider) w.EthereumPro
     const h = mkHarness({ window: mockWindow, document: { createElement: () => { scriptEl = { src: '', onload: null, onerror: null }; return scriptEl; }, head: { appendChild: () => {} } }, localStorage: mkStore(['wc@2:client:0.3//session']) });
     const restoreP = h.api.restoreWalletConnectSession();
     await new Promise(r => setTimeout(r, 50)); // restore masih menunggu bundle
-    t('v42.5.4 UI: restore berjalan -> status reconnecting tampil (bukan teks kecil tersembunyi)',
+    t('v43.1 UI: restore berjalan -> status reconnecting tampil (bukan teks kecil tersembunyi)',
       !h.noteEl.classList.contains('hidden') && h.noteEl.classList.contains('restoring') && h.noteEl.textContent.includes('RECONNECTING'));
-    t('v42.5.4 UI: restore berjalan -> tombol CONNECT WALLET nonaktif',
+    t('v43.1 UI: restore berjalan -> tombol CONNECT WALLET nonaktif',
       h.btn.disabled === true);
     h.api.updateConnectBtn(); // dipanggil dari mana pun saat restore berjalan -> tombol tetap nonaktif
-    t('v42.5.4 UI: updateConnectBtn saat restore berjalan -> tombol tetap nonaktif',
+    t('v43.1 UI: updateConnectBtn saat restore berjalan -> tombol tetap nonaktif',
       h.btn.disabled === true && h.btn.textContent === '[ CONNECT WALLET ]');
     mockWindow.EthereumProvider = { init: async (opts) => { initOpts = opts; return p; } };
     scriptEl.onload();
     await restoreP;
-    t('v42.5.4 UI: restore berhasil -> TERHUBUNG + status reconnecting hilang',
+    t('v43.1 UI: restore berhasil -> TERHUBUNG + status reconnecting hilang',
       h.api.getConnectedAddr() === ADDR && h.noteEl.classList.contains('hidden') && !h.noteEl.classList.contains('restoring') && h.api.getReason() === null);
-    t('v42.5.4 UI: restore berhasil -> tombol TERHUBUNG + nonaktif (terhubung)',
-      h.btn.textContent === '[ CONNECTED: 0x8853...cf9a ]' && h.btn.disabled === true);
-    t('v42.5.4 UI: restore init tetap showQrModal:false (tanpa modal)', initOpts && initOpts.showQrModal === false);
+    t('v43.1 UI: restore berhasil -> kartu TERHUBUNG (dot hijau + alamat singkat, CONNECT hilang, PUTUSKAN muncul)',
+      h.btn.textContent === '[ CONNECT WALLET ]' && h.btn.disabled === false && h.btn.classList.contains('hidden') &&
+      !h.disconnectBtn.classList.contains('hidden') && h.walletDot.classList.contains('on') && h.walletAddr.textContent === '0x8853...cf9a' &&
+      !h.walletCopyBtn.classList.contains('hidden') && h.walletEl.readOnly === true);
+    t('v43.1 UI: restore init tetap showQrModal:false (tanpa modal)', initOpts && initOpts.showQrModal === false);
   }
   // 2. Restore sukses via passive read (jalur cepat) -> TERHUBUNG, status bersih.
   {
     const p = mkProvider({ accounts: [ADDR], session: { topic: 't1' } });
     const h = mkHarness({ window: mkWindow({ init: async () => p }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore(['wc@2:client:0.3//session']) });
     await h.api.restoreWalletConnectSession();
-    t('v42.5.4 UI: akun pasif ada -> TERHUBUNG tanpa status menempel',
-      h.api.getConnectedAddr() === ADDR && h.noteEl.classList.contains('hidden') && !h.noteEl.classList.contains('restoring') && h.btn.textContent === '[ CONNECTED: 0x8853...cf9a ]');
+    t('v43.1 UI: akun pasif ada -> TERHUBUNG tanpa status menempel (CONNECT hilang, kartu hijau)',
+      h.api.getConnectedAddr() === ADDR && h.noteEl.classList.contains('hidden') && !h.noteEl.classList.contains('restoring') && h.btn.classList.contains('hidden') && h.walletDot.classList.contains('on') && h.walletAddr.textContent === '0x8853...cf9a');
   }
   // 3. enable() reject -> alasan JELAS + tombol bisa dipakai lagi.
   {
     const p = mkProvider({ accounts: [], session: { topic: 't1' }, ethAccounts: [], enableReject: true });
     const h = mkHarness({ window: mkWindow({ init: async () => p }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore(['wc@2:client:0.3//session']) });
     await h.api.restoreWalletConnectSession();
-    t('v42.5.4 UI: enable-rejected -> alasan tampil JELAS (kelas failed, teks alasan)',
+    t('v43.1 UI: enable-rejected -> alasan tampil JELAS (kelas failed, teks alasan)',
       h.api.getReason() === 'enable-rejected' && !h.noteEl.classList.contains('hidden') && h.noteEl.classList.contains('failed') && h.noteEl.textContent.includes('enable-rejected'));
-    t('v42.5.4 UI: enable-rejected -> status reconnecting TIDAK menempel',
+    t('v43.1 UI: enable-rejected -> status reconnecting TIDAK menempel',
       !h.noteEl.classList.contains('restoring') && h.api.getReason() !== 'restoring');
-    t('v42.5.4 UI: enable-rejected -> tombol CONNECT WALLET aktif lagi',
+    t('v43.1 UI: enable-rejected -> tombol CONNECT WALLET aktif lagi',
       h.btn.disabled === false && h.btn.textContent === '[ CONNECT WALLET ]');
     h.api.updateConnectBtn();
-    t('v42.5.4 UI: updateConnectBtn setelah gagal -> tombol tetap aktif',
+    t('v43.1 UI: updateConnectBtn setelah gagal -> tombol tetap aktif',
       h.btn.disabled === false);
   }
   // 4. Bundle gagal total (onerror) -> bundle-timeout JELAS.
@@ -164,20 +178,20 @@ const mkWindow = (ethProvider) => { const w = {}; if (ethProvider) w.EthereumPro
     const h = mkHarness({ window: mockWindow, document: { createElement: () => { scriptEl = { src: '', onload: null, onerror: null }; return scriptEl; }, head: { appendChild: () => {} } }, localStorage: mkStore(['wc@2:client:0.3//session']) });
     const restoreP = h.api.restoreWalletConnectSession();
     await new Promise(r => setTimeout(r, 10));
-    t('v42.5.4 UI: bundle gagal -> saat menunggu, status reconnecting tampil',
+    t('v43.1 UI: bundle gagal -> saat menunggu, status reconnecting tampil',
       !h.noteEl.classList.contains('hidden') && h.noteEl.classList.contains('restoring'));
     scriptEl.onerror();
     await restoreP;
-    t('v42.5.4 UI: bundle gagal -> alasan bundle-timeout tampil JELAS',
+    t('v43.1 UI: bundle gagal -> alasan bundle-timeout tampil JELAS',
       h.api.getReason() === 'bundle-timeout' && !h.noteEl.classList.contains('hidden') && h.noteEl.classList.contains('failed') && h.noteEl.textContent.includes('bundle-timeout') && !h.noteEl.classList.contains('restoring'));
-    t('v42.5.4 UI: bundle gagal -> tombol aktif lagi', h.btn.disabled === false);
+    t('v43.1 UI: bundle gagal -> tombol aktif lagi', h.btn.disabled === false);
   }
   // 5. Kunci ada tapi p.session kosong -> no-accounts JELAS.
   {
     const p = mkProvider({ accounts: [], session: null, ethAccounts: [] });
     const h = mkHarness({ window: mkWindow({ init: async () => p }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore(['wc@2:client:0.3//session']) });
     await h.api.restoreWalletConnectSession();
-    t('v42.5.4 UI: no-accounts -> alasan tampil JELAS + tombol aktif lagi',
+    t('v43.1 UI: no-accounts -> alasan tampil JELAS + tombol aktif lagi',
       h.api.getReason() === 'no-accounts' && !h.noteEl.classList.contains('hidden') && h.noteEl.classList.contains('failed') && h.noteEl.textContent.includes('no-accounts') && h.btn.disabled === false && !h.noteEl.classList.contains('restoring'));
   }
   // 6. Tanpa kunci sesi -> bukan kegagalan: note tersembunyi, tombol biasa.
@@ -185,7 +199,7 @@ const mkWindow = (ethProvider) => { const w = {}; if (ethProvider) w.EthereumPro
     const p = mkProvider({ accounts: [], session: { topic: 't1' }, enableAccounts: [ADDR] });
     const h = mkHarness({ window: mkWindow({ init: async () => p }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore([]) });
     await h.api.restoreWalletConnectSession();
-    t('v42.5.4 UI: tanpa kunci sesi -> note tersembunyi, tanpa status restoring, tombol biasa',
+    t('v43.1 UI: tanpa kunci sesi -> note tersembunyi, tanpa status restoring, tombol biasa',
       h.api.getReason() === 'no-session-key' && h.noteEl.classList.contains('hidden') && !h.noteEl.classList.contains('restoring') && h.btn.disabled === false && h.btn.textContent === '[ CONNECT WALLET ]');
   }
   // 7. init() melempar (kegagalan tak terduga) -> finally membersihkan
@@ -193,33 +207,33 @@ const mkWindow = (ethProvider) => { const w = {}; if (ethProvider) w.EthereumPro
   {
     const h = mkHarness({ window: mkWindow({ init: async () => { throw new Error('boom'); } }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore(['wc@2:client:0.3//session']) });
     await h.api.restoreWalletConnectSession();
-    t('v42.5.4 UI: init melempar -> status restoring TIDAK menempel, bundle-timeout tampil',
+    t('v43.1 UI: init melempar -> status restoring TIDAK menempel, bundle-timeout tampil',
       h.api.getReason() === 'bundle-timeout' && !h.noteEl.classList.contains('restoring') && !h.noteEl.classList.contains('hidden') && h.noteEl.textContent.includes('bundle-timeout') && h.btn.disabled === false);
   }
   // 8. i18n: teks restoring EN + ID.
   {
     const hEn = mkHarness({ window: mkWindow({ init: async () => mkProvider({}) }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore([]) });
     hEn.api.setWcRestoreNote('restoring');
-    t('v42.5.4 UI: i18n EN restoring', hEn.noteEl.textContent === 'RECONNECTING TO YOUR WALLET…' && hEn.noteEl.classList.contains('restoring'));
+    t('v43.1 UI: i18n EN restoring', hEn.noteEl.textContent === 'RECONNECTING TO YOUR WALLET…' && hEn.noteEl.classList.contains('restoring'));
     const hId = mkHarness({ window: mkWindow({ init: async () => mkProvider({}) }), document: { createElement: () => { throw new Error('no DOM'); }, head: { appendChild() {} } }, localStorage: mkStore([]), lang: 'id' });
     hId.api.setWcRestoreNote('restoring');
-    t('v42.5.4 UI: i18n ID restoring', hId.noteEl.textContent === 'MENGHUBUNGKAN KEMBALI KE WALLET…' && hId.noteEl.classList.contains('restoring'));
+    t('v43.1 UI: i18n ID restoring', hId.noteEl.textContent === 'MENGHUBUNGKAN KEMBALI KE WALLET…' && hId.noteEl.classList.contains('restoring'));
     hId.api.setWcRestoreNote('bundle-timeout');
-    t('v42.5.4 UI: i18n ID gagal', hId.noteEl.textContent.includes('WC RESTORE GAGAL: bundle-timeout') && hId.noteEl.classList.contains('failed'));
+    t('v43.1 UI: i18n ID gagal', hId.noteEl.textContent.includes('WC RESTORE GAGAL: bundle-timeout') && hId.noteEl.classList.contains('failed'));
   }
   // 9. Statis: status + finally + CSS + HTML + setTab tidak menyentuh note.
-  t('v42.5.4 statis: restore mengatur status restoring', js.includes("setWcRestoreNote('restoring')"));
-  t('v42.5.4 statis: finally membersihkan restoring bila belum ada alasan akhir', js.includes("if (wcRestoreReason === 'restoring') setWcRestoreNote(null);"));
-  t('v42.5.4 statis: i18n wcRestoring EN+ID', js.includes("wcRestoring: 'RECONNECTING TO YOUR WALLET…'") && js.includes("wcRestoring: 'MENGHUBUNGKAN KEMBALI KE WALLET…'"));
-  t('v42.5.4 statis: template gagal tidak berubah (EN+ID)', js.includes("wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason}") && js.includes("wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason}"));
-  t('v42.5.4 statis: CSS note terlihat (13px bold) + kelas restoring/failed', css.includes('#wcRestoreNote { font-size: 13px;') && css.includes('#wcRestoreNote.restoring') && css.includes('#wcRestoreNote.failed'));
-  t('v42.5.4 statis: elemen note ada di HTML', html.includes('id="wcRestoreNote"'));
-  t('v42.5.4 statis: gameVersion v42.5.4', js.includes("gameVersion: 'v42.5.4'"));
+  t('v43.1 statis: restore mengatur status restoring', js.includes("setWcRestoreNote('restoring')"));
+  t('v43.1 statis: finally membersihkan restoring bila belum ada alasan akhir', js.includes("if (wcRestoreReason === 'restoring') setWcRestoreNote(null);"));
+  t('v43.1 statis: i18n wcRestoring EN+ID', js.includes("wcRestoring: 'RECONNECTING TO YOUR WALLET…'") && js.includes("wcRestoring: 'MENGHUBUNGKAN KEMBALI KE WALLET…'"));
+  t('v43.1 statis: template gagal tidak berubah (EN+ID)', js.includes("wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason}") && js.includes("wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason}"));
+  t('v43.1 statis: CSS note terlihat (13px bold) + kelas restoring/failed', css.includes('#wcRestoreNote { font-size: 13px;') && css.includes('#wcRestoreNote.restoring') && css.includes('#wcRestoreNote.failed'));
+  t('v43.1 statis: elemen note ada di HTML', html.includes('id="wcRestoreNote"'));
+  t('v43.1 statis: gameVersion v43.1', js.includes("gameVersion: 'v43.1'"));
   {
     const setTabSrc = fnSrcJ('setTab');
-    t('v42.5.4 statis: setTab tidak menyentuh elemen/alasan restore (status tidak bisa menempel lewat pindah tab)', !setTabSrc.includes('wcRestoreNote') && !setTabSrc.includes('wcRestoreReason') && setTabSrc.includes("say('')"));
+    t('v43.1 statis: setTab tidak menyentuh elemen/alasan restore (status tidak bisa menempel lewat pindah tab)', !setTabSrc.includes('wcRestoreNote') && !setTabSrc.includes('wcRestoreReason') && setTabSrc.includes("say('')"));
   }
 
-  console.log(`TEST-v42.5.4-restore-ui: ${pass} lolos, ${fail} gagal`);
+  console.log(`TEST-v42.5.4-restore-ui (v43.1 contract): ${pass} lolos, ${fail} gagal`);
   process.exit(fail ? 1 : 0);
 })();

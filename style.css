@@ -20,21 +20,16 @@ body {
     font-family: 'Space Mono', monospace; overflow-x: hidden;
     display: flex; flex-direction: column; align-items: center;
     /* Animated Grid Background */
-    background-image: linear-gradient(rgba(57,255,20,0.14) 1px, transparent 1px), linear-gradient(90deg, rgba(57,255,20,0.14) 1px, transparent 1px);
-    background-size: 30px 30px;
-    animation: bgPan 8s linear infinite; /* v26-bg: grid dibuat 3x lebih terlihat dan 2,5x lebih cepat — di v25 hampir tidak kelihatan */
-}
-
-@keyframes bgPan {
-    0% { background-position: 0 0; }
-    100% { background-position: 30px 30px; }
+    /* v43.1: the animated grid pan is GONE — it ran a background-position
+       animation from the first paint, on top of WebGL + orbs + particles.
+       The grid itself is already covered by the v32 NEO body background. */
 }
 
 #bg-gl { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; opacity: 0.6; pointer-events: none; }
 body.no-gl #bg-gl { display: none; }
 body.no-gl { background: radial-gradient(circle at 20% 20%, rgba(0,255,0,.18), transparent 55%), radial-gradient(circle at 80% 80%, rgba(255,0,255,.18), transparent 55%), #000; }
 
-#ui-layer { width: 100%; max-width: 460px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 10; display: flex; flex-direction: column; gap: 20px; }
+#ui-layer { width: 100%; max-width: 460px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); z-index: 10; display: flex; flex-direction: column; gap: 24px; } /* v43.1: 20 -> 24 (spacing scale 8/16/24) */
 
 header { text-align: center; margin-bottom: 10px; }
 
@@ -81,9 +76,9 @@ canvas { display: block; width: 100%; height: auto; border: none; box-shadow: no
 #game-canvas { touch-action: none; background: #050505; }
 #card-canvas { background: #050505; }
 
-#avatarPreviewWrap { display: flex; flex-direction: row; align-items: center; gap: 12px; border: 2px dashed var(--accent); padding: 8px 10px; text-align: left; } /* v37.2: horizontal compact layout — the tall centered column (~210px) pushed PLAY below the fold on phones */
+#avatarPreviewWrap { display: flex; flex-direction: row; align-items: center; gap: 12px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 12px; padding: 8px 10px; text-align: left; } /* v43.1: the 2px dashed green border is gone (loud); v37.2 horizontal layout kept */
 #avatarPreviewWrap.hidden { display: none; }
-#avatar-preview { width: 84px; height: 84px; flex: none; border: 3px solid #fff; box-shadow: 4px 4px 0 var(--pink); image-rendering: pixelated; } /* v37.2: was 128px; canvas backing store stays 128x128, CSS scales it down crisp */
+#avatar-preview { width: 84px; height: 84px; flex: none; border: 2px solid rgba(255, 255, 255, .25); border-radius: 8px; box-shadow: none; image-rendering: pixelated; } /* v43.1: the white border + pink hard shadow are gone; v37.2 84px size kept */
 .avatar-meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; } /* v37.2: the three label lines beside the avatar */
 .avatar-meta p { margin: 0; text-align: left; }
 #avatarLabel { margin: 0; font-size: 10px; color: var(--cyan); letter-spacing: 2px; }
@@ -128,9 +123,9 @@ body.hemat #bg-gl { opacity: .1; }
 #liveInfo { margin: 0; font-size: 11px; color: #aaa; line-height: 1.5; }
 #liveLine { margin: 0; font-size: 12px; color: var(--cyan); font-weight: bold; }
 #liveHud.zoomies { border-color: var(--yellow); color: var(--yellow); }
-body.live-night #bg-anim { filter: brightness(.45) hue-rotate(200deg); }
+body.live-night #bg-aurora { filter: brightness(.45) hue-rotate(200deg); }
 body.live-night #bg-gl { opacity: .35; }
-body.live-day #bg-anim { filter: saturate(1.4); }
+body.live-day #bg-aurora { filter: saturate(1.4); }
 #dailyTitle { margin: 0; font-size: 12px; color: var(--yellow); font-weight: bold; letter-spacing: 2px; }
 #dailyInfo { margin: 0; font-size: 11px; color: #aaa; line-height: 1.5; }
 #streakLine { margin: 0; font-size: 12px; color: var(--pink); font-weight: bold; }
@@ -154,18 +149,23 @@ body.live-day #bg-anim { filter: saturate(1.4); }
 .splash-sub { font-size: 12px; color: #00ffff; letter-spacing: 2px; margin: 0 0 16px 0; }
 .splash-note { font-size: 11px; color: #888; line-height: 1.6; margin: 14px 0 0 0; }
 
-/* v26-bg: BACKGROUND BERGERAK ALA FILE TES — murni CSS, jalan walau WebGL mati.
-   Model animasi: grid diagonal geser + 2 orb cahaya melayang + 1 garis sweep turun.
-   Tidak pakai WebGL, tidak pakai JS, jadi tidak bisa "gagal diam" seperti background 3D. */
-#bg-anim { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-#bg-anim .orb { position: absolute; width: 180px; height: 180px; opacity: .30; }
-#bg-anim .orb-g { background: #00ff00; box-shadow: 0 0 60px #00ff00; top: 8%; left: -40px; animation: driftG 12s ease-in-out infinite alternate; }
-#bg-anim .orb-p { background: #ff00ff; box-shadow: 0 0 60px #ff00ff; bottom: 12%; right: -40px; animation: driftP 14s ease-in-out infinite alternate; }
-@keyframes driftG { from { transform: translate(0, 0); } to { transform: translate(60px, 90px); } }
-@keyframes driftP { from { transform: translate(0, 0); } to { transform: translate(-70px, -70px); } }
-#bg-anim .sweep { position: absolute; left: 0; right: 0; height: 60px; background: linear-gradient(180deg, transparent, rgba(0,255,255,.14), transparent); animation: sweepY 6s linear infinite; }
-@keyframes sweepY { from { top: -60px; } to { top: 100%; } }
-body.hemat #bg-anim { display: none; } /* HEMAT = diam, sesuai janji tombol QLTY */
+/* v43.1 — ONE calm aurora: a single slow gradient (transform only).
+   v43 had 3 drifting orbs + a sweep line + 36 canvas particles + a
+   beat-driven brightness filter, all running from the first paint —
+   that was the first-open jank. The aurora is STATIC until the first
+   user interaction (body.bg-awake, set by JS); it never animates while
+   playing, in ECO, or under reduced motion. */
+#bg-aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+#bg-aurora .aurora {
+    position: absolute; inset: -20% -10%;
+    background:
+        radial-gradient(ellipse 55% 40% at 30% 20%, rgba(0, 229, 255, .10), transparent 70%),
+        radial-gradient(ellipse 45% 35% at 75% 70%, rgba(0, 255, 136, .08), transparent 70%);
+    animation: none;
+}
+body.bg-awake:not(.playing):not(.hemat) #bg-aurora .aurora { animation: auroraPan 36s ease-in-out infinite alternate; }
+@keyframes auroraPan { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(4%, 3%, 0); } }
+body.hemat #bg-aurora { display: none; } /* HEMAT = diam, sesuai janji tombol QLTY */
 
 /* v28 FIX: calibration box, unlocks, locked buttons, gold avatar. */
 #calibBox { border: 2px dashed var(--cyan); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
@@ -238,7 +238,7 @@ input[type=range] { accent-color: var(--green); height: 28px; }
 #tutorialBox { border: 2px solid var(--yellow); padding: 10px; margin-bottom: 8px; }
 #tutorialBox .msg { text-align: left; }
 body.overlay { background: transparent; }
-body.overlay #ui-layer, body.overlay #bg-gl, body.overlay #bg-anim, body.overlay #crt, body.overlay #musicSplash { display: none !important; }
+body.overlay #ui-layer, body.overlay #bg-gl, body.overlay #bg-aurora, body.overlay #crt, body.overlay #musicSplash { display: none !important; }
 body.overlay { animation: none; background-image: none; }
 
 /* ============ v31 ARCADE: the menu is now an arcade cabinet ============ */
@@ -247,18 +247,13 @@ body.overlay { animation: none; background-image: none; }
 #mainPanel { outline: 4px solid var(--green); outline-offset: 6px; background: #050505; box-shadow: 6px 6px 0 var(--pink), 0 0 30px rgba(0, 255, 0, .25), inset 0 0 40px rgba(0, 0, 0, .9); }
 
 /* Tab bar: one row of 5 menu buttons. */
-#tabBar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
-.tab-btn[data-tab="play"] { border-color: var(--green); }
-.tab-btn[data-tab="daily"] { border-color: var(--yellow); }
-.tab-btn[data-tab="live"] { border-color: var(--pink); }
-.tab-btn[data-tab="league"] { border-color: var(--cyan); }
-.tab-btn[data-tab="me"] { border-color: #ff8800; }
-.tab-btn.active[data-tab="play"] { background: var(--green); color: #000; box-shadow: 0 5px 0 #005500, 0 0 14px rgba(0, 255, 0, .7); }
-.tab-btn.active[data-tab="daily"] { background: var(--yellow); color: #000; box-shadow: 0 5px 0 #555500, 0 0 14px rgba(255, 255, 0, .7); }
-.tab-btn.active[data-tab="live"] { background: var(--pink); color: #000; box-shadow: 0 5px 0 #550055, 0 0 14px rgba(255, 0, 255, .7); }
-.tab-btn.active[data-tab="league"] { background: var(--cyan); color: #000; box-shadow: 0 5px 0 #005555, 0 0 14px rgba(0, 255, 255, .7); }
-.tab-btn.active[data-tab="me"] { background: #ff8800; color: #000; box-shadow: 0 5px 0 #552200, 0 0 14px rgba(255, 136, 0, .7); }
-.tab-panel { display: flex; flex-direction: column; gap: 15px; }
+#tabBar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 16px; }
+/* v43.1: ONE accent. The old per-tab rainbow (a different active colour
+   for every tab) is deleted — the active tab is the single green pill
+   from .tab-btn.active below. The bar is 6 columns now (PLAY/DAILY/
+   LIVE/LEAGUE/SHOP/ME all fit on one row; v43's 5 columns wrapped ME
+   onto a second row). */
+.tab-panel { display: flex; flex-direction: column; gap: 16px; }
 .tab-panel.hidden { display: none !important; }
 
 /* START button: the big arcade attract-mode button. */
@@ -351,14 +346,14 @@ button:active { transform: translateY(1px); box-shadow: none; }
     box-shadow: none; padding: 11px 4px;
 }
 .btn-diff.active {
-    background: #00e5ff; color: #001318; border-color: transparent;
-    box-shadow: 0 0 16px rgba(0, 229, 255, .3);
+    background: #00ff88; color: #000; border-color: transparent;
+    box-shadow: 0 0 16px rgba(0, 255, 136, .3);
 }
 .btn-diff.locked { opacity: .45; }
 
 /* --- tabs: one pill container, text only --- */
 #tabBar {
-    display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px;
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px;
     background: rgba(255, 255, 255, .04);
     border: 1px solid rgba(255, 255, 255, .08);
     border-radius: 999px; padding: 4px; margin-bottom: 14px;
@@ -369,7 +364,7 @@ button:active { transform: translateY(1px); box-shadow: none; }
     padding: 10px 2px; font-size: 10px; letter-spacing: 1px;
 }
 .tab-btn.active {
-    background: rgba(0, 229, 255, .16); color: #00e5ff;
+    background: #00ff88; color: #000;
     box-shadow: none;
 }
 
@@ -416,8 +411,8 @@ input[type="range"] { accent-color: #00e5ff; }
 /* --- settings sheet (bottom sheet + backdrop) --- */
 #settingsBackdrop {
     position: fixed; inset: 0; background: rgba(0, 0, 0, .6);
-    backdrop-filter: blur(2px); z-index: 40;
-}
+    z-index: 40;
+} /* v43.1: the 2px blur is gone too — no backdrop-filter anywhere. */
 #settingsSheet {
     position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
     width: min(460px, 100%); z-index: 41;
@@ -468,7 +463,7 @@ input[type="range"] { accent-color: #00e5ff; }
 /* --- v32 PERFORMANCE: while a game runs, freeze every decoration so the
    game loop gets the full frame budget (the lag fix). WebGL is paused
    from JS (pauseGL); CSS hides the layers and pauses the animations. --- */
-body.playing #bg-gl, body.playing #bg-anim, body.playing #crt { display: none !important; }
+body.playing #bg-gl, body.playing #bg-aurora, body.playing #crt { display: none !important; }
 body.playing { background-image: none; animation: none; }
 body.playing * { animation-play-state: paused !important; }
 body.playing .stat.pop { animation: pop .3s !important; }
@@ -528,15 +523,14 @@ body.cardbar { padding-bottom: 72px; }
 /* ==========================================
    v34 THEMES — one look per mode
    ========================================== */
-/* Each mode button wears its theme accent, so the mode's look is visible
-   before the song even starts. */
-#modeRow [data-mode="free"] { --mode-accent: #00e5ff; }
-#modeRow [data-mode="daily"] { --mode-accent: #ffb020; }
-#modeRow [data-mode="live"] { --mode-accent: #00ff88; }
-#modeRow [data-mode="race"] { --mode-accent: #ff2e63; }
-#modeRow [data-mode="lullaby"] { --mode-accent: #b388ff; } /* v42.5.1 (BUG 3): Lullaby akhirnya punya warna — lavender/ungu tema malam */
-#modeRow .btn-diff { border-color: var(--mode-accent, rgba(255, 255, 255, .2)); color: var(--mode-accent, #fff); }
-#modeRow .btn-diff.active { background: var(--mode-accent, #00e5ff); border-color: var(--mode-accent, #00e5ff); color: #000; }
+/* v43.1: the per-mode rainbow accents are deleted (each mode had its own
+   colour — free cyan, daily amber, live green, race pink, lullaby
+   lavender — which made the mode row look like a candy shop). All mode
+   pills now use the single green accent from .btn-diff.active. (Lullaby
+   is not colourless: it is the standard pill, green when active — the
+   v42.5.1 fix was about it having NO pill style at all.) The game-panel
+   theme glow below (body[data-theme]) stays: it only shows while
+   playing and tells the player which mode they're in. */
 /* The game panel glows in the active theme's accent while playing. */
 body[data-theme="cyber"] { --theme-accent: #00e5ff; --theme-glow: rgba(0, 229, 255, .28); }
 body[data-theme="sunrise"] { --theme-accent: #ffb020; --theme-glow: rgba(255, 176, 32, .28); }
@@ -608,15 +602,14 @@ body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 1
    ========================================== */
 /* P1-4: first-impression tagline, visible within 5 seconds of landing. */
 .tagline { text-align: center; color: var(--cyan); font-size: 13px; font-weight: bold; letter-spacing: 1px; margin: 2px 0 10px 0; }
-/* P1-1: wallet status card — green when connected, so a saved manual
-   address can never be mistaken for a live connection. */
-.wallet-status { text-align: center; font-size: 12px; font-weight: bold; border: 1px solid var(--green); border-radius: 10px; padding: 10px; color: var(--green); margin-top: 10px; }
-.wallet-status.not-connected { border-color: var(--yellow); color: var(--yellow); }
+/* v43.1: the .wallet-status box is DELETED — the wallet card itself
+   (dot + short address) is the status now; a second status box below
+   the card duplicated the address and crowded the screen. */
 #walletInput[readonly] { opacity: .65; }
 #walletManualNote { font-size: 11px; }
-/* v42.5.4: the WC restore status is a VISIBLE one-line status (same
-   weight as .wallet-status), not a small dim note — the user must see
-   at a glance whether the session is reconnecting or why it failed. */
+/* v42.5.4: the WC restore status is a VISIBLE one-line status (full
+   width, bold), not a small dim note — the user must see at a glance
+   whether the session is reconnecting or why it failed. */
 #wcRestoreNote { font-size: 13px; font-weight: bold; text-align: center; margin-top: 10px; padding: 10px; border-radius: 10px; border: 1px solid var(--yellow); color: var(--yellow); }
 #wcRestoreNote.restoring { border-color: var(--cyan); color: var(--cyan); }
 #wcRestoreNote.failed { border-color: var(--yellow); color: var(--yellow); }
@@ -658,9 +651,9 @@ body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 1
 /* --- aurora light wells: the night canvas finally has light to blur --- */
 body {
     background-image:
-        radial-gradient(ellipse 90% 40% at 50% -5%, rgba(0, 229, 255, .12), transparent 70%),
-        radial-gradient(ellipse 60% 35% at 92% 8%, rgba(160, 80, 255, .10), transparent 70%),
-        radial-gradient(ellipse 55% 30% at 4% 88%, rgba(0, 255, 136, .09), transparent 70%);
+        radial-gradient(ellipse 90% 40% at 50% -5%, rgba(0, 229, 255, .08), transparent 70%),
+        radial-gradient(ellipse 60% 35% at 92% 8%, rgba(160, 80, 255, .07), transparent 70%),
+        radial-gradient(ellipse 55% 30% at 4% 88%, rgba(0, 255, 136, .06), transparent 70%);
 }
 
 /* --- header: gradient wordmark + version pill --- */
@@ -680,24 +673,17 @@ body {
     -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 
-/* --- glass, upgraded: frosted panels that borrow the aurora --- */
+/* --- v43.1: panels are SOLID, not frosted. backdrop-filter: blur(18px)
+   was the #1 perf killer on phones (it forces the backdrop to re-render
+   every frame). The top-edge highlight stays; the blur is gone. --- */
 .panel {
-    background: linear-gradient(160deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .02));
-    backdrop-filter: blur(18px) saturate(160%);
-    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    background: #0a0d0f;
     border: 1px solid rgba(255, 255, 255, .14);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .12);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .08);
 }
 
-/* --- aurora orbs: a third (violet) joins green + pink; the whole field
-   brightens on the beat via --beat (set by JS, ~10 Hz, transform-free) --- */
-#bg-anim { filter: brightness(calc(1 + var(--beat, 0) * .45)) saturate(calc(1 + var(--beat, 0) * .3)); }
-#bg-anim .orb { border-radius: 50%; }
-#bg-anim .orb-v { background: #a050ff; box-shadow: 0 0 60px #a050ff; top: 52%; left: 68%; animation: driftV 16s ease-in-out infinite alternate; }
-@keyframes driftV { from { transform: translate(0, 0); } to { transform: translate(-50px, 60px); } }
-#bg-particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-body.playing #bg-particles { display: none !important; }
-body.hemat #bg-particles { display: none; }
+/* v43.1: the beat-driven brightness filter, the third (violet) orb and
+   the particle canvas are all deleted — see #bg-aurora above. */
 
 /* --- tab transitions: panels fade + rise in (replays on every tab switch) --- */
 .tab-panel { animation: tabIn .22s ease both; }
@@ -712,16 +698,14 @@ body.hemat #bg-particles { display: none; }
 .btn-primary:hover { background-position: 100% 0; }
 
 /* ==========================================
-   v43 — WALLET CARD (one compact glass bar)
+   v43.1 — WALLET CARD (one compact bar; the glass blur is gone)
    ========================================== */
 .wallet-card {
     display: flex; align-items: center; gap: 8px;
     padding: 10px 12px; border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, .14);
-    background: linear-gradient(160deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
-    backdrop-filter: blur(14px) saturate(150%);
-    -webkit-backdrop-filter: blur(14px) saturate(150%);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .12);
+    background: #0a0d0f;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .08);
 }
 .wallet-dot {
     width: 10px; height: 10px; border-radius: 50%; flex: none;
@@ -751,8 +735,7 @@ body.hemat #bg-particles { display: none; }
 .wallet-hint { font-size: 10px; color: rgba(255, 255, 255, .5); margin: 6px 0 0; text-align: left; }
 #walletManualRow { display: flex; flex-direction: column; gap: 6px; }
 #walletManualRow.hidden { display: none !important; }
-/* Slim confirmation line, connected only. */
-.wallet-status { font-size: 11px; padding: 6px 10px; border-radius: 999px; margin-top: 8px; }
+/* v43.1: wallet-status deleted — the address appears once, in the card. */
 
 /* ==========================================
    v43 — RESULT PANEL (cleaner) + HIT FX
@@ -791,5 +774,5 @@ body.playing #gamePanel.combo-burst { animation-play-state: running !important; 
 body.playing .stat.fever { animation: none; }
 @media (prefers-reduced-motion: reduce) {
     .tab-panel, #resultPanel, .wallet-dot.on, .wallet-dot.restoring { animation: none !important; }
-    #bg-anim { filter: none; }
+    #bg-aurora .aurora { animation: none !important; }
 }

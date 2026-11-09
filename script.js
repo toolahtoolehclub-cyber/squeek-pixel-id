@@ -568,7 +568,11 @@ function initGL() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const posLoc = gl.getAttribLocation(prog, 'position'); gl.enableVertexAttribArray(posLoc); gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
     uRes = gl.getUniformLocation(prog, 'u_resolution'); uTime = gl.getUniformLocation(prog, 'u_time'); uSeed = gl.getUniformLocation(prog, 'u_seed'); uAudio = gl.getUniformLocation(prog, 'u_audio'); uGlitch = gl.getUniformLocation(prog, 'u_glitch'); uShock = gl.getUniformLocation(prog, 'u_shock'); uCombo = gl.getUniformLocation(prog, 'u_combo');
-    resizeGL(); window.addEventListener('resize', resizeGL); glRunning = true; requestAnimationFrame(renderGL); setText('glStatus', msgf('glOk', { q: quality.toUpperCase() }));
+    resizeGL(); window.addEventListener('resize', resizeGL);
+    // v43.1: WebGL does NOT auto-start. It wakes only on the first user
+    // interaction (bgWake, called from the first-tap handler) so the
+    // first paint is instant and light on a slow phone.
+    setText('glStatus', msgf('glOk', { q: quality.toUpperCase() }));
   } catch (err) { gl = null; glRunning = false; document.body.classList.add('no-gl'); setText('glStatus', msgf('glFail', { q: quality.toUpperCase() })); }
 }
 function resizeGL() { if (!gl) return; const scale = 0.66; const dpr = Math.min(1.5, window.devicePixelRatio || 1); glCanvas.width = Math.max(2, Math.floor(window.innerWidth * dpr * scale)); glCanvas.height = Math.max(2, Math.floor(window.innerHeight * dpr * scale)); gl.viewport(0, 0, glCanvas.width, glCanvas.height); }
@@ -588,11 +592,22 @@ function renderGL(time) {
 }
 initGL();
 
+// v43.1: bgWake() — wakes the living background (WebGL + aurora drift)
+// ONCE, on the first user interaction. Called from the once-pointerdown
+// handler (startMusicFromTap) so a single tap wakes both audio and
+// background. Until then the page is static: no WebGL, no animation.
+let bgAwake = false;
+function bgWake() {
+  if (bgAwake) return; bgAwake = true;
+  document.body.classList.add('bg-awake');
+  if (gl && quality !== 'hemat' && !glRunning) { glRunning = true; requestAnimationFrame(renderGL); }
+}
+
 function setQuality(q) {
   quality = q; const b = $('qualityBtn'); if (b) b.textContent = q === 'ultra' ? 'QLTY: ULTRA' : 'QLTY: ECO';
   document.body.classList.toggle('hemat', q === 'hemat'); // v26 FIX #7: efek terlihat walau WebGL mati — background halaman berubah jelas
   if (q === 'hemat') { glRunning = false; document.body.classList.add('no-gl'); }
-  else { document.body.classList.remove('no-gl'); if (gl && !glRunning) { glRunning = true; requestAnimationFrame(renderGL); } }
+  else { document.body.classList.remove('no-gl'); if (bgAwake && gl && !glRunning) { glRunning = true; requestAnimationFrame(renderGL); } }
   setText('glStatus', msgf('glStatusTpl', { webgl: gl ? 'OK' : 'FAILED', q: q.toUpperCase(), tail: q === 'hemat' ? msg('glTailEco') : msg('glTailUltra') }));
   say('QLTY: ' + q.toUpperCase() + (q === 'hemat' ? msg('qltyEco') : msg('qltyUltra')), 'cyan');
   try { localStorage.setItem('sqk-quality', q); } catch (_) {}
@@ -601,68 +616,19 @@ function setQuality(q) {
 // rescheduling itself when glRunning is false, so pauseGL freezes it and
 // resumeGL restarts it. Called on game start/stop/finish.
 function pauseGL() { glRunning = false; }
-function resumeGL() { if (gl && quality !== 'hemat' && !glRunning) { glRunning = true; requestAnimationFrame(renderGL); } }
+function resumeGL() { if (bgAwake && gl && quality !== 'hemat' && !glRunning) { glRunning = true; requestAnimationFrame(renderGL); } }
 try { const savedQ = localStorage.getItem('sqk-quality'); if (savedQ === 'hemat') quality = 'hemat'; } catch (_) {}
 if (quality === 'hemat') setQuality('hemat');
 
 // ==========================================
-// v43 REVOLUTION — LIVING AURORA (particles + beat driver)
+// v43.1 — CALM BACKGROUND. v43's 36-particle canvas loop + beat driver
+// are DELETED: a rAF loop that never stops (even when "frozen" it
+// rescheduled every frame) plus 3 aurora orbs plus WebGL was the
+// first-open jank. The background is now ONE static CSS gradient
+// (#bg-aurora in index.html, animated only by a slow transform pan)
+// and the WebGL blob, which wakes only on the first user interaction
+// (bgWake). No canvas, no rAF loop, no --beat driver at load.
 // ==========================================
-// A lightweight 2D particle field (36 dots, half-res canvas, ~30 fps)
-// that breathes with the music: drift speed + glow follow the beat
-// pulse. The same pulse (--beat, 0..1) brightens the aurora orbs
-// (#bg-anim, CSS) and the WebGL blob (glAudio). Frozen while a game
-// runs (body.playing hides the layer, like the GL freeze), in ECO
-// quality, and under reduced motion. Pure helper bgBeatPulse is unit
-// tested; the loop itself is fail-soft (any error just stops drawing).
-const bgParticles = document.getElementById('bg-particles');
-let bgPctx = null, bgParts = [], bgPulse = 0, bgLastFrame = 0;
-function bgBeatPulse(audioLevel, combo, zoomies) { // pure: 0..1 — menu pulse + play pulse share one formula
-  let v = (audioLevel || 0) * 1.1;
-  if (combo >= 30) v += 0.25;
-  if (zoomies) v += 0.25;
-  return Math.max(0, Math.min(1, v));
-}
-function bgInitParticles() {
-  if (!bgParticles) return;
-  try { bgPctx = bgParticles.getContext('2d'); } catch (_) { bgPctx = null; }
-  if (!bgPctx) return;
-  bgParticles.width = Math.max(2, Math.floor(window.innerWidth * 0.5));
-  bgParticles.height = Math.max(2, Math.floor(window.innerHeight * 0.5));
-  const hues = ['#00e5ff', '#00ff88', '#ff5ce1', '#a050ff', '#ffd700'];
-  bgParts = [];
-  for (let i = 0; i < 36; i++) bgParts.push({ x: Math.random(), y: Math.random(), r: 1 + Math.random() * 2.2, s: 0.0004 + Math.random() * 0.0008, h: hues[i % hues.length], tw: Math.random() * Math.PI * 2, ts: 0.5 + Math.random() * 1.5 });
-}
-function bgStepParticles(now) {
-  try {
-    requestAnimationFrame(bgStepParticles); // always reschedule — drawing is skipped cheaply when paused
-    if (!bgPctx || document.hidden || document.body.classList.contains('playing') || quality === 'hemat' || prefersReducedMotion) return;
-    if (now - bgLastFrame < 33) return; // ~30 fps cap
-    bgLastFrame = now;
-    const level = getAudioLevel();
-    const combo = (typeof G !== 'undefined' && G) ? G.combo : 0;
-    const zoom = (typeof liveZoomies !== 'undefined') ? liveZoomies : false;
-    bgPulse = bgPulse * 0.85 + bgBeatPulse(level, combo, zoom) * 0.15; // smooth the pulse
-    try { document.documentElement.style.setProperty('--beat', bgPulse.toFixed(3)); } catch (_) {}
-    if (gl) glAudio = Math.max(glAudio, level); // the WebGL blob pulses with the intro music in the menu
-    const W = bgParticles.width, H = bgParticles.height, ctx = bgPctx;
-    ctx.clearRect(0, 0, W, H);
-    const boost = 1 + bgPulse * 2.2;
-    for (const p of bgParts) {
-      p.y -= p.s * boost; // upward drift, faster on the beat
-      if (p.y < -0.02) { p.y = 1.02; p.x = Math.random(); }
-      const tw = 0.5 + 0.5 * Math.sin(now * 0.001 * p.ts + p.tw);
-      ctx.globalAlpha = Math.max(0.08, Math.min(1, (0.25 + 0.55 * tw) * (0.6 + bgPulse * 0.8)));
-      ctx.fillStyle = p.h;
-      const r = p.r * (1 + bgPulse * 0.6);
-      ctx.beginPath(); ctx.arc(p.x * W, p.y * H, r, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  } catch (_) { /* fail-soft: a dead particle layer never breaks the game */ }
-}
-bgInitParticles();
-requestAnimationFrame(bgStepParticles);
-window.addEventListener('resize', () => { try { bgInitParticles(); } catch (_) {} });
 
 // ==========================================
 // 2. WEB3 & API
@@ -813,17 +779,17 @@ async function initAudio() {
     const comp = ac.createDynamicsCompressor(); master.connect(comp); comp.connect(analyser); analyser.connect(ac.destination);
     noiseBuf = ac.createBuffer(1, ac.sampleRate * .3, ac.sampleRate); const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    initFxBus(); // v43: echo + synthetic reverb sends (built once, no assets)
+    initFxBus(); // v43.1: echo only (the convolver reverb is gone), built once, no assets
   }
   if (ac.state !== 'running') await ac.resume();
 }
 
-// --- v43 REVOLUTION: FX BUS (echo + reverb) — presentation only ---
-// A dotted-eighth delay (feedback 0.32, wet 0.16) and a synthetic impulse
-// reverb (1.1 s decaying noise, generated in code — no audio assets, no
-// CDN). Lead / arpeggio / hit tones send a little of themselves here;
-// the dry signal is unchanged, so nothing about timing or judgement moves.
-let echoBus = null, echoWet = null, verbBus = null, verbWet = null;
+// --- v43.1: FX BUS — echo (delay) ONLY. The v43 convolver reverb (a
+// generated 1.1 s impulse) was the audio-stutter culprit on slow phones,
+// so it is GONE. One cheap dotted-eighth delay (feedback 0.32, wet 0.16)
+// is the only send. Lead / arpeggio tones send a little here; the dry
+// signal is unchanged, so nothing about timing or judgement moves.
+let echoBus = null, echoWet = null;
 function initFxBus() {
   if (!ac || echoBus) return;
   try {
@@ -831,12 +797,7 @@ function initFxBus() {
     const fb = ac.createGain(); fb.gain.value = 0.32;
     echoWet = ac.createGain(); echoWet.gain.value = 0.16;
     echoBus.connect(fb); fb.connect(echoBus); echoBus.connect(echoWet); echoWet.connect(master);
-    const len = Math.floor(ac.sampleRate * 1.1), imp = ac.createBuffer(2, len, ac.sampleRate);
-    for (let ch = 0; ch < 2; ch++) { const d = imp.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
-    verbBus = ac.createConvolver(); verbBus.buffer = imp;
-    verbWet = ac.createGain(); verbWet.gain.value = 0.12;
-    verbBus.connect(verbWet); verbWet.connect(master);
-  } catch (_) { echoBus = null; verbBus = null; }
+  } catch (_) { echoBus = null; }
 }
 
 // INTRO MUSIC: 2 MODES — CALM 100 BPM (soft, pleasant to loop) and
@@ -861,7 +822,7 @@ function scheduleIntro() {
         toneFx(mtof(cfg.lead[s]), t, cfg.leadType, cfg.leadVol, stepDur * 1.4, 0.5); // v43: lead floats on the echo bus
         if (introMode === 'seru') toneFx(mtof(cfg.lead[s] + 7), t, 'sawtooth', 0.06, stepDur * 1.2, 0.4);
         if (introMode === 'seru') bassNote(mtof(cfg.bass[s]), t, stepDur * 1.8); else tone(mtof(cfg.bass[s]), t, cfg.bassType, cfg.bassVol, stepDur * 1.8);
-        if (cfg.pad && (s === 0 || s === 8)) { toneFx(mtof(60), t, 'triangle', 0.04, stepDur * 8, 0.6); toneFx(mtof(64), t, 'triangle', 0.04, stepDur * 8, 0.6); toneFx(mtof(67), t, 'triangle', 0.04, stepDur * 8, 0.6); }
+        if (cfg.pad && (s === 0 || s === 8)) { toneFx(mtof(60), t, 'triangle', 0.04, stepDur * 8, 0.6); toneFx(mtof(67), t, 'triangle', 0.04, stepDur * 8, 0.6); } // v43.1: pad is root+fifth only (was a 3-note chord)
         // v43: a quiet 8th-note arpeggio shimmers over CALM (the scale's top)
         if (introMode === 'santai' && s % 2 === 0) toneFx(mtof([84, 79, 81, 84][(introStep / 2) % 4 | 0]), t, 'triangle', 0.03, stepDur * 1.2, 0.8);
         if (cfg.kickSteps.includes(s)) kick2(t);
@@ -911,14 +872,17 @@ function noise(t, hp, p, d) { if (!ac || muted) return; const s = ac.createBuffe
 // --- v43 REVOLUTION: richer synth voices (presentation only — the chart,
 // its timing and the judgement windows are untouched; these functions
 // only change HOW a scheduled note sounds, never WHEN it sounds) ---
-function toneFx(f, t, ty, p, d, send) { // tone + echo/reverb send (0..1)
+function toneFx(f, t, ty, p, d, send) { // tone + ONE echo send (0..1). v43.1: the reverb send is gone — the convolver stuttered on slow phones.
   if (!ac || muted) return;
   const o = ac.createOscillator(), g = ac.createGain();
   o.type = ty; o.frequency.setValueAtTime(f, t); o.connect(g); g.connect(master);
   if (send && echoBus) { const s = ac.createGain(); s.gain.value = send; g.connect(s); s.connect(echoBus); }
-  if (send && verbBus) { const s2 = ac.createGain(); s2.gain.value = send * 0.7; g.connect(s2); s2.connect(verbBus); }
   env(g, t, .004, p, d); o.start(t); o.stop(t + d + .05);
 }
+// v43.1: duo() — one rich voice, two oscillators sharing ONE gain and NO
+// sends. The riff and hit tones use it, so a note costs 2 osc + 1 gain
+// instead of v43's 2-3 toneFx calls (2-3 gains + 4-6 send gains).
+function duo(f, t, ty, p, d) { if (!ac || muted) return; const g = ac.createGain(); g.connect(master); env(g, t, .004, p, d); [f, f * 1.005].forEach((ff) => { const o = ac.createOscillator(); o.type = ty; o.frequency.setValueAtTime(ff, t); o.connect(g); o.start(t); o.stop(t + d + .05); }); }
 function bassNote(f, t, d) { // saw + sub-square through a sweeping lowpass — the bass finally has weight
   if (!ac || muted) return;
   const flt = ac.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.setValueAtTime(900, t); flt.frequency.exponentialRampToValueAtTime(220, t + d);
@@ -938,18 +902,32 @@ function kick2(t) { // punchier kick — faster pitch drop + click transient
   o.connect(g); g.connect(master); env(g, t, .001, 1.0, .20); o.start(t); o.stop(t + .26);
   noise(t, 4000, .12, .02);
 }
-function hitTone(midi, kind) { // detuned saw pair + echo; PERFECT gets an octave sparkle
+function hitTone(midi, kind) { // v43.1: ONE duo() (detuned pair, dry) + a dry triangle sparkle on PERFECT. v43's 2-3 toneFx calls per hit stuttered on slow phones.
   if (!ac || muted) return;
   const f = mtof(midi), t = ac.currentTime;
   const p = kind === 'perfect' ? .20 : kind === 'great' ? .15 : .11;
-  toneFx(f, t, 'sawtooth', p, .22, .5);
-  toneFx(f * 1.005, t, 'sawtooth', p * .6, .20, .4);
-  if (kind === 'perfect') toneFx(f * 2, t, 'triangle', .08, .18, .6);
+  duo(f, t, 'sawtooth', p, .22);
+  if (kind === 'perfect') tone(f * 2, t, 'triangle', .08, .18);
 }
 // v43: the riff is genre-aware now (one 8-degree pattern per genre — the
 // scale still comes from the anthem, only WHICH degrees play changes).
-const RIFF_PATTERNS = { cyber: [7, 5, 4, 7, 5, 3, 2, 4], synth: [0, 2, 4, 7, 4, 2, 5, 3], chip: [0, 4, 7, 4, 2, 5, 7, 4], void: [0, 1, 3, 5, 6, 5, 3, 1] };
-function riffDegreesFor(genre, barNo) { const pat = RIFF_PATTERNS[genre] || RIFF_PATTERNS.cyber; return pat[barNo % pat.length]; }
+// v43.1 — RIFF PHRASES: 4 bars per genre, one degree per 16th-note step
+// (4 steps per bar). v43 played ONE degree 4x per bar (8-bar cycle) —
+// that was the monotony. Now each bar has its own shape: bar 1 states
+// the motif, bar 2 answers it, bar 3 lifts, bar 4 resolves. The phrase
+// is 16 bars long before it repeats exactly. Sound only — the chart is
+// untouched. (All degrees >= 0: they index anthem.scale with % length.)
+const RIFF_PHRASES = {
+  cyber: [ [7, 5, 4, 7], [5, 3, 2, 4], [7, 9, 7, 5], [4, 3, 2, 0] ],
+  synth: [ [0, 2, 4, 7], [4, 2, 5, 3], [0, 4, 7, 9], [7, 5, 4, 2] ],
+  chip: [ [0, 4, 7, 4], [2, 5, 7, 4], [0, 4, 7, 12], [7, 5, 4, 0] ],
+  void: [ [0, 1, 3, 5], [6, 5, 3, 1], [0, 3, 6, 5], [3, 1, 0, 10] ]
+};
+function riffDegreesFor(genre, barNo, stepInBar) { const phr = RIFF_PHRASES[genre] || RIFF_PHRASES.cyber; return phr[barNo % 4][stepInBar & 3]; }
+// v43.1 — ARP PHRASE: the 16th-note arpeggio also varies per bar
+// (v43 rotated the same 4-note pattern every bar).
+const ARP_PHRASE = [ [0, 7, 12, 7], [0, 5, 9, 5], [0, 7, 12, 16], [0, 4, 7, 12] ];
+function arpDegreesFor(barNo, stepInBar) { return ARP_PHRASE[barNo % 4][stepInBar & 3]; }
 function getAudioLevel() { if (!analyser || muted) return 0; if (!audioDataArray) audioDataArray = new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(audioDataArray); let s = 0; for (let i = 0; i < audioDataArray.length; i++) s += audioDataArray[i]; return (s / audioDataArray.length) / 255; }
 
 // Musik mulai di ketukan pertama (browser memblokir autoplay suara sebelum interaksi).
@@ -962,7 +940,7 @@ async function startMusicFromTap(mode) {
     if (ac && ac.state === 'running') playIntroMusic();
     else if ($('mainPanel') && !$('mainPanel').classList.contains('hidden')) say(msgf('audioTap', { state: ac ? ac.state : 'NONE' }), 'pink');
 }
-window.addEventListener('pointerdown', () => { startMusicFromTap(); }, {once: true});
+window.addEventListener('pointerdown', () => { bgWake(); startMusicFromTap(); }, {once: true});
 bindClick('startMusicBtn', () => { startMusicFromTap('seru'); });
 bindClick('startMusicSantaiBtn', () => { startMusicFromTap('santai'); });
 bindClick('musicModeBtn', () => { setIntroMode(introMode === 'seru' ? 'santai' : 'seru'); });
@@ -1153,15 +1131,15 @@ function schedule() {
     // v26-musik: lapisan punk di semua difficulty — bass 8th-note + riff lead dari scale anthem (v43: riff kini per-genre + echo, bass 8th lebih pelan di bawah bassNote)
     if (stepInBar % 2 === 0 && !soft) tone(mtof(36 + anthem.root), t, 'sawtooth', .10, anthem.step * 1.5);
     if ((stepInBar === 2 || stepInBar === 6 || stepInBar === 10 || stepInBar === 14) && !soft) {
-      const riffDeg = riffDegreesFor(G.genre, barNo);
+      const riffDeg = riffDegreesFor(G.genre, barNo, (stepInBar - 2) / 4);
       const riffMidi = 72 + anthem.root + anthem.scale[riffDeg % anthem.scale.length];
-      toneFx(mtof(riffMidi), t, 'square', .09, anthem.step * 1.5, .5);
-      toneFx(mtof(riffMidi + 7), t, 'sawtooth', .04, anthem.step * 1.5, .4);
+      duo(mtof(riffMidi), t, 'square', .09, anthem.step * 1.5); // v43.1: detuned pair, dry — one gain, no sends
+      tone(mtof(riffMidi + 7), t, 'sawtooth', .04, anthem.step * 1.5);
     }
-    // v43: quiet 16th-note arpeggio — the song's scale, sparkling on top (echo send)
+    // v43.1: quiet 16th-note arpeggio — per-bar phrase, dry tone (no echo send)
     if (!soft && stepInBar % 4 === 0) {
-      const arpDeg = [0, 2, 4, 7][(barNo + (stepInBar / 4)) % 4];
-      toneFx(mtof(84 + anthem.root + anthem.scale[arpDeg % anthem.scale.length]), t, 'triangle', .045, anthem.step * 1.2, .7);
+      const arpDeg = arpDegreesFor(barNo, stepInBar / 4);
+      tone(mtof(84 + anthem.root + anthem.scale[arpDeg % anthem.scale.length]), t, 'triangle', .045, anthem.step * 1.2);
     }
     G.next++;
   }
@@ -1204,7 +1182,7 @@ function judge(lane) {
   try { if (navigator.vibrate) navigator.vibrate(k === 'perfect' ? 12 : 6); } catch (_) {} // v30: haptic on mobile hits
   // v29 RACE: every hit moves you forward; a GOLDEN NOTE pays +1000 pts and +5 m.
   if (G.race) G.race.playerDist += { perfect: 1.0, great: 0.7, good: 0.4 }[k];
-  if (G.race && G.race.goldenNote === target) { G.score += 1000; G.race.playerDist += 5; G.race.goldenNote = null; addFloatText('GOLDEN NOTE! +1000', '#ffd700'); toneFx(mtof(target.midi + 12), ac.currentTime, 'square', .22, .3, .7); }
+  if (G.race && G.race.goldenNote === target) { G.score += 1000; G.race.playerDist += 5; G.race.goldenNote = null; addFloatText('GOLDEN NOTE! +1000', '#ffd700'); tone(mtof(target.midi + 12), ac.currentTime, 'square', .22, .3); } // v43.1: dry — the echo send on a golden note was one more voice on the audio thread
   if (G.combo === 30) addFloatText('FEVER! x1.5', '#ffd700');
   hitTone(target.midi, k); // v43: detuned saw pair + echo, PERFECT gets an octave sparkle (was a single sawtooth)
   const jcol = k === 'perfect' ? '#00ff00' : k === 'great' ? '#00e5ff' : '#ffe14d';
@@ -2278,13 +2256,9 @@ function updateConnectBtn() {
   }
   const dc = $('disconnectBtn');
   if (dc) dc.classList.toggle('hidden', !connected);
-  // Slim confirmation line, connected only (the card already shows the
-  // address; this line is just the green confirmation).
-  const st = $('walletStatus');
-  if (st) {
-    st.classList.toggle('hidden', !connected);
-    if (connected) st.textContent = msgf('walletConnectedTpl', { addr: shortAddr(connectedAddr) });
-  }
+  // v43.1: the address appears ONCE — in the card (walletAddr above).
+  // The old walletStatus line ("● 0x8853…cf9a — CONNECTED") duplicated
+  // it and is deleted (element removed from index.html too).
   if (walletEl) walletEl.readOnly = connected;
 }
 // v43: the manual address input lives behind the [ ALAMAT ] button —
@@ -2921,7 +2895,7 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 30000); // v42.5.2 (FIX 2): 30 detik — upload replay (puluhan KB) di koneksi ~3 K/s butuh >8 detik
   try {
-    const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v43' } : bodyBase;
+    const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v43.1' } : bodyBase;
     let r;
     try { r = await postScores(body); }
     catch (e1) {

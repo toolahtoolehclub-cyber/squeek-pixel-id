@@ -20,7 +20,7 @@ const IDS = ['mainTitle', 'langBtn', 'qualityBtn', 'muteBtn', 'tabBar', 'tab-pla
   'gamePanel', 'scoreVal', 'comboVal', 'accVal', 'bpmVal', 'game-canvas', 'precisionBox', 'lastHit', 'avgHit', 'hitDir', 'feverTag', 'raceHud', 'raceYouBar', 'raceOppBar', 'raceYouTxt', 'raceOppTxt', 'cardErrMsg',
   'gameAudioStatus', 'liveHud', 'vizBars', 'pauseBtn', 'stopBtn', 'resultPanel', 'gradeVal', 'resultKv', 'bestMsg', 'xpMsg', 'missionResult', 'againBtn', 'toCardBtn', 'resultCardBtn',
   'duelBtn', 'shareXBtn', 'rivalBackMsg', 'duelMsg', 'duelOut', 'homeBtn', 'overlayBox', 'overlayTitle', 'overlayRpm', 'overlayDist', 'overlayRound', 'overlayZoom', 'overlayPet', 'overlaySong',
-  'musicSplash', 'startMusicBtn', 'startMusicSantaiBtn', 'bg-gl', 'bg-anim', 'crt', 'volSlider', 'volVal', 'musicModeBtn', 'practiceBtn', 'obsBtn', 'howBtn',
+  'musicSplash', 'startMusicBtn', 'startMusicSantaiBtn', 'bg-gl', 'bg-aurora', 'crt', 'volSlider', 'volVal', 'musicModeBtn', 'practiceBtn', 'obsBtn', 'howBtn',
   'shopBox', 'cheeseBalance', 'shopCatalog', 'capsuleBtn', 'shopMsg', 'sqkShopBox', 'sqkShopSoon', 'sqkShopPool', 'sqkShopSeason', 'sqkShopBalance', 'sqkShopCatalog', 'sqkCapsulePity', 'sqkCommitBtn', 'sqkResolveBtn', 'sqkShopMsg', 'leagueWeeklyBox', 'leagueWeekLabel', 'leagueWeeklyRefreshBtn', 'leagueWeeklyList', 'leagueWeeklyRank'];
 IDS.forEach(id => {
   const n = (html.match(new RegExp('id="' + id + '"', 'g')) || []).length;
@@ -36,16 +36,18 @@ IDS.forEach(id => {
   t('v33 id present once: ' + id, n === 1);
 });
 t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
-// --- v42.5 ids: wallet status card + disconnect + night boxes + shop previews ---
-['walletStatus', 'disconnectBtn', 'walletManualNote', 'raceGhostLine', 'lullabyBox', 'lullabyInfo', 'dreamBox', 'dreamLine', 'dreamPlantBtn', 'dreamHarvestBtn', 'capsulePreview', 'sqkCapsulePreview'].forEach(id => {
+// --- v42.5 ids: disconnect + night boxes + shop previews (walletStatus
+// DELETED in v43.1 — the address appears once, in the card) ---
+['disconnectBtn', 'walletManualNote', 'raceGhostLine', 'lullabyBox', 'lullabyInfo', 'dreamBox', 'dreamLine', 'dreamPlantBtn', 'dreamHarvestBtn', 'capsulePreview', 'sqkCapsulePreview'].forEach(id => {
   const n = (html.match(new RegExp('id="' + id + '"', 'g')) || []).length;
   t('v42.5 id present once: ' + id, n === 1);
 });
+t('v43.1 walletStatus is GONE (address appears once, in the card)', !html.includes('id="walletStatus"'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v43', (html.match(/v43/g) || []).length >= 2);
-t('browser tab title is v43', html.includes('<title>SQUEEKCHAIN // v43</title>'));
+t('html says v43.1', (html.match(/v43\.1/g) || []).length >= 2);
+t('browser tab title is v43.1', html.includes('<title>SQUEEKCHAIN // v43.1</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -139,7 +141,7 @@ t('css header is sticky (v33.1)', css.includes('.neo-head { position: sticky;'))
 t('css result panel solid (v33.1)', css.includes('#resultPanel { background: rgba(5, 6, 7, .94); }'));
 t('css cardbar clearance (v33.1)', css.includes('body.cardbar { padding-bottom: 72px; }'));
 t('css scroll-margin below sticky header (v33.2)', css.includes('#gamePanel, #resultPanel { scroll-margin-top: 76px; }'));
-t('css mode button tints (v34)', ['#modeRow [data-mode="free"]', '#modeRow [data-mode="daily"]', '#modeRow [data-mode="live"]', '#modeRow [data-mode="race"]'].every(s => css.includes(s)));
+t('css mode buttons single accent (v43.1 — no per-mode tints)', !css.includes('--mode-accent') && /\.btn-diff\.active \{\s*background: #00ff88/.test(css));
 t('css theme panel glow (v34)', css.includes('body[data-theme] #gamePanel'));
 // --- 5. dict regions ---
 function region(src, startMarker, endMarker) { const a = src.indexOf(startMarker); const b = src.indexOf(endMarker, a); return src.slice(a, b); }
@@ -490,7 +492,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v43', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43'"));
+t('submit sends replay + hash + gameVersion v43.1', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43.1'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -516,7 +518,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v43', readme.startsWith('# Squeekchain v43'));
+t('README title is v43.1', readme.startsWith('# Squeekchain v43.1'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -1328,8 +1330,8 @@ t('worker v6: /league you carries verified', worker.includes('verified: me.verif
 t('worker version is 13', worker.includes('{ service: "squeekchain-leaderboard", version: 13 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v43', js.includes("gameVersion: 'v43'"));
-t('html title is v43', html.includes('<title>SQUEEKCHAIN // v43</title>'));
+t('submit sends gameVersion v43.1', js.includes("gameVersion: 'v43.1'"));
+t('html title is v43.1', html.includes('<title>SQUEEKCHAIN // v43.1</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {
@@ -1493,7 +1495,7 @@ t('v42.5 resolve handles 429 with retry time', js.includes("msgf('sqkRateLimited
 t('v42.5 MSG rate-limit keys exist in EN + ID', js.includes("sqkRateLimited: 'TOO MANY REQUESTS — TRY AGAIN AT {time}.'") && js.includes("sqkRateLimited: 'TERLALU SERING — COBA LAGI {time}.'") && js.includes("lbRateLimited: 'TOO MANY SUBMITS — TRY AGAIN AT {time}.'") && js.includes("lbRateLimited: 'TERLALU SERING KIRIM SKOR — COBA LAGI {time}.'"));
 // P1-1 wallet UX: transactions use txWallet() (connected address), not the field.
 t('v42.5 txWallet() exists and is used by buy/commit/resolve', js.includes('function txWallet() { return connectedAddr || currentWallet(); }') && (js.match(/const w = txWallet\(\); \/\/ v42\.5/g) || []).length === 3);
-t('v43 updateConnectBtn renders kartu wallet (dot + alamat singkat + salin) + status + disconnect + readonly field', js.includes("const dot = $('walletDot');") && js.includes("const addrEl = $('walletAddr');") && js.includes("const copy = $('walletCopyBtn');") && js.includes("const st = $('walletStatus');") && js.includes("const dc = $('disconnectBtn');") && js.includes('walletEl.readOnly = connected;'));
+t('v43.1 updateConnectBtn renders kartu wallet (dot + alamat singkat + salin) + disconnect + readonly field, TANPA status ganda', js.includes("const dot = $('walletDot');") && js.includes("const addrEl = $('walletAddr');") && js.includes("const copy = $('walletCopyBtn');") && !js.includes("const st = $('walletStatus');") && js.includes("const dc = $('disconnectBtn');") && js.includes('walletEl.readOnly = connected;'));
 t('v42.5 disconnectWallet() exists and is bound', js.includes('async function disconnectWallet()') && js.includes("bindClick('disconnectBtn', disconnectWallet);"));
 t('v42.5 sqkNoProvider no longer says BUKA HALAMAN INI DI METAMASK', !js.includes('BUKA HALAMAN INI DI METAMASK') && js.includes('TAP [ CONNECT WALLET ] TO CONNECT'));
 // P1-3 GHOST: constants + helpers + labels.

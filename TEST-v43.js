@@ -1,13 +1,13 @@
-// v43 REVOLUTION — run: node TEST-v43.js  (cwd = the v43 folder)
-// Scope: (1) kartu wallet baru — satu bar elegan, label pendek, alamat
-// singkat 0x8853…cf9a + salin, dot hijau / restoring / gagal; (2) background
-// hidup — aurora + partikel ikut beat, bereaksi saat hit/combo/ZOOMIES;
-// (3) musik baru — synth lebih kaya (bass/drum/arpeggio/delay/reverb),
-// melodi tiap genre baru, chart TIDAK berubah; (4) tampilan keseluruhan —
-// kaca/gradasi/glow, transisi tab, efek pukulan, panel hasil lebih bersih.
-// + Perbaikan kosmetik parent (09:01 WIB): pesan resolve kapsul tidak lagi
-// menampilkan rarity dua kali — "Kapsul #102 (rare) (rare) ✓" -> sekali.
-// BATAS KERAS yang dites di sini: engine.js byte-identik dengan v42.5.4,
+// v43.1 — run: node TEST-v43.js  (cwd = the v43.1 folder)
+// UPDATED from the v43 suite: the v43 background/audio assertions are
+// OBSOLETE by design (v43.1 deletes the particles + convolver reverb +
+// the duplicate walletStatus line). This file now tests the v43.1 spec:
+// (1) kartu wallet — alamat tampil SATU kali (tanpa baris status ganda);
+// (2) background TENANG — satu aurora, tanpa partikel/orb/beat;
+// (3) audio RINGAN — delay saja (tanpa convolver), riff 4-bar bervariasi,
+// hit tone via duo() kering; chart TIDAK berubah; (4) tampilan —
+// satu aksen hijau, panel solid (tanpa backdrop-filter).
+// BATAS KERAS yang dites di sini: engine.js byte-identik dengan v43,
 // 14 chart golden identik, judgement windows + formula skor tidak berubah,
 // worker.js byte-identik (Worker tetap v13), 3 bukti Genesis utuh.
 const fs = require('fs');
@@ -15,6 +15,9 @@ const SqueekEngine = require('./engine.js');
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
 const js = fs.readFileSync('script.js', 'utf8');
+// v43.1: code without comments — the "deleted" assertions must not trip on
+// the comments that DOCUMENT the deletion.
+const jsCode = js.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 const jsLines = js.split('\n');
 const golden = JSON.parse(fs.readFileSync('TEST-v40-golden-charts.json', 'utf8'));
 
@@ -57,7 +60,7 @@ const harnessSrc = [
   "const __byId = {};",
   "const __bySel = {};",
   "function __resetEls() { for (const k of Object.keys(__byId)) delete __byId[k]; for (const k of Object.keys(__bySel)) delete __bySel[k];",
-  "  for (const id of ['walletDot','walletAddr','walletCopyBtn','connectBtn','disconnectBtn','walletStatus','wcRestoreNote','scoreVal','comboVal','accVal','gamePanel']) __byId[id] = mockEl();",
+  "  for (const id of ['walletDot','walletAddr','walletCopyBtn','connectBtn','disconnectBtn','wcRestoreNote','scoreVal','comboVal','accVal','gamePanel']) __byId[id] = mockEl();",
   "  __bySel['.stat'] = mockEl(); __bySel['.canvas-wrapper'] = mockEl();",
   "  __bySel['.stat2'] = mockEl();",
   "  __stats = [mockEl(), mockEl()];",
@@ -74,11 +77,16 @@ const harnessSrc = [
   fnSrc(jsLines, 'shortAddr'),
   fnSrc(jsLines, 'updateConnectBtn'),
   fnSrc(jsLines, 'setWcRestoreNote'),
-  fnSrc(jsLines, 'bgBeatPulse'),
-  // RIFF_PATTERNS is a single-line const — take that line only (constObjSrc
-  // would swallow code up to the next "};" line, incl. window.* calls).
-  jsLines.find(l => l.startsWith('const RIFF_PATTERNS = {')),
+  // v43.1: bgBeatPulse is DELETED (no particle loop, no beat driver).
+  // RIFF_PHRASES is a multi-line const (constObjSrc handles it);
+  // ARP_PHRASE is a single line.
+  constObjSrc(jsLines, 'RIFF_PHRASES'),
+  jsLines.find(l => l.startsWith('const ARP_PHRASE = [')),
   fnSrc(jsLines, 'riffDegreesFor'),
+  fnSrc(jsLines, 'arpDegreesFor'),
+  fnSrc(jsLines, 'toneFx'),
+  fnSrc(jsLines, 'duo'),
+  fnSrc(jsLines, 'hitTone'),
   fnSrc(jsLines, 'juiceHit'),
   fnSrc(jsLines, 'comboBurst'),
   fnSrc(jsLines, 'hud'),
@@ -97,7 +105,6 @@ const harnessSrc = [
   "__out.s1_connHidden = __byId.connectBtn.classList.contains('hidden');",
   "__out.s1_connDisabled = __byId.connectBtn.disabled;",
   "__out.s1_dcHidden = __byId.disconnectBtn.classList.contains('hidden');",
-  "__out.s1_statusHidden = __byId.walletStatus.classList.contains('hidden');",
   "// (2) alamat manual diketik (bukan koneksi) — tampil singkat, CONNECT tetap ada",
   "__resetEls(); walletEl.value = '0x88538a82143065664232422e2dec4309038fcf9a'; updateConnectBtn();",
   "__out.s2_addr = __byId.walletAddr.textContent;",
@@ -117,8 +124,6 @@ const harnessSrc = [
   "__out.s4_addr = __byId.walletAddr.textContent;",
   "__out.s4_connHidden = __byId.connectBtn.classList.contains('hidden');",
   "__out.s4_dcHidden = __byId.disconnectBtn.classList.contains('hidden');",
-  "__out.s4_statusHidden = __byId.walletStatus.classList.contains('hidden');",
-  "__out.s4_status = __byId.walletStatus.textContent;",
   "__out.s4_readOnly = walletEl.readOnly;",
   "// (5) gagal restore — dot amber, alasan jelas, CONNECT bisa ditekan lagi",
   "__resetEls(); connectedAddr = null; setWcRestoreNote('bundle-timeout');",
@@ -130,19 +135,27 @@ const harnessSrc = [
   "__out.capEn = (() => { lang = 'en'; return msgf('sqkResolved', { item: 'Kapsul #102', rarity: 'rare' }); })();",
   "__out.capId = (() => { lang = 'id'; return msgf('sqkResolved', { item: 'Kapsul #102', rarity: 'rare' }); })();",
   "__out.capDup = (() => { lang = 'en'; return msgf('sqkDupKeju', { item: 'Kapsul #102', rarity: 'rare', n: 50 }); })();",
-  "// (7) background pulse murni",
-  "__out.p0 = bgBeatPulse(0, 0, false);",
-  "__out.p1 = bgBeatPulse(0.5, 0, false);",
-  "__out.p2 = bgBeatPulse(0, 30, false);",
-  "__out.p3 = bgBeatPulse(0, 0, true);",
-  "__out.p4 = bgBeatPulse(1, 100, true);",
-  "__out.p5 = bgBeatPulse(0.9, 50, true);",
-  "// (8) riff per genre",
-  "__out.rCyber0 = riffDegreesFor('cyber', 0);",
-  "__out.rCyber1 = riffDegreesFor('cyber', 1);",
-  "__out.rSynth0 = riffDegreesFor('synth', 0);",
-  "__out.rVoid4 = riffDegreesFor('void', 4);",
-  "__out.rUnknown = riffDegreesFor('nope', 0);",
+  "// (7) v43.1: bgBeatPulse SUDAH DIHAPUS — tidak ada skenario pulse lagi.",
+  "// (8) riff per genre — frasa 4-bar, bervariasi per langkah (bukan 1 derajat per bar)",
+  "__out.rCyber00 = riffDegreesFor('cyber', 0, 0);",
+  "__out.rCyber01 = riffDegreesFor('cyber', 0, 1);",
+  "__out.rCyber02 = riffDegreesFor('cyber', 0, 2);",
+  "__out.rCyber03 = riffDegreesFor('cyber', 0, 3);",
+  "__out.rCyber10 = riffDegreesFor('cyber', 1, 0);",
+  "__out.rCyber20 = riffDegreesFor('cyber', 2, 0);",
+  "__out.rCyber30 = riffDegreesFor('cyber', 3, 0);",
+  "__out.rSynth00 = riffDegreesFor('synth', 0, 0);",
+  "__out.rVoid40 = riffDegreesFor('void', 4, 0);",
+  "__out.rUnknown = riffDegreesFor('nope', 0, 0);",
+  "__out.a00 = arpDegreesFor(0, 0);",
+  "__out.a01 = arpDegreesFor(0, 1);",
+  "__out.a02 = arpDegreesFor(0, 2);",
+  "__out.a10 = arpDegreesFor(1, 0);",
+  "__out.a11 = arpDegreesFor(1, 1);",
+  "// (10) audio ringan — sumber duo/hitTone/toneFx",
+  "__out.duoSrc = duo.toString();",
+  "__out.hitToneSrc = hitTone.toString();",
+  "__out.toneFxSrc = toneFx.toString();",
   "// (9) hit FX: PERFECT -> flash canvas; comboBurst -> burst panel; hud FEVER -> stat emas",
   "__resetEls(); juiceHit('perfect');",
   "__out.fxFlash = __bySel['.canvas-wrapper'].classList.contains('hit-flash');",
@@ -162,44 +175,47 @@ t('wallet: shortAddr Genesis = 0x8853...cf9a', __out.shortGen === '0x8853...cf9a
 t('wallet: shortAddr kosong/bukan-alamat = ""', __out.shortEmpty === '' && __out.shortBad === '');
 t('wallet s1: belum connect — dot mati semua', !__out.s1_dotOn && !__out.s1_dotRest && !__out.s1_dotFail);
 t('wallet s1: belum connect — alamat TAMU (ID)', __out.s1_addr === 'TAMU');
-t('wallet s1: salin tersembunyi, CONNECT tampil + aktif, PUTUSKAN + status tersembunyi',
-  __out.s1_copyHidden && !__out.s1_connHidden && !__out.s1_connDisabled && __out.s1_dcHidden && __out.s1_statusHidden);
+t('wallet s1: salin tersembunyi, CONNECT tampil + aktif, PUTUSKAN tersembunyi',
+  __out.s1_copyHidden && !__out.s1_connHidden && !__out.s1_connDisabled && __out.s1_dcHidden);
 t('wallet s2: alamat manual — tampil singkat, salin muncul, CONNECT tetap ada, dot mati, field bisa diedit',
   __out.s2_addr === '0x8853...cf9a' && !__out.s2_copyHidden && !__out.s2_connHidden && !__out.s2_dotOn && !__out.s2_readOnly);
 t('wallet s3: restoring — dot restoring, CONNECT nonaktif, note terlihat + berisi MENGHUBUNGKAN KEMBALI',
   __out.s3_dotRest && __out.s3_connDisabled && !__out.s3_noteHidden && /MENGHUBUNGKAN KEMBALI/.test(__out.s3_note));
-t('wallet s4: terhubung — dot hijau, alamat singkat, CONNECT hilang, PUTUSKAN muncul, status TERHUBUNG + alamat singkat',
-  __out.s4_dotOn && __out.s4_addr === '0x8853...cf9a' && __out.s4_connHidden && !__out.s4_dcHidden &&
-  !__out.s4_statusHidden && __out.s4_status === '● 0x8853...cf9a — TERHUBUNG' && __out.s4_readOnly);
+t('wallet s4: terhubung — dot hijau, alamat singkat, CONNECT hilang, PUTUSKAN muncul, field read-only (tanpa baris status ganda)',
+  __out.s4_dotOn && __out.s4_addr === '0x8853...cf9a' && __out.s4_connHidden && !__out.s4_dcHidden && __out.s4_readOnly);
 t('wallet s5: gagal restore — dot fail, alasan terlihat + menyebut bundle-timeout, CONNECT bisa ditekan',
   __out.s5_dotFail && !__out.s5_noteHidden && /bundle-timeout/.test(__out.s5_note) && !__out.s5_connDisabled);
-t('wallet HTML: kartu #walletCard berisi dot/addr/salin/connect/putuskan + baris manual ringkas',
+t('wallet HTML: kartu #walletCard berisi dot/addr/salin/connect/putuskan + baris manual ringkas, TANPA walletStatus',
   html.includes('id="walletCard"') && html.includes('id="walletDot"') && html.includes('id="walletAddr"') &&
   html.includes('id="walletCopyBtn"') && html.includes('id="connectBtn"') && html.includes('id="disconnectBtn"') &&
-  html.includes('id="walletManualRow"') && html.includes('id="walletStatus"') && html.includes('id="wcRestoreNote"'));
+  html.includes('id="walletManualRow"') && !html.includes('id="walletStatus"') && html.includes('id="wcRestoreNote"'));
+t('wallet JS: updateConnectBtn TIDAK PERNAH menyentuh walletStatus (alamat tampil sekali)',
+  !js.includes("$('walletStatus')"));
 t('wallet HTML: teks panjang MANUAL lama hilang (tidak ada "type an address to play")',
   !/type an address to play/i.test(html) && !/MANUAL — type/i.test(html));
 t('wallet i18n: label PENDEK — CONNECT/HUBUNGKAN + ADDRESS/ALAMAT (bukan CONNECT WALLET)',
   js.includes("connect: 'CONNECT'") && js.includes("connect: 'HUBUNGKAN'") &&
   js.includes("addrBtn: 'ADDRESS'") && js.includes("addrBtn: 'ALAMAT'"));
 
-// ============ (b) BACKGROUND HIDUP ============
-t('bg pulse: sunyi = 0', __out.p0 === 0);
-t('bg pulse: audio 0.5 saja ≈ 0.55', Math.abs(__out.p1 - 0.55) < 1e-9);
-t('bg pulse: combo 30 = +0.25', __out.p2 === 0.25);
-t('bg pulse: ZOOMIES = +0.25', __out.p3 === 0.25);
-t('bg pulse: maksimal dijepit ke 1', __out.p4 === 1 && __out.p5 === 1);
-t('bg HTML: canvas #bg-particles + orb violet ketiga ada',
-  html.includes('<canvas id="bg-particles"') && html.includes('class="orb orb-v"'));
-t('bg CSS: layer partikel + orb-v + --beat + animasi denyut ada',
-  css.includes('#bg-particles') && css.includes('.orb-v') && css.includes('--beat') && css.includes('@keyframes driftV'));
-t('bg CSS: partikel disembunyikan saat main (hemat performa) + ECO',
-  css.includes('body.playing #bg-particles') && css.includes('body.hemat #bg-particles'));
+// ============ (b) BACKGROUND TENANG (v43.1) ============
+t('bg v43.1: bgBeatPulse + partikel SUDAH DIHAPUS dari script.js',
+  !js.includes('function bgBeatPulse') && !js.includes('bgInitParticles') && !js.includes('bgStepParticles') && !js.includes("getElementById('bg-particles')"));
+t('bg HTML: SATU aurora saja — tanpa canvas partikel, tanpa orb',
+  html.includes('<div id="bg-aurora"') && !html.includes('bg-particles') && !html.includes('class="orb'));
+t('bg CSS: tanpa partikel/orb/--beat/driftV — hanya auroraPan (transform saja)',
+  !css.includes('#bg-particles') && !css.includes('.orb-v') && !css.includes('--beat') && !css.includes('@keyframes driftV') &&
+  css.includes('#bg-aurora') && css.includes('@keyframes auroraPan') && /auroraPan \{ from \{ transform: translate3d/.test(css));
+t('bg CSS: aurora diam saat buka (tanpa bg-awake), mati saat main + ECO',
+  css.includes('#bg-aurora .aurora') && css.includes('animation: none') && css.includes('body.bg-awake:not(.playing):not(.hemat) #bg-aurora .aurora') &&
+  css.includes('body.playing #bg-aurora') && css.includes('body.hemat #bg-aurora'));
+t('bg JS: WebGL TIDAK auto-start — bgWake ada + dipanggil dari pointerdown pertama',
+  js.includes('function bgWake()') && js.includes("window.addEventListener('pointerdown', () => { bgWake(); startMusicFromTap(); }, {once: true})") &&
+  !js.includes("glRunning = true; requestAnimationFrame(renderGL); setText('glStatus'"));
 t('bg CSS: transisi tab + tombol primary bergradasi',
   css.includes('@keyframes tabIn') && css.includes('.tab-panel { animation: tabIn') && css.includes('background-position: 100% 0'));
 t('bg CSS: !important border-radius:0 pada * SUDAH DIHAPUS (NEO rounded kembali hidup)',
   !/\*\s*\{[^}]*border-radius:\s*0\s*!important/.test(css));
-t('bg CSS: reduced-motion mematikan animasi v43', css.includes('@media (prefers-reduced-motion: reduce)'));
+t('bg CSS: reduced-motion mematikan animasi v43.1 (termasuk aurora)', css.includes('@media (prefers-reduced-motion: reduce)') && css.includes('#bg-aurora .aurora { animation: none !important; }'));
 t('fx: PERFECT -> .canvas-wrapper dapat class hit-flash', __out.fxFlash === true);
 t('fx: comboBurst -> #gamePanel dapat class combo-burst', __out.fxBurst === true);
 t('fx: hud FEVER -> skor/kombo/akurat tampil + stat kombo ke-2 menyala emas (class fever)',
@@ -210,17 +226,31 @@ t('audio: suara baru ada — initFxBus/toneFx/bassNote/snareHit/hatHit/kick2/hit
   js.includes('function initFxBus(') && js.includes('function toneFx(') && js.includes('function bassNote(') &&
   js.includes('function snareHit(') && js.includes('function hatHit(') && js.includes('function kick2(') &&
   js.includes('function hitTone('));
-t('audio: delay + reverb sintetis di initFxBus (tanpa file/CDN)',
-  js.includes('createDelay') && /feedback/.test(js) && /impulse|convolver/i.test(js));
-t('audio: RIFF_PATTERNS 4 genre x 8 langkah', __out.rCyber0 === 7 && __out.rCyber1 === 5 && __out.rSynth0 === 0 && __out.rVoid4 === 6 && __out.rUnknown === 7);
+t('audio: delay SAJA di initFxBus — convolver/reverb SUDAH DIHAPUS (tanpa file/CDN)',
+  jsCode.includes('createDelay') && !jsCode.includes('createConvolver') && !/verbBus|verbWet|impulse/i.test(jsCode));
+t('audio: RIFF_PHRASES 4 genre x 4 bar x 4 langkah — bervariasi per langkah (bukan 1 derajat per bar)',
+  __out.rCyber00 === 7 && __out.rCyber01 === 5 && __out.rCyber02 === 4 && __out.rCyber03 === 7 &&
+  __out.rCyber10 === 5 && __out.rCyber20 === 7 && __out.rCyber30 === 4 &&
+  __out.rSynth00 === 0 && __out.rVoid40 === 0 && __out.rUnknown === 7 &&
+  __out.a00 === 0 && __out.a01 === 7 && __out.a02 === 12 && __out.a10 === 0 && __out.a11 === 5);
+t('audio: duo() — 2 oscillator (forEach atas 2 frekuensi), 1 gain, TANPA send (echo/reverb)',
+  (__out.duoSrc.match(/createOscillator/g) || []).length === 1 && /\[f, f \* 1\.005\]\.forEach/.test(__out.duoSrc) && (__out.duoSrc.match(/createGain/g) || []).length === 1 && !/echoBus|verbBus/.test(__out.duoSrc));
+t('audio: hitTone — duo() + sparkle kering, tanpa toneFx (komentar diabaikan)',
+  /duo\(f, t, 'sawtooth'/.test(__out.hitToneSrc) && !/toneFx/.test(__out.hitToneSrc.replace(/\/\/.*/g, '')));
+t('audio: toneFx — SATU send echo saja, tanpa reverb (komentar diabaikan)',
+  /echoBus/.test(__out.toneFxSrc) && !/verbBus|verbWet|createConvolver/.test(__out.toneFxSrc.replace(/\/\/.*/g, '')));
+t('audio: schedule() riff via duo + arp via arpDegreesFor, kering (tanpa toneFx)',
+  /riffDegreesFor\(G\.genre, barNo, \(stepInBar - 2\) \/ 4\)/.test(js) && /duo\(mtof\(riffMidi\)/.test(js) && /arpDegreesFor\(barNo, stepInBar \/ 4\)/.test(js) && !/toneFx\(mtof\(riffMidi\)/.test(js));
+t('audio: scheduleIntro pad 2 nada (root+fifth) — bukan 3',
+  /mtof\(60\), t, 'triangle', 0\.04, stepDur \* 8, 0\.6\); toneFx\(mtof\(67\)/.test(js) && !/toneFx\(mtof\(64\), t, 'triangle', 0\.04, stepDur \* 8/.test(js));
 t('audio: schedule() memakai suara baru (kick2/snare/hat/bass/riff) + jalur lembut Lullaby',
   /kick2\(/.test(js) && /snareHit\(/.test(js) && /bassNote\(/.test(js) && /riffDegreesFor\(/.test(js) && /soft/.test(js));
 t('audio: judge() memakai hitTone (bukan tone lama)', /hitTone\(target\.midi/.test(js));
 t('audio: jingle hasil lebih kaya (echo + bass + sparkle)', /playResultJingle/.test(js) && /toneFx\(/.test(js));
-t('chart: engine.js v43 BYTE-IDENTIK dengan v42.5.4 (tidak disentuh)',
-  fs.readFileSync('engine.js', 'utf8') === fs.readFileSync('../squeekchain-v42.5.4/engine.js', 'utf8'));
-t('chart: worker.js v43 BYTE-IDENTIK dengan v42.5.4 (Worker tetap v13)',
-  fs.readFileSync('worker.js', 'utf8') === fs.readFileSync('../squeekchain-v42.5.4/worker.js', 'utf8'));
+t('chart: engine.js v43.1 BYTE-IDENTIK dengan v43 (tidak disentuh)',
+  fs.readFileSync('engine.js', 'utf8') === fs.readFileSync('../squeekchain-v43/engine.js', 'utf8'));
+t('chart: worker.js v43.1 BYTE-IDENTIK dengan v43 (Worker tetap v13)',
+  fs.readFileSync('worker.js', 'utf8') === fs.readFileSync('../squeekchain-v43/worker.js', 'utf8'));
 let goldenOk = true;
 for (const c of golden) { if (JSON.stringify(SqueekEngine.buildChart(c.header)) !== JSON.stringify(c.anthem)) { goldenOk = false; console.log('  golden mismatch:', c.header && c.header.seedKey); } }
 t('chart: 14 chart golden identik (buildChart == fixture v40)', goldenOk);
@@ -234,7 +264,7 @@ t('chart: sapuan 60 kombinasi mode/diff/seed deterministik + berisi note', sweep
 t('chart: judgement windows TIDAK berubah (0.045/0.09/0.135, BREAK 0.185)',
   /perfect: 0\.045, great: 0\.09, good: 0\.135/.test(fs.readFileSync('engine.js', 'utf8')) &&
   /BREAK = W\.good \+ 0\.05/.test(fs.readFileSync('engine.js', 'utf8')));
-t('versi: gameVersion v43 + judul v43', js.includes("gameVersion: 'v43'") && /v43/.test(html));
+t('versi: gameVersion v43.1 + judul v43.1', js.includes("gameVersion: 'v43.1'") && html.includes('<title>SQUEEKCHAIN // v43.1</title>'));
 
 // ============ (d) PANEL HASIL + PESAN KAPSUL ============
 t('kapsul EN: "CAPSULE: Kapsul #102 (rare) ✓" — rarity SEKALI', __out.capEn === 'CAPSULE: Kapsul #102 (rare) ✓');
