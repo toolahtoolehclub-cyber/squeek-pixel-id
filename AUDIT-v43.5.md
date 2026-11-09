@@ -96,12 +96,35 @@ bukan malah di luarnya. User benar.
 ## 5. Deploy
 
 - Repo `toolahtoolehclub-cyber/squeek-pixel-id`, branch `main`.
-- (Diisi setelah push: commit code + head.)
+- Commit: `6db6073863efd51ae483d419f0e4d67572e8a4db` — "Squeekchain v43.5 —
+  equipped frames now wrap the play area in-game (applyResultFrame
+  styles #gamePanel too, shared CSS rules; note skins unchanged; 2415
+  tests, 0 failed; engine/Worker v13 unchanged, 3 Genesis proofs
+  intact)". Head sebelumnya `8e000632` (v43.4).
+- 16 file di-push: index.html, script.js, style.css, README.md,
+  AUDIT-v43.5.md, TEST-v43.5.js (baru), TEST-v43.4.js,
+  TEST-v43.4-submit.js, TEST-v43.3.js, TEST-v43.3-submit.js, TEST-v43.2.js,
+  TEST-v43.1.js, TEST-v43.js, TEST-v42.5.js, TEST-v42.5.4-restore-ui.js,
+  TEST-v34-neo.js (10 file tes lama hanya asersi versi v43.4 -> v43.5).
 
-## 6. Verifikasi live
+## 6. Verifikasi live (2026-11-09 ~23:50 WIB, setelah deploy + jeda 3 menit)
 
-- (Diisi setelah deploy: situs live v43.5, script.js live byte-identik,
-  3 bukti Genesis utuh, engine.js/worker.js byte-identik v43.4.)
+- Situs live https://squeekpixel.web.id/ menunjukkan **v43.5**:
+  `<title>SQUEEKCHAIN // v43.5</title>`, header `PIXEL ID // v43.5`,
+  footer `• v43.5 •`, `gameVersion: 'v43.5'` di script.js.
+- **Live script.js byte-identik** dengan script.js lokal v43.5 (`cmp`
+  IDENTICAL).
+- **3 bukti Genesis utuh, tidak berubah:**
+  1. DNS TXT `_squeekchain` = `squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9`
+     (dicek via Google DoH).
+  2. Meta tag `<meta name="squeekchain-project"
+     content="05432539-b4e4-4f90-97b3-c258583905b7">` ada di index.html
+     live.
+  3. README live: judul `# Squeekchain v43.5`, baris terakhir
+     `squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7`.
+- **engine.js dan worker.js live byte-identik dengan v43.4** (dicek
+  via raw.githubusercontent.com vs folder v43.4 lokal) — perubahan ini
+  murni UI client; Worker tetap v13, tidak di-deploy ulang.
 
 ## 7. Yang akan dilihat user
 
