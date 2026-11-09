@@ -44,15 +44,15 @@ function mockDB() {
 }
 
 async function main() {
-  const bundlePath = '/tmp/v42.5.3-build/dist/worker.js';
+  const bundlePath = '/tmp/v43-build/dist/worker.js';
   if (!fs.existsSync(bundlePath)) {
     console.log('FAIL: bundle missing — run ./build-worker.sh bundle-only first');
     process.exit(1);
   }
   const bundle = await import(bundlePath);
-  const { secp256k1 } = await import('/tmp/v42.5.3-build/node_modules/@noble/curves/secp256k1.js');
-  const { keccak_256 } = await import('/tmp/v42.5.3-build/node_modules/@noble/hashes/sha3.js');
-  const { bytesToHex, hexToBytes, concatBytes } = await import('/tmp/v42.5.3-build/node_modules/@noble/hashes/utils.js');
+  const { secp256k1 } = await import('/tmp/v43-build/node_modules/@noble/curves/secp256k1.js');
+  const { keccak_256 } = await import('/tmp/v43-build/node_modules/@noble/hashes/sha3.js');
+  const { bytesToHex, hexToBytes, concatBytes } = await import('/tmp/v43-build/node_modules/@noble/hashes/utils.js');
 
   // Test signing key (generated fresh each run — never the real secret).
   const priv = crypto.randomBytes(32);

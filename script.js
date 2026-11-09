@@ -452,6 +452,13 @@ function currentWallet() { const el = $('walletInput'); return el ? el.value.tri
 // membingungkan. Bila tidak ada koneksi, pakai field (akan gagal di getEth()
 // dengan sqkNoProvider — benar, karena transaksi butuh provider).
 function txWallet() { return connectedAddr || currentWallet(); }
+// v43.4 — SATU choke point untuk "apakah wallet BENAR-BENAR terhubung".
+// Tampilan yang terikat wallet (kartu profil, toko, peringkat) hanya boleh
+// memakai alamat ini. Alamat yang diingat/manual (currentWallet) menggerakkan
+// main manual, tapi BUKAN koneksi — menampilkan saldo/kepemilikan/peringkat
+// darinya saat GUEST adalah inkonsistensi yang dilaporkan user (9 Nov 2026,
+// 21:08 WIB). Mengembalikan alamat terhubung, atau null bila belum connect.
+function connectedWallet() { return (connectedAddr && isAddr(connectedAddr)) ? connectedAddr : null; }
 function lanesForSong() {
   if (playMode === 'challenge') return challengeLanes;
   if (playMode === 'daily') return 3; // canonical daily: same song for everyone
@@ -1843,7 +1850,10 @@ function startPreviewSpin(w) {
 }
 function renderAvatarPreview(w) {
   const wrap = $('avatarPreviewWrap'), c = $('avatar-preview');
-  if (!wrap || !c || !isAddr(w)) { if (wrap) wrap.classList.add('hidden'); return; }
+  // v43.4: kartu profil ("YOUR PIXEL SELF") tampil HANYA bila wallet
+  // BENAR-BENAR terhubung. Alamat yang diingat/manual (w) bukan koneksi —
+  // menampilkannya saat GUEST membuat user malu (laporan 9 Nov 2026).
+  if (!wrap || !c || !connectedWallet() || !isAddr(w)) { if (wrap) wrap.classList.add('hidden'); return; }
   const ctx = c.getContext('2d'); if (!ctx) return;
   ctx.imageSmoothingEnabled = false;
   const lv = levelFor(totalXP(w));
@@ -2466,7 +2476,26 @@ async function disconnectWallet() {
   setConnected(null);
   say(msg('walletDisconnected'), 'cyan');
 }
-function setConnected(addr) { connectedAddr = (addr && isAddr(addr)) ? addr : null; if (connectedAddr) setWcRestoreNote(null); updateConnectBtn(); }
+function setConnected(addr) {
+  connectedAddr = (addr && isAddr(addr)) ? addr : null; if (connectedAddr) setWcRestoreNote(null); updateConnectBtn();
+  // v43.4: status koneksi berubah — nilai ulang SEMUA tampilan yang terikat
+  // wallet (kartu profil, toko, peringkat) supaya disconnect langsung
+  // menyembunyikannya dan connect langsung menampilkannya. Fail soft:
+  // jangan pernah menggagalkan restore WalletConnect bila sebuah render
+  // belum tersedia. Saat connect, muat ulang data toko/peringkat untuk
+  // wallet yang BARU terhubung (bukan data basi dari alamat yang diingat).
+  try { renderAvatarPreview(connectedAddr); } catch (_) {}
+  try { renderShop(); } catch (_) {}
+  try { renderSqkShop(); } catch (_) {}
+  try { renderLb(); } catch (_) {}
+  try { renderLeagueWeekly(); } catch (_) {}
+  if (connectedAddr) {
+    try { fetchShop(); } catch (_) {}
+    try { fetchSqkShop(); } catch (_) {}
+    try { fetchLbRank(); } catch (_) {}
+    try { fetchLeagueWeekly(); } catch (_) {}
+  }
+}
 async function connectWallet() {
   const eth = window.ethereum;
   if (eth && typeof eth.request === 'function') {
@@ -2946,7 +2975,7 @@ function renderLbModes() {
 function renderLb() {
   const el = $('lbList'); if (!el) return;
   if (!lbState.rows.length) { el.innerHTML = `<p class="msg">${msg('lbEmpty')}</p>`; return; }
-  const me = (currentWallet() || '').toLowerCase();
+  const me = (connectedWallet() || '').toLowerCase(); // v43.4: sorot baris sendiri hanya bila terhubung (alamat yang diingat bukan koneksi)
   el.innerHTML = lbState.rows.map(r => `<div class="league-row lb-row${r.wallet && r.wallet.toLowerCase() === me ? ' lb-me' : ''}"><span class="lb-rank">#${r.rank}</span> <b>${escHtml(r.name || 'GUEST')}</b> <span class="lb-wallet">${escHtml(truncAddr(r.wallet))}</span> <b class="lb-score">${r.score}</b> <span>${(+r.acc || 0).toFixed(1)}%</span>${r.verified ? ` <span class="lb-verified" title="${escHtml(msg('lbVerified'))}">✓</span>` : ''}</div>`).join(''); // v40.1: verified=1 rows carry a ✓ (field already returned by GET /scores); verified=0 rows unchanged
 }
 async function fetchLb(mode) {
@@ -2973,8 +3002,8 @@ async function fetchLb(mode) {
 }
 async function fetchLbRank() {
   const rk = $('lbRank'); if (!rk) return;
-  const w = currentWallet();
-  if (!isAddr(w)) { rk.textContent = ''; return; }
+  const w = connectedWallet(); // v43.4: peringkat sendiri hanya untuk wallet terhubung
+  if (!w) { rk.textContent = ''; return; }
   try {
     const r = await tfetch(CONFIG.LB_URL + '/rank?wallet=' + w + '&mode=' + lbState.mode, null, 20000); // v42.5.2 (FIX 2): 20 detik — koneksi lambat
     if (!r.ok) throw new Error('HTTP_' + r.status);
@@ -3191,7 +3220,7 @@ async function submitLb() {
   // tanpa-replay dengan 422. 400/422 = replay tidak valid, tunjukkan apa
   // adanya. 429 (rate limit) TIDAK pernah di-retry.
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
-  const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v43.3' } : bodyBase;
+  const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v43.4' } : bodyBase;
   enqueuePendingSubmit(body);
   show(msg('lbSending'));
   const res = await submitWithRetries(body, () => show(msg('lbRetrying')));
@@ -3339,27 +3368,31 @@ function shopOwned(id) { return shopState.items.some(i => i.id === id); }
 function shopEquipped(id) { const it = shopState.items.find(i => i.id === id); return !!(it && it.equipped); }
 function shopMsg(t) { const m = $('shopMsg'); if (m) { m.textContent = t; m.classList.remove('hidden'); } }
 function renderShop() {
-  const bal = $('cheeseBalance'); if (bal) bal.textContent = msgf('shopBalanceTpl', { n: shopState.balance });
+  // v43.4: toko Keju menampilkan saldo/kepemilikan/tombol HANYA bila wallet
+  // BENAR-BENAR terhubung. Katalog (nama, warna, harga) adalah info publik
+  // dan tetap tampil; saat belum connect, saldo "—" + ajakan connect.
+  const w = connectedWallet();
+  const bal = $('cheeseBalance'); if (bal) bal.textContent = w ? msgf('shopBalanceTpl', { n: shopState.balance }) : msgf('shopBalanceTpl', { n: '—' });
   const cat = $('shopCatalog'); if (!cat) return;
-  const w = currentWallet();
   if (!shopState.catalog.length) { cat.innerHTML = `<p class="msg">${msg('shopOffline')}</p>`; return; }
-  cat.innerHTML = shopState.catalog.map(c => {
-    const owned = shopOwned(c.id), eq = shopEquipped(c.id);
-    const btn = !isAddr(w) ? '' : eq ? `<span class="msg">${I18N[lang].equippedLbl}</span> <button class="btn-secondary" type="button" data-unequip="${c.slot}">${I18N[lang].unequipBtn}</button>` // v42.5.2 (FIX 1): UNEQUIP — skin yang dipakai bisa dicopot, kembali ke default
+  cat.innerHTML = (w ? '' : `<p class="msg">${msg('shopNeedWallet')}</p>`) + shopState.catalog.map(c => {
+    const owned = w && shopOwned(c.id), eq = w && shopEquipped(c.id);
+    const btn = !w ? '' : eq ? `<span class="msg">${I18N[lang].equippedLbl}</span> <button class="btn-secondary" type="button" data-unequip="${c.slot}">${I18N[lang].unequipBtn}</button>` // v42.5.2 (FIX 1): UNEQUIP — skin yang dipakai bisa dicopot, kembali ke default
       : owned ? `<button class="btn-secondary" type="button" data-equip="${c.id}">${I18N[lang].equipBtn}</button>`
       : c.capsuleOnly ? `<span class="msg">${I18N[lang].capsuleOnlyLbl}</span>`
       : `<button class="btn-secondary" type="button" data-buy="${c.id}">${msgf('shopBuyTpl', { price: c.price })}</button>`;
-    return `<div class="shop-item"><b>${escHtml(c.name)}</b>${skinPreviewHtml(c.id, c.slot)}<span class="shop-meta">${escHtml(c.slot.toUpperCase())} • ${escHtml(c.rarity.toUpperCase())}${owned ? ' • ' + I18N[lang].ownedLbl : ''}</span>${btn}</div>`;
+    return `<div class="shop-item"><b>${escHtml(c.name)}</b>${skinPreviewHtml(c.id, c.slot)}<span class="shop-meta">${escHtml(c.slot.toUpperCase())} • ${escHtml(c.rarity.toUpperCase())}${!w ? ' • ' + c.price + ' 🧀' : ''}${owned ? ' • ' + I18N[lang].ownedLbl : ''}</span>${btn}</div>`; // v43.4: harga tampil di meta saat belum connect (info publik; saat connect harga ada di tombol BELI)
   }).join('');
   cat.querySelectorAll('[data-buy]').forEach(b => b.addEventListener('click', () => buyItem(b.dataset.buy)));
   cat.querySelectorAll('[data-equip]').forEach(b => b.addEventListener('click', () => equipItem(b.dataset.equip)));
   cat.querySelectorAll('[data-unequip]').forEach(b => b.addEventListener('click', () => unequipItem(b.dataset.unequip))); // v42.5.2 (FIX 1)
   const cp = $('capsulePreview'); if (cp) cp.innerHTML = capsulePreviewHtml(); // v42.5 (P1-5)
+  const cb = $('capsuleBtn'); if (cb) cb.disabled = !w; // v43.4: tarik kapsul juga butuh wallet terhubung
 }
 async function fetchShop() {
-  const w = currentWallet();
+  const w = connectedWallet(); // v43.4: data wallet toko hanya untuk wallet terhubung (tanpa wallet = katalog saja)
   try {
-    const r = await tfetch(CONFIG.LB_URL + '/cheese' + (isAddr(w) ? '?wallet=' + w : ''), null, 8000);
+    const r = await tfetch(CONFIG.LB_URL + '/cheese' + (w ? '?wallet=' + w : ''), null, 8000);
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();
     if (!d || !Array.isArray(d.catalog)) throw new Error('bad shop');
@@ -3376,8 +3409,8 @@ async function fetchShop() {
   }
 }
 async function buyItem(id) {
-  const w = currentWallet();
-  if (!isAddr(w)) return shopMsg(msg('shopNeedWallet'));
+  const w = connectedWallet(); // v43.4: beli butuh wallet terhubung
+  if (!w) return shopMsg(msg('shopNeedWallet'));
   try {
     const r = await tfetch(CONFIG.LB_URL + '/cheese/buy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w, item_id: id }) }, 8000);
     const d = await r.json().catch(() => null);
@@ -3393,8 +3426,8 @@ async function buyItem(id) {
   } catch (_) { shopMsg(msg('shopOffline')); }
 }
 async function pullCapsule() {
-  const w = currentWallet();
-  if (!isAddr(w)) return shopMsg(msg('shopNeedWallet'));
+  const w = connectedWallet(); // v43.4: tarik kapsul butuh wallet terhubung
+  if (!w) return shopMsg(msg('shopNeedWallet'));
   const b = $('capsuleBtn'); if (b) b.disabled = true;
   try {
     const r = await tfetch(CONFIG.LB_URL + '/cheese/pull', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w }) }, 8000);
@@ -3410,8 +3443,8 @@ async function pullCapsule() {
   finally { if (b) b.disabled = false; }
 }
 async function equipItem(id) {
-  const w = currentWallet();
-  if (!isAddr(w)) return shopMsg(msg('shopNeedWallet'));
+  const w = connectedWallet(); // v43.4: equip butuh wallet terhubung (konsistensi tampilan)
+  if (!w) return shopMsg(msg('shopNeedWallet'));
   try {
     const r = await tfetch(CONFIG.LB_URL + '/cheese/equip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w, item_id: id }) }, 8000);
     const d = await r.json().catch(() => null);
@@ -3426,8 +3459,8 @@ async function equipItem(id) {
   } catch (_) { shopMsg(msg('shopOffline')); }
 }
 async function unequipItem(slot) { // v42.5.2 (FIX 1): copot skin Keju — status equipped Keju hidup di SERVER (Worker /cheese/equip), jadi unequip lokal saja TIDAK cukup (fetchShop akan mengembalikannya). POST /cheese/unequip (Worker v12) membersihkan flag equipped di D1; lokal: slot Keju dikosongkan + penanda terakhir-di-equip pindah ke 'sqk' supaya skin SQK (bila ada) tampil kembali. Kepemilikan TIDAK disentuh: item tetap OWNED, hanya tidak dipakai.
-  const w = currentWallet();
-  if (!isAddr(w)) return shopMsg(msg('shopNeedWallet'));
+  const w = connectedWallet(); // v43.4: unequip butuh wallet terhubung
+  if (!w) return shopMsg(msg('shopNeedWallet'));
   if (slot !== 'note' && slot !== 'frame') return shopMsg(msg('shopOffline'));
   try {
     const r = await tfetch(CONFIG.LB_URL + '/cheese/unequip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ wallet: w, slot }) }, 8000);
@@ -3493,8 +3526,8 @@ function sqkIsEquipped(c) { // v42.4 (BUG 3): item SQK sedang dipakai bila skin-
   return c.slot === 'note' ? cur.note === c.skin : cur.frame === c.skin;
 }
 async function equipSqkItem(itemId) { // v42.4 (BUG 3): item SQK dimiliki ON-CHAIN — equip memverifikasi kepemilikan via balanceOfItem eth_call (read-only, TANPA signature/transaksi), lalu menulis skin lokal. Tanpa ini, item yang dibeli tidak pernah bisa dipakai.
-  const w = currentWallet();
-  if (!isAddr(w)) return sqkShopMsg(msg('sqkNeedWallet'));
+  const w = connectedWallet(); // v43.4: equip butuh wallet terhubung (konsistensi tampilan)
+  if (!w) return sqkShopMsg(msg('sqkNeedWallet'));
   const item = sqkShopItem(itemId);
   if (!item || !item.skin || !item.slot) return sqkShopMsg(msg('sqkEquipFail'));
   try {
@@ -3510,6 +3543,7 @@ async function equipSqkItem(itemId) { // v42.4 (BUG 3): item SQK dimiliki ON-CHA
   } catch (_) { sqkShopMsg(msg('sqkShopOffline')); }
 }
 function unequipSqkItem(itemId) { // v42.5.2 (FIX 1): copot skin SQK — lokal saja (kepemilikan on-chain TIDAK disentuh: item tetap OWNED, hanya tidak dipakai). Slot dikosongkan dari kunci SQK + penanda terakhir-di-equip pindah ke 'keju' supaya skin Keju (bila ada) tampil kembali.
+  if (!connectedWallet()) return sqkShopMsg(msg('sqkNeedWallet')); // v43.4: unequip butuh wallet terhubung
   const item = sqkShopItem(itemId);
   if (!item || !item.skin || !item.slot) return sqkShopMsg(msg('sqkEquipFail'));
   const sqk = loadJSON('sqk41:skin-sqk', { note: null, frame: null }) || { note: null, frame: null };
@@ -3521,6 +3555,9 @@ function unequipSqkItem(itemId) { // v42.5.2 (FIX 1): copot skin SQK — lokal s
 }
 function renderSqkShop() {
   const deployed = sqkShopDeployed();
+  // v43.4: toko SQK menampilkan saldo/kepemilikan/tombol HANYA bila wallet
+  // BENAR-BENAR terhubung. Pool/musim/katalog adalah info publik dan tetap tampil.
+  const w = connectedWallet();
   const soon = $('sqkShopSoon'); if (soon) soon.classList.toggle('hidden', deployed);
   const pool = $('sqkShopPool');
   if (pool) pool.textContent = sqkState.pool === null ? '' : msgf('sqkPoolTpl', { pool: fmt(sqkState.pool, 18) });
@@ -3531,32 +3568,32 @@ function renderSqkShop() {
     else season.textContent = '';
   }
   const bal = $('sqkShopBalance');
-  if (bal) bal.textContent = sqkState.sqkBalance === null ? '' : msgf('sqkBalanceTpl', { n: fmt(sqkState.sqkBalance, 18) });
+  if (bal) bal.textContent = !w ? msgf('sqkBalanceTpl', { n: '—' }) : sqkState.sqkBalance === null ? '' : msgf('sqkBalanceTpl', { n: fmt(sqkState.sqkBalance, 18) });
   const cat = $('sqkShopCatalog'); if (!cat) return;
-  const w = currentWallet();
-  cat.innerHTML = SQK_SHOP_CATALOG.map(c => {
-    const owned = sqkState.owned[c.id] || 0;
+  cat.innerHTML = (w ? '' : `<p class="msg">${msg('sqkNeedWallet')}</p>`) + SQK_SHOP_CATALOG.map(c => {
+    const owned = w ? (sqkState.owned[c.id] || 0) : 0;
+    const equipped = w && sqkIsEquipped(c);
     const btn = !deployed ? `<button class="btn-secondary" type="button" disabled>${msgf('sqkBuyTpl', { price: c.priceSqk })}</button>`
-      : !isAddr(w) ? ''
-      : owned > 0 ? (sqkIsEquipped(c) ? `<span class="msg">${msg('sqkEquippedTpl')}</span> <button class="btn-secondary" type="button" data-sqk-unequip="${c.id}">${msg('sqkUnequipBtn')}</button>` : `<button class="btn-secondary" type="button" data-sqk-equip="${c.id}">${msg('sqkEquipBtn')}</button>`) // v42.5.2 (FIX 1): UNEQUIP
+      : !w ? ''
+      : owned > 0 ? (equipped ? `<span class="msg">${msg('sqkEquippedTpl')}</span> <button class="btn-secondary" type="button" data-sqk-unequip="${c.id}">${msg('sqkUnequipBtn')}</button>` : `<button class="btn-secondary" type="button" data-sqk-equip="${c.id}">${msg('sqkEquipBtn')}</button>`) // v42.5.2 (FIX 1): UNEQUIP
       : `<button class="btn-secondary" type="button" data-sqk-buy="${c.id}">${msgf('sqkBuyTpl', { price: c.priceSqk })}</button>`;
-    return `<div class="shop-item"><b>${escHtml(c.name)}</b>${skinPreviewHtml(c.skin, c.slot)}<span class="shop-meta">SQK • ${c.priceSqk} SQK${owned > 0 ? ' • ' + msgf('sqkOwnedTpl', { n: owned }) : ''}${sqkIsEquipped(c) ? ' • ' + msg('sqkEquippedTpl') : ''}</span>${btn}</div>`;
+    return `<div class="shop-item"><b>${escHtml(c.name)}</b>${skinPreviewHtml(c.skin, c.slot)}<span class="shop-meta">SQK • ${c.priceSqk} SQK${owned > 0 ? ' • ' + msgf('sqkOwnedTpl', { n: owned }) : ''}${equipped ? ' • ' + msg('sqkEquippedTpl') : ''}</span>${btn}</div>`;
   }).join('');
   cat.querySelectorAll('[data-sqk-buy]').forEach(b => b.addEventListener('click', () => buySqkItem(Number(b.dataset.sqkBuy))));
   cat.querySelectorAll('[data-sqk-equip]').forEach(b => b.addEventListener('click', () => equipSqkItem(Number(b.dataset.sqkEquip)))); // v42.4 (BUG 3)
   cat.querySelectorAll('[data-sqk-unequip]').forEach(b => b.addEventListener('click', () => unequipSqkItem(Number(b.dataset.sqkUnequip)))); // v42.5.2 (FIX 1)
   const scp = $('sqkCapsulePreview'); if (scp) scp.innerHTML = capsulePreviewHtml(); // v42.5 (P1-5)
   const pity = $('sqkCapsulePity');
-  if (pity) pity.textContent = sqkState.pity === null ? '' : msgf('sqkPityTpl', { n: sqkState.pity });
+  if (pity) pity.textContent = (!w || sqkState.pity === null) ? '' : msgf('sqkPityTpl', { n: sqkState.pity });
   const commit = $('sqkCommitBtn'), resolve = $('sqkResolveBtn');
   const pending = sqkPendingCapsule();
-  if (commit) commit.disabled = !deployed;
-  if (resolve) { resolve.disabled = !deployed; resolve.textContent = pending ? msg('sqkResolveBtn') + ' (#' + pending.pullId + ')' : msg('sqkResolveBtn'); }
+  if (commit) commit.disabled = !deployed || !w; // v43.4: commit kapsul butuh wallet terhubung
+  if (resolve) { resolve.disabled = !deployed || !w; resolve.textContent = pending ? msg('sqkResolveBtn') + ' (#' + pending.pullId + ')' : msg('sqkResolveBtn'); }
 }
 async function fetchSqkShop() {
   renderSqkShop();
   if (!sqkShopDeployed()) return; // placeholder: honest disabled state, no RPC calls
-  const w = currentWallet();
+  const w = connectedWallet(); // v43.4: data wallet toko hanya untuk wallet terhubung
   try {
     const [pool, season, sweep, swept] = await Promise.all([
       sqkEthCall(CONFIG.SHOP_ADDRESS, SQK_SEL.prizePool).then(sqkUint),
@@ -3566,7 +3603,7 @@ async function fetchSqkShop() {
     ]);
     sqkState.pool = pool; sqkState.seasonEnd = season ? Number(season) : null;
     sqkState.sweepAt = sweep ? Number(sweep) : null; sqkState.swept = !!swept;
-    if (isAddr(w)) {
+    if (w) { // v43.4: bacaan saldo/pity/kepemilikan hanya untuk wallet terhubung
       const [bal, pity] = await Promise.all([
         sqkEthCall(CONFIG.SQK_TOKEN, SQK_SEL.balanceOf + sqkWordAddr(w)).then(sqkUint),
         sqkEthCall(CONFIG.SHOP_ADDRESS, SQK_SEL.pityCounter + sqkWordAddr(w)).then(sqkUint),
@@ -3702,8 +3739,8 @@ function sqkResultFromResolveLog(log) {
 }
 async function buySqkItem(itemId) {
   if (!sqkShopDeployed()) return sqkShopMsg(msg('sqkShopSoon'));
-  const w = txWallet(); // v42.5: transaksi pakai alamat TERHUBUNG, bukan field
-  if (!isAddr(w)) return sqkShopMsg(msg('sqkNeedWallet'));
+  const w = connectedWallet(); // v43.4: beli pakai alamat TERHUBUNG; belum connect = tolak dengan jelas (dulu txWallet() memakai alamat manual lalu gagal di provider)
+  if (!w) return sqkShopMsg(msg('sqkNeedWallet'));
   const item = sqkShopItem(itemId);
   if (!item) return;
   const priceWei = BigInt(item.priceSqk) * (10n ** 18n);
@@ -3721,8 +3758,8 @@ async function buySqkItem(itemId) {
 }
 async function commitSqkCapsule() {
   if (!sqkShopDeployed()) return sqkShopMsg(msg('sqkShopSoon'));
-  const w = txWallet(); // v42.5: transaksi pakai alamat TERHUBUNG, bukan field
-  if (!isAddr(w)) return sqkShopMsg(msg('sqkNeedWallet'));
+  const w = connectedWallet(); // v43.4: commit kapsul pakai alamat TERHUBUNG
+  if (!w) return sqkShopMsg(msg('sqkNeedWallet'));
   await refreshChain(true);
   const settled = chainSnapshot && chainSnapshot.ok ? chainSnapshot.settled : null;
   if (settled === null || !Number.isFinite(settled)) return sqkShopMsg(msg('sqkRoundUnknown'));
@@ -3803,8 +3840,8 @@ async function sqkHealPendingCapsule(wallet, pending) {
 }
 async function resolveSqkCapsule() {
   if (!sqkShopDeployed()) return sqkShopMsg(msg('sqkShopSoon'));
-  const w = txWallet(); // v42.5: transaksi pakai alamat TERHUBUNG, bukan field
-  if (!isAddr(w)) return sqkShopMsg(msg('sqkNeedWallet'));
+  const w = connectedWallet(); // v43.4: resolve kapsul pakai alamat TERHUBUNG
+  if (!w) return sqkShopMsg(msg('sqkNeedWallet'));
   const pending0 = sqkPendingCapsule();
   if (!pending0) return sqkShopMsg(msg('sqkNoPending'));
   // v42.5.4 (BUG KAPSUL 3): verifikasi + perbaiki pull tersimpan on-chain
@@ -3883,17 +3920,17 @@ function renderLeagueWeekly() {
   const lbl = $('leagueWeekLabel');
   if (lbl) lbl.textContent = leagueWeeklyState.week_start ? ('WEEK ' + leagueWeeklyState.week_start + ' — ' + I18N[lang].leagueWeekNote) : '';
   if (!leagueWeeklyState.scores.length) { el.innerHTML = `<p class="msg">${I18N[lang].leagueWeeklyEmpty}</p>`; return; }
-  const me = (currentWallet() || '').toLowerCase();
+  const me = (connectedWallet() || '').toLowerCase(); // v43.4: sorot baris sendiri hanya bila terhubung
   el.innerHTML = leagueWeeklyState.scores.map(r => `<div class="league-row lb-row${r.wallet && r.wallet.toLowerCase() === me ? ' lb-me' : ''}"><span class="lb-rank">#${r.rank}</span> <b>${escHtml(r.name || 'GUEST')}</b> <span class="lb-wallet">${escHtml(truncAddr(r.wallet))}</span> <b class="lb-score">${r.best_score}</b>${r.verified ? ` <span class="lb-verified" title="${escHtml(msg('lbVerified'))}">✓</span>` : ''}</div>`).join(''); // v41.1: verified=1 league rows carry a ✓, same as the global board; verified=0 rows unchanged
   const rk = $('leagueWeeklyRank');
-  if (rk) rk.textContent = (leagueWeeklyState.you && leagueWeeklyState.you.rank) ? msgf('leagueWeeklyYourRank', { rank: leagueWeeklyState.you.rank }) : '';
+  if (rk) rk.textContent = (connectedWallet() && leagueWeeklyState.you && leagueWeeklyState.you.rank) ? msgf('leagueWeeklyYourRank', { rank: leagueWeeklyState.you.rank }) : ''; // v43.4: peringkat mingguan sendiri hanya bila terhubung
 }
 async function fetchLeagueWeekly() {
   const el = $('leagueWeeklyList'); if (!el) return;
   el.innerHTML = `<p class="msg">${msg('leagueWeeklyLoading')}</p>`;
   try {
-    const w = currentWallet();
-    const r = await tfetch(CONFIG.LB_URL + '/league' + (isAddr(w) ? '?wallet=' + w : ''), null, 8000);
+    const w = connectedWallet(); // v43.4: data "you" liga hanya untuk wallet terhubung
+    const r = await tfetch(CONFIG.LB_URL + '/league' + (w ? '?wallet=' + w : ''), null, 8000);
     if (!r.ok) throw new Error('HTTP_' + r.status);
     const d = await r.json();
     if (!d || !Array.isArray(d.scores)) throw new Error('bad league');

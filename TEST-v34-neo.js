@@ -46,8 +46,8 @@ t('v43.1 walletStatus is GONE (address appears once, in the card)', !html.includ
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v43.3', (html.match(/v43\.3/g) || []).length >= 2);
-t('browser tab title is v43.3', html.includes('<title>SQUEEKCHAIN // v43.3</title>'));
+t('html says v43.4', (html.match(/v43\.4/g) || []).length >= 2);
+t('browser tab title is v43.4', html.includes('<title>SQUEEKCHAIN // v43.4</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -492,7 +492,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v43.3', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43.3'"));
+t('submit sends replay + hash + gameVersion v43.4', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43.4'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -518,7 +518,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v43.3', readme.startsWith('# Squeekchain v43.3'));
+t('README title is v43.4', readme.startsWith('# Squeekchain v43.4'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -1018,10 +1018,10 @@ async function runEquipTests42() {
   const isAddrStub = s => /^0x[a-fA-F0-9]{40}$/.test(s || '');
   const catSrc = js.slice(js.indexOf('const SQK_SHOP_CATALOG'), js.indexOf('];', js.indexOf('const SQK_SHOP_CATALOG')) + 2);
   const sqkStateH = { owned: { 1: 1, 2: 0, 3: 1, 4: 1, 5: 0, 6: 0 } }; // pembacaan toko sendiri (fetchSqkShop) — dipakai fallback equip
-  const equipSqkItem = new Function('currentWallet', 'isAddr', 'sqkShopMsg', 'sqkEthCall', 'applyResultFrame', 'renderSqkShop', 'msg', 'msgf', 'CONFIG', 'SQK_SEL', 'loadJSON', 'saveJSON', 'sqkState',
+  const equipSqkItem = new Function('currentWallet', 'connectedWallet', 'isAddr', 'sqkShopMsg', 'sqkEthCall', 'applyResultFrame', 'renderSqkShop', 'msg', 'msgf', 'CONFIG', 'SQK_SEL', 'loadJSON', 'saveJSON', 'sqkState',
     catSrc + '\n' + fnSrc38('sqkShopItem') + '\n' + fnSrc38('sqkUint') + '\n' + fnSrc38('sqkWordAddr') + '\n' + fnSrc38('sqkWordUint') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('saveSqkSkin') + '\n' + fnSrc38('saveSkinLast') + '\n' + fnSrc38('equipSqkItem') +
     '\nreturn equipSqkItem;')(
-    () => ADDR, isAddrStub, (m) => msgs.push(m), sqkEthCall,
+    () => ADDR, () => ADDR, isAddrStub, (m) => msgs.push(m), sqkEthCall,
     () => { frameApplied++; }, () => { shopRendered++; },
     msgStub, msgfStub,
     { SHOP_ADDRESS: '0x43f568AcfaDcee4333785c9F26596719ED0B02fb' },
@@ -1040,10 +1040,10 @@ async function runEquipTests42() {
   // v42.5.1 (BUG 1) fallback: eth_call gagal TAPI owned sudah diketahui dari
   // pembacaan toko sendiri -> equip tetap jalan; owned=0 -> tetap ditolak.
   const sqkEthCallFail = async () => { throw new Error('RPC_DOWN'); };
-  const equipSqkItemNoRpc = new Function('currentWallet', 'isAddr', 'sqkShopMsg', 'sqkEthCall', 'applyResultFrame', 'renderSqkShop', 'msg', 'msgf', 'CONFIG', 'SQK_SEL', 'loadJSON', 'saveJSON', 'sqkState',
+  const equipSqkItemNoRpc = new Function('currentWallet', 'connectedWallet', 'isAddr', 'sqkShopMsg', 'sqkEthCall', 'applyResultFrame', 'renderSqkShop', 'msg', 'msgf', 'CONFIG', 'SQK_SEL', 'loadJSON', 'saveJSON', 'sqkState',
     catSrc + '\n' + fnSrc38('sqkShopItem') + '\n' + fnSrc38('sqkUint') + '\n' + fnSrc38('sqkWordAddr') + '\n' + fnSrc38('sqkWordUint') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('saveSqkSkin') + '\n' + fnSrc38('saveSkinLast') + '\n' + fnSrc38('equipSqkItem') +
     '\nreturn equipSqkItem;')(
-    () => ADDR, isAddrStub, (m) => msgs.push(m), sqkEthCallFail,
+    () => ADDR, () => ADDR, isAddrStub, (m) => msgs.push(m), sqkEthCallFail,
     () => { frameApplied++; }, () => { shopRendered++; },
     msgStub, msgfStub,
     { SHOP_ADDRESS: '0x43f568AcfaDcee4333785c9F26596719ED0B02fb' },
@@ -1060,14 +1060,14 @@ async function runEquipTests42() {
   const renderMsgStub = k => ({ sqkEquippedTpl: 'DIPAKAI ✓', sqkBuyTpl: '[ BELI — {price} SQK ]', sqkOwnedTpl: 'DIMILIKI ×{n}', sqkPoolTpl: 'POOL: {pool} SQK', sqkSeasonTpl: 'MUSIM BERAKHIR: {date}', sqkSweepTpl: 'sapu {date}', sqkBalanceTpl: 'SALDO SQK: {n}', sqkPityTpl: 'PITY: {n} / 20', sqkResolveBtn: '[ RESOLVE KAPSUL ]' }[k] || k);
   const renderMsgfStub = (k, vars) => { let s = renderMsgStub(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; };
   const skinsSrc42 = js.slice(js.indexOf('const NOTE_SKINS'), js.indexOf('function shopSkin'));
-  const renderSqkShop = new Function('sqkState', '$', 'msg', 'msgf', 'fmt', 'sqkDateStr', 'escHtml', 'currentWallet', 'sqkPendingCapsule', 'isAddr', 'CONFIG', 'SQK_ZERO_ADDRESS', 'lang', 'loadJSON', 'saveJSON',
+  const renderSqkShop = new Function('sqkState', '$', 'msg', 'msgf', 'fmt', 'sqkDateStr', 'escHtml', 'currentWallet', 'connectedWallet', 'sqkPendingCapsule', 'isAddr', 'CONFIG', 'SQK_ZERO_ADDRESS', 'lang', 'loadJSON', 'saveJSON',
     catSrc + '\n' + skinsSrc42 + '\n' + fnSrc38('skinPreviewHtml') + '\n' + fnSrc38('capsulePreviewHtml') + '\n' + fnSrc38('sqkShopDeployed') + '\n' + fnSrc38('sqkIsEquipped') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('renderSqkShop') +
     '\nreturn renderSqkShop;')(
     sqkState42, $stub, renderMsgStub, renderMsgfStub,
     new Function(fnSrc38('fmt') + '\nreturn fmt;')(),
     new Function('lang', fnSrc38('sqkDateStr') + '\nreturn sqkDateStr;')('id'),
     new Function(fnSrc38('escHtml') + '\nreturn escHtml;')(),
-    () => ADDR, () => null,
+    () => ADDR, () => ADDR, () => null,
     isAddrStub, { SHOP_ADDRESS: '0x43f568AcfaDcee4333785c9F26596719ED0B02fb' }, '0x0000000000000000000000000000000000000000', 'id', loadJSON, saveJSON);
   // NOTE: shopSkin di atas dibaca dari store yang sama — saat ini note =
   // note-sqk-rare (dari equip fallback item 1) dan frame = frame-sqk.
@@ -1330,8 +1330,8 @@ t('worker v6: /league you carries verified', worker.includes('verified: me.verif
 t('worker version is 13', worker.includes('{ service: "squeekchain-leaderboard", version: 13 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v43.3', js.includes("gameVersion: 'v43.3'"));
-t('html title is v43.3', html.includes('<title>SQUEEKCHAIN // v43.3</title>'));
+t('submit sends gameVersion v43.4', js.includes("gameVersion: 'v43.4'"));
+t('html title is v43.4', html.includes('<title>SQUEEKCHAIN // v43.4</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {
@@ -1348,8 +1348,8 @@ t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.
     lang: 'en',
   };
   const run = (state) => {
-    const fn = new Function('$', 'currentWallet', 'escHtml', 'truncAddr', 'msg', 'msgf', 'I18N', 'lang', 'leagueWeeklyState', 'els', src + '; renderLeagueWeekly(); return els;');
-    return fn($, fakes.currentWallet, fakes.escHtml, fakes.truncAddr, fakes.msg, fakes.msgf, fakes.I18N, fakes.lang, state, els);
+    const fn = new Function('$', 'currentWallet', 'connectedWallet', 'escHtml', 'truncAddr', 'msg', 'msgf', 'I18N', 'lang', 'leagueWeeklyState', 'els', src + '; renderLeagueWeekly(); return els;');
+    return fn($, fakes.currentWallet, () => null, fakes.escHtml, fakes.truncAddr, fakes.msg, fakes.msgf, fakes.I18N, fakes.lang, state, els);
   };
   const rows = [
     { rank: 1, wallet: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', name: 'AAA', best_score: 500, verified: 1 },
@@ -1494,7 +1494,7 @@ t('v43.3 submitLb handles 429 with retry time (via postOneSubmit + retryTime)', 
 t('v42.5 resolve handles 429 with retry time', js.includes("msgf('sqkRateLimited', { time: t"));
 t('v42.5 MSG rate-limit keys exist in EN + ID', js.includes("sqkRateLimited: 'TOO MANY REQUESTS — TRY AGAIN AT {time}.'") && js.includes("sqkRateLimited: 'TERLALU SERING — COBA LAGI {time}.'") && js.includes("lbRateLimited: 'TOO MANY SUBMITS — TRY AGAIN AT {time}.'") && js.includes("lbRateLimited: 'TERLALU SERING KIRIM SKOR — COBA LAGI {time}.'"));
 // P1-1 wallet UX: transactions use txWallet() (connected address), not the field.
-t('v42.5 txWallet() exists and is used by buy/commit/resolve', js.includes('function txWallet() { return connectedAddr || currentWallet(); }') && (js.match(/const w = txWallet\(\); \/\/ v42\.5/g) || []).length === 3);
+t('v43.4 connectedWallet() dipakai buy/commit/resolve (bukan txWallet)', js.includes('function connectedWallet()') && js.includes('const w = connectedWallet(); // v43.4: beli pakai alamat TERHUBUNG') && js.includes('const w = connectedWallet(); // v43.4: commit kapsul pakai alamat TERHUBUNG') && js.includes('const w = connectedWallet(); // v43.4: resolve kapsul pakai alamat TERHUBUNG') && !js.includes('const w = txWallet();'));
 t('v43.1 updateConnectBtn renders kartu wallet (dot + alamat singkat + salin) + disconnect + readonly field, TANPA status ganda', js.includes("const dot = $('walletDot');") && js.includes("const addrEl = $('walletAddr');") && js.includes("const copy = $('walletCopyBtn');") && !js.includes("const st = $('walletStatus');") && js.includes("const dc = $('disconnectBtn');") && js.includes('walletEl.readOnly = connected;'));
 t('v42.5 disconnectWallet() exists and is bound', js.includes('async function disconnectWallet()') && js.includes("bindClick('disconnectBtn', disconnectWallet);"));
 t('v42.5 sqkNoProvider no longer says BUKA HALAMAN INI DI METAMASK', !js.includes('BUKA HALAMAN INI DI METAMASK') && js.includes('TAP [ CONNECT WALLET ] TO CONNECT'));

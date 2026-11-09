@@ -425,7 +425,7 @@ async function runDreamTests42() {
   t('v42.5.1 og:image -> Worker /og.png', html.includes('<meta property="og:image" content="' + W + '/og.png">'));
   t('v42.5.1 twitter:image -> Worker /og.png', html.includes('<meta name="twitter:image" content="' + W + '/og.png">'));
   t('v42.5.1 favicon + apple-touch-icon -> Worker /icon.png', html.includes('<link rel="icon" type="image/png" href="' + W + '/icon.png">') && html.includes('<link rel="apple-touch-icon" href="' + W + '/icon.png">'));
-  t('v43.3 gameVersion v43.3', js.includes("gameVersion: 'v43.3'"));
+  t('v43.4 gameVersion v43.4', js.includes("gameVersion: 'v43.4'"));
   t('v42.5.1 worker routes /icon.png + /og.png exist', worker.includes('"/icon.png"') && worker.includes('"/og.png"') && worker.includes('function pngResponse('));
   t('v13 worker version 13', worker.includes('version: 13'));
   t('v42.5.1 no stale headline-simple.png URL in client', !html.includes('squeekchain-headline-simple.png') && !js.includes('squeekchain-headline-simple.png'));
@@ -465,11 +465,11 @@ async function runBugFixTests4251() {
   let cheeseResp = { catalog: [{ id: 'note-mint', slot: 'note' }], items: [], balance: 0 };
   const tfetchMock = async () => ({ ok: true, json: async () => cheeseResp });
   let renderCalls = 0;
-  const fetchShopH = new Function('currentWallet', 'isAddr', 'tfetch', 'CONFIG', 'renderShop', 'loadJSON', 'saveJSON',
+  const fetchShopH = new Function('currentWallet', 'connectedWallet', 'isAddr', 'tfetch', 'CONFIG', 'renderShop', 'loadJSON', 'saveJSON',
     'let shopState = { balance: 0, items: [], catalog: [] };\n' +
     fnSrcJ('saveKejuSkin') + '\n' + fnSrcJ('fetchShop') +
     '\nreturn { fetchShop, getState: () => shopState };')(
-    () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''), tfetchMock, { LB_URL: 'https://lb.test' },
+    () => ADDR, () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''), tfetchMock, { LB_URL: 'https://lb.test' },
     () => { renderCalls++; }, loadJSON, saveJSON);
   saveSqkSkin({ note: 'note-sqk-rare', frame: null }); saveSkinLast('note', 'sqk');
   await fetchShopH.fetchShop();
@@ -529,10 +529,10 @@ async function runBugFixTests4252() {
     { id: 3, name: 'Bingkai Animasi', skin: 'frame-sqk', slot: 'frame', priceSqk: 15 },
   ];
   let sqkMsgLog = [];
-  const unequipSqkH = new Function('sqkShopItem', 'loadJSON', 'saveSqkSkin', 'saveSkinLast', 'applyResultFrame', 'sqkShopMsg', 'msg', 'msgf', 'renderSqkShop',
+  const unequipSqkH = new Function('sqkShopItem', 'loadJSON', 'saveSqkSkin', 'saveSkinLast', 'applyResultFrame', 'sqkShopMsg', 'msg', 'msgf', 'renderSqkShop', 'connectedWallet',
     fnSrcJ('unequipSqkItem') + '\nreturn unequipSqkItem;')(
     id => sqkCatalog.find(c => c.id === id) || null, loadJSON, saveSqkSkin, saveSkinLast,
-    () => {}, t => { sqkMsgLog.push(t); }, k => k, (k, v) => k, () => {});
+    () => {}, t => { sqkMsgLog.push(t); }, k => k, (k, v) => k, () => {}, () => ADDR);
   resetSkins();
   saveSqkSkin({ note: 'note-sqk-rare', frame: null }); saveSkinLast('note', 'sqk');
   t('v42.5.2 FIX 1: equip SQK -> terpasang', shopSkin().note === 'note-sqk-rare');
@@ -559,9 +559,9 @@ async function runBugFixTests4252() {
     shopStateH.items = [{ id: 'note-mint', slot: 'note', equipped: serverEquipped.note === 'note-mint' }];
     saveKejuSkin({ note: serverEquipped.note, frame: serverEquipped.frame });
   };
-  const unequipH = new Function('currentWallet', 'isAddr', 'tfetch', 'CONFIG', 'shopMsg', 'msg', 'msgf', 'loadJSON', 'saveKejuSkin', 'saveSkinLast', 'applyResultFrame', 'fetchShop', 'shopState',
+  const unequipH = new Function('currentWallet', 'connectedWallet', 'isAddr', 'tfetch', 'CONFIG', 'shopMsg', 'msg', 'msgf', 'loadJSON', 'saveKejuSkin', 'saveSkinLast', 'applyResultFrame', 'fetchShop', 'shopState',
     fnSrcJ('unequipItem') + '\nreturn unequipItem;')(
-    () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''), tfetchUnequip, { LB_URL: 'https://lb.test' },
+    () => ADDR, () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''), tfetchUnequip, { LB_URL: 'https://lb.test' },
     tt => { shopMsgLog.push(tt); }, k => k, (k, v) => k,
     loadJSON, saveKejuSkin, saveSkinLast, () => {}, fetchShopMock, shopStateH);
   resetSkins();
@@ -593,12 +593,12 @@ async function runBugFixTests4252() {
   const msgfFn = (k, vars) => { let s = msgFn(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; };
   const escHtmlH = new Function(fnSrcJ('escHtml') + '\nreturn escHtml;')();
   const sqkStateH = { pool: null, seasonEnd: null, sweepAt: null, swept: false, sqkBalance: null, owned: { 1: 1, 3: 0 }, pity: null };
-  const renderSqkH = new Function('$', 'sqkShopDeployed', 'sqkState', 'msg', 'msgf', 'fmt', 'escHtml', 'skinPreviewHtml', 'capsulePreviewHtml', 'sqkPendingCapsule', 'sqkIsEquipped', 'shopSkin', 'SQK_SHOP_CATALOG', 'buySqkItem', 'equipSqkItem', 'unequipSqkItem', 'currentWallet', 'isAddr',
+  const renderSqkH = new Function('$', 'sqkShopDeployed', 'sqkState', 'msg', 'msgf', 'fmt', 'escHtml', 'skinPreviewHtml', 'capsulePreviewHtml', 'sqkPendingCapsule', 'sqkIsEquipped', 'shopSkin', 'SQK_SHOP_CATALOG', 'buySqkItem', 'equipSqkItem', 'unequipSqkItem', 'currentWallet', 'connectedWallet', 'isAddr',
     fnSrcJ('renderSqkShop') + '\nreturn renderSqkShop;')(
     id => sqkEls[id] || null, () => true, sqkStateH, msgFn, msgfFn, () => '2.1', escHtmlH,
     () => '', () => '', () => null,
     new Function('shopSkin', fnSrcJ('sqkIsEquipped') + '\nreturn sqkIsEquipped;')(shopSkin),
-    shopSkin, sqkCatalog, () => {}, () => {}, () => {}, () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''));
+    shopSkin, sqkCatalog, () => {}, () => {}, () => {}, () => ADDR, () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''));
   resetSkins();
   saveSqkSkin({ note: 'note-sqk-rare', frame: null }); saveSkinLast('note', 'sqk');
   renderSqkH();
@@ -615,9 +615,9 @@ async function runBugFixTests4252() {
   const shopStateR = { balance: 50, items: [{ id: 'note-mint', slot: 'note', equipped: true }], catalog: [{ id: 'note-mint', name: 'Mint Notes', slot: 'note', rarity: 'common', price: 300 }] };
   const shopOwnedH = new Function('shopState', fnSrcJ('shopOwned') + '\nreturn shopOwned;')(shopStateR);
   const shopEquippedH = new Function('shopState', fnSrcJ('shopEquipped') + '\nreturn shopEquipped;')(shopStateR);
-  const renderShopH = new Function('$', 'shopState', 'currentWallet', 'isAddr', 'msg', 'msgf', 'I18N', 'lang', 'escHtml', 'skinPreviewHtml', 'capsulePreviewHtml', 'shopOwned', 'shopEquipped', 'buyItem', 'equipItem', 'unequipItem',
+  const renderShopH = new Function('$', 'shopState', 'currentWallet', 'connectedWallet', 'isAddr', 'msg', 'msgf', 'I18N', 'lang', 'escHtml', 'skinPreviewHtml', 'capsulePreviewHtml', 'shopOwned', 'shopEquipped', 'buyItem', 'equipItem', 'unequipItem',
     fnSrcJ('renderShop') + '\nreturn renderShop;')(
-    id => kejuEls[id] || null, shopStateR, () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''),
+    id => kejuEls[id] || null, shopStateR, () => ADDR, () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''),
     msgKeju, msgfKeju, I18NStub, 'en', escHtmlH,
     () => '', () => '', shopOwnedH, shopEquippedH, () => {}, () => {}, () => {});
   renderShopH();
@@ -697,11 +697,11 @@ async function runBugFixTests4252() {
   // Statis: timeout baru + gameVersion + kunci i18n + Worker v12.
   t('v43.3: POST /scores timeout 60 detik (SUBMIT_TIMEOUT_MS, dari 30)', js.includes('SUBMIT_TIMEOUT_MS = 60000') && js.includes('}, SUBMIT_TIMEOUT_MS)'));
   t('v42.5.2 FIX 2: GET /scores, /rank, /verify timeout 20 detik', js.includes("'/scores?mode=' + lbState.mode + '&limit=10', null, 20000)") && js.includes("'/rank?wallet=' + w + '&mode=' + lbState.mode, null, 20000)") && js.includes('encodeURIComponent(replayHash), null, 20000)') && js.includes('encodeURIComponent(lastVerifyHash), null, 20000)'));
-  t('v43.3: gameVersion v43.3', js.includes("gameVersion: 'v43.3'"));
+  t('v43.4: gameVersion v43.4', js.includes("gameVersion: 'v43.4'"));
   t('v42.5.2 FIX 1: kunci i18n UNEQUIP EN+ID ada', js.includes("sqkUnequipBtn: '[ UNEQUIP ]'") && js.includes("sqkUnequipped: 'UNEQUIPPED: {item} ✓ — BACK TO DEFAULT.'") && js.includes("sqkUnequipBtn: '[ LEPAS ]'") && js.includes("sqkUnequipped: 'DILEPAS: {item} ✓ — KEMBALI KE DEFAULT.'") && js.includes("shopUnequipped: 'UNEQUIPPED {item} ✓'") && js.includes("shopUnequipped: 'DILEPAS {item} ✓'") && js.includes("unequipBtn: '[ UNEQUIP ]'") && js.includes("unequipBtn: '[ LEPAS ]'"));
   t('v42.5.2 FIX 1: Worker v12 punya POST /cheese/unequip + UPDATE equipped=0', worker.includes('"/cheese/unequip"') && worker.includes('UPDATE cheese_inventory SET equipped = 0') && worker.includes('version: 13'));
   t('v42.5.2 FIX 1: render toko memakai data-unequip / data-sqk-unequip', js.includes('data-unequip=') && js.includes('data-sqk-unequip='));
-  t('v43.3: index.html judul v43.3', html.includes('<title>SQUEEKCHAIN // v43.3</title>') && html.includes('PIXEL ID // v43.3'));
+  t('v43.4: index.html judul v43.4', html.includes('<title>SQUEEKCHAIN // v43.4</title>') && html.includes('PIXEL ID // v43.4'));
 }
 
 // --- 13. v42.5.2 FIX 3: WalletConnect session restore ---
