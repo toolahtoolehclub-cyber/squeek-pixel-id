@@ -98,9 +98,24 @@ baseline v43.1 >= 20 kanal, plus semua invarian biaya-nol di atas.
    yang dibangun dulu; Worker tidak berubah di v43.2, jadi tidak
    relevan — sama seperti total v43.1).
 
-## Verifikasi live (setelah push)
-- Judul + gameVersion v43.2 di squeekpixel.web.id.
-- Worker GET / -> version 13.
-- 3 bukti Genesis utuh.
-- Board D1 tidak berubah.
-- Latar load pertama terlihat berwarna (curl + baca CSS live).
+## Verifikasi live (TERVERIFIKASI 2026-11-09 ~11:10 WIB, setelah push)
+- Judul live: `SQUEEKCHAIN // v43.2` ✓ (squeekpixel.web.id).
+- gameVersion live: `v43.2` ✓ (script.js).
+- CSS live: gradasi body exact (elips 80% 55% hijau .10 + elips 70%
+  50% cyan .08 + base #050607) ✓; aurora cyan .22 + hijau .20 +
+  violet .12 ✓; komentar v43.2 di aturan body ✓.
+- Worker GET / -> `{"service":"squeekchain-leaderboard","version":13}` ✓.
+- 3 bukti Genesis utuh ✓: meta `05432539-b4e4-4f90-97b3-c258583905b7`,
+  README `squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7`,
+  DNS TXT `_squeekchain` =
+  `squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9`
+  (via Google DoH).
+- Board D1: **berubah karena main user sendiri, bukan karena deploy
+  ini** — skor baru FREE 36115 verified=1 (replay `0x89cfa755…`,
+  status verified) dari user; baris Genesis race 28280 verified=1
+  UTUH; 3 baris audit-trail lama utuh (daily 34675 rejected, race
+  28280 verified, GHOST race 34720 rejected); verify_queue kini 4
+  baris. v43.2 tidak menyentuh board/Worker dan tidak submit apa pun.
+- Catatan deploy: GitHub Pages butuh ~5 menit setelah push sebelum
+  v43.2 tampil (cek pertama masih v43.1, cek ulang ~11:10 WIB sudah
+  v43.2).
