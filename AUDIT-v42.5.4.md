@@ -173,11 +173,23 @@ case-insensitive (provider bisa mengembalikan alamat checksum).
   11 + 9 + 30 kapsul baru). `node --check` bersih. Worker tetap v13,
   engine.js TIDAK berubah.
 
-## Verifikasi live
-- (diisi setelah push) Judul v42.5.4, gameVersion v42.5.4, Worker GET /
-  → version 13 (tidak berubah), /icon.png + /og.png 200, 3 bukti Genesis
-  utuh, board D1 tidak berubah (Genesis scores 1 baris race 28280
-  verified).
+## Verifikasi live (dilakukan setelah push head 089bfd7e, 9 Nov 2026 ~09:05 WIB)
+- Judul live `SQUEEKCHAIN // v42.5.4`, `gameVersion: 'v42.5.4'` ✓.
+- Worker GET / → `{"service":"squeekchain-leaderboard","version":13}` —
+  TIDAK berubah ✓. `/icon.png` + `/og.png` 200 ✓.
+- `script.js` live mengandung perbaikan kapsul (7 match:
+  `sqkHealPendingCapsule`, `pulls: '0x7a9dfa7e'`,
+  `sqkPullIdFromCommitLog`, `sqkResultFromResolveLog`) ✓.
+- 3 bukti Genesis utuh: meta `05432539-b4e4-4f90-97b3-c258583905b7` ✓,
+  README baris terakhir sama ✓, DNS TXT `_squeekchain` =
+  `squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9`
+  ✓ (dicek via Google DNS-over-HTTPS; resolver lokal VM mengembalikan
+  kosong — masalah resolver, bukan record).
+- Board D1 tidak berubah: `scores` tetap 1 baris — wallet Genesis,
+  mode race, 28280, verified=1 ✓.
+- Selector `pulls` diverifikasi live SEBELUM ditulis: `pulls(1)` →
+  player `0x8853…cf9a`, targetRound 712, resolved false (pull user masih
+  pending — keadaan yang harus disembuhkan self-healing).
 
 ## Cara user menguji
 1. **Restore wallet** — Buka https://squeekpixel.web.id/ (refresh bila
