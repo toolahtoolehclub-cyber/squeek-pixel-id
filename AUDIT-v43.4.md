@@ -200,6 +200,23 @@ disembunyikan):**
    — ada, tidak berubah (judul README naik ke v43.4, baris bukti tidak
    disentuh).
 
+## 6b. Verifikasi LIVE (setelah deploy, 2026-11-09 ~21:41 WIB)
+
+- GitHub head: `517fb56798b6e61c5a57eb4dc3043bd1bc56f3e6` (commit v43.4).
+- Live site https://squeekpixel.web.id/ : `<title>SQUEEKCHAIN //
+  v43.4</title>`, 4× "v43.4" di HTML (deploy Pages selesai ~21:41 WIB,
+  ~3 menit setelah push).
+- Live `script.js` byte-identik dengan `script.js` lokal v43.4
+  (`cmp` bersih); `gameVersion: 'v43.4'` + `function connectedWallet()`
+  ada di live.
+- Live `engine.js` byte-identik v43.3; live `worker.js` byte-identik
+  v43.3 (Worker tetap v13).
+- 3 bukti Genesis di LIVE: (1) DNS TXT `_squeekchain` via Google DoH =
+  `squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9`;
+  (2) meta tag di live `index.html` utuh; (3) baris terakhir live
+  `README.md` = `squeekchain-project:
+  05432539-b4e4-4f90-97b3-c258583905b7` + judul `# Squeekchain v43.4`.
+
 ## 7. Skenario user — penalaran (verifikasi live menyusul setelah deploy)
 
 1. Halaman dibuka dengan alamat yang diingat (`sqk38:wallet`) tapi tanpa
