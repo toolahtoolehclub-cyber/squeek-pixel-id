@@ -365,7 +365,7 @@ async function runConnectTests() {
   t('v43.3 statis: alamat TIDAK tampil bila belum connect (updateConnectBtn)', js.includes('const shown = connected ? connectedAddr : null;') && !js.includes("const shown = connected ? connectedAddr : (isAddr(typed) ? typed : null);"));
   t('v43.3 statis: anti-duplikat di connectWalletConnect (enable sebelum connect)', js.includes('if (hasWcSessionKey() || (p.session && typeof p.session === \'object\'))'));
   t('v43.3 statis: akar masalah didokumentasi jujur di kode (max-age=600)', js.includes('max-age=600') && js.includes('v42.5.2/v43/v43.1/v43.2 mengklaim memperbaiki restore tapi tidak pernah'));
-  t('v43.4 statis: index.html judul v43.4 + gameVersion v43.4', html.includes('<title>SQUEEKCHAIN // v43.4</title>') && html.includes('PIXEL ID // v43.4') && js.includes("gameVersion: 'v43.4'"));
+  t('v43.4 statis: index.html judul v43.5 + gameVersion v43.5', html.includes('<title>SQUEEKCHAIN // v43.5</title>') && html.includes('PIXEL ID // v43.5') && js.includes("gameVersion: 'v43.5'"));
   t('v43.3 statis: tanpa CDN/dependensi baru (tidak ada <script src> eksternal; unpkg hanya disebut di komentar sejarah)', !/src="https?:\/\//.test(html) && !html.includes('https://unpkg') && !html.includes('https://cdn.jsdelivr') && !jsCode.includes('unpkg') && !jsCode.includes('cdn.jsdelivr'));
   t('v43.3 statis: engine.js byte-identik v43.2', fs.readFileSync('engine.js', 'utf8') === fs.readFileSync('../squeekchain-v43.2/engine.js', 'utf8'));
   t('v43.3 statis: worker.js byte-identik v43.2 (Worker tetap v13)', fs.readFileSync('worker.js', 'utf8') === fs.readFileSync('../squeekchain-v43.2/worker.js', 'utf8'));

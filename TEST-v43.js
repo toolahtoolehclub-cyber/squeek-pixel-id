@@ -264,7 +264,7 @@ t('chart: sapuan 60 kombinasi mode/diff/seed deterministik + berisi note', sweep
 t('chart: judgement windows TIDAK berubah (0.045/0.09/0.135, BREAK 0.185)',
   /perfect: 0\.045, great: 0\.09, good: 0\.135/.test(fs.readFileSync('engine.js', 'utf8')) &&
   /BREAK = W\.good \+ 0\.05/.test(fs.readFileSync('engine.js', 'utf8')));
-t('versi: gameVersion v43.4 + judul v43.4', js.includes("gameVersion: 'v43.4'") && html.includes('<title>SQUEEKCHAIN // v43.4</title>'));
+t('versi: gameVersion v43.5 + judul v43.5', js.includes("gameVersion: 'v43.5'") && html.includes('<title>SQUEEKCHAIN // v43.5</title>'));
 
 // ============ (d) PANEL HASIL + PESAN KAPSUL ============
 t('kapsul EN: "CAPSULE: Kapsul #102 (rare) ✓" — rarity SEKALI', __out.capEn === 'CAPSULE: Kapsul #102 (rare) ✓');

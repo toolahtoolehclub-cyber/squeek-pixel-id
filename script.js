@@ -1111,7 +1111,8 @@ async function play() {
   try { const cg = cx.createLinearGradient(0, 0, 0, GH); cg.addColorStop(0, G.theme.bg[0]); cg.addColorStop(1, G.theme.bg[1]); G.bgGrad = cg; } catch (_) {} // v34: theme gradient background (was the anthem hue)
   if (playMode === 'challenge' && (challengeLanes === 4 || challengeMirror)) say(msgf('duelUnlock', { mods: (challengeLanes === 4 ? '4 LANES ' : '') + (challengeMirror ? 'MIRROR ' : '') }), 'yellow');
   floatTexts = [];
-  show('gamePanel'); document.body.classList.add('playing'); pauseGL(); closeSettings(); // v32: freeze decorations + WebGL while playing (lag fix)
+  show('gamePanel'); applyResultFrame(); // v43.5: equipped frame wraps the play area from the first beat
+  document.body.classList.add('playing'); pauseGL(); closeSettings(); // v32: freeze decorations + WebGL while playing (lag fix)
   const emPlay = $('cardErrMsg'); if (emPlay) emPlay.classList.add('hidden'); // v33.1: a stale card error must not survive into the next game
   $('gamePanel').scrollIntoView({ behavior: 'auto', block: 'start' }); // v33: no more manual scroll to find the score + lanes
   setText('bpmVal', anthem.bpm); setText('gameAudioStatus', msgf('gameAudioTpl', { run: msg('audioRunning'), bpm: anthem.bpm, state: ac ? ac.state : '-', practice: practiceMode ? msg('practiceTag2') : '' })); hud();
@@ -3220,7 +3221,7 @@ async function submitLb() {
   // tanpa-replay dengan 422. 400/422 = replay tidak valid, tunjukkan apa
   // adanya. 429 (rate limit) TIDAK pernah di-retry.
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
-  const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v43.4' } : bodyBase;
+  const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v43.5' } : bodyBase;
   enqueuePendingSubmit(body);
   show(msg('lbSending'));
   const res = await submitWithRetries(body, () => show(msg('lbRetrying')));
@@ -3341,11 +3342,20 @@ function noteColor(lane, themeNotes, skinId) {
   if (skinId && NOTE_SKINS[skinId]) return NOTE_SKINS[skinId][lane % NOTE_SKINS[skinId].length];
   return themeNotes[lane];
 }
+// v43.5: the equipped frame wraps the PLAY area too, not just the result
+// panel — a frame bought in the shop must be visible WHILE the song runs.
+// One function styles both panels from the same equipped frame
+// (shopSkin().frame), so equip / unequip / play / result can never
+// disagree. No frame equipped -> both panels carry no frame class.
 function applyResultFrame() {
-  const p = $('resultPanel'); if (!p) return;
-  FRAME_SKINS.forEach(f => p.classList.remove(f));
+  const p0 = $('resultPanel'), p1 = $('gamePanel');
   const frame = shopSkin().frame;
-  if (frame && FRAME_SKINS.indexOf(frame) >= 0) p.classList.add(frame);
+  const ok = frame && FRAME_SKINS.indexOf(frame) >= 0;
+  for (const p of [p0, p1]) {
+    if (!p) continue;
+    FRAME_SKINS.forEach(f => p.classList.remove(f));
+    if (ok) p.classList.add(frame);
+  }
 }
 // --- v42.5 (P1-5): preview produk di toko — gambar produknya sendiri dari
 // palet yang sudah ada (tanpa aset baru). Skin not: deretan not hamster

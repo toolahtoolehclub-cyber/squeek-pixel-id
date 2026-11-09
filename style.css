@@ -608,11 +608,16 @@ body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 1
 /* Weekly league rows reuse .league-row/.lb-row; the rank line hides when empty. */
 #leagueWeeklyRank:empty { display: none; }
 /* Result panel frames (equipped in the shop, slot 'frame'). */
-#resultPanel.frame-neon { border: 3px solid #00ffff; box-shadow: 0 0 24px rgba(0, 255, 255, .45); }
-#resultPanel.frame-gold { border: 3px solid #ffd700; box-shadow: 0 0 24px rgba(255, 215, 0, .5); }
-#resultPanel.frame-royal { border: 3px solid #a050ff; box-shadow: 0 0 24px rgba(160, 80, 255, .5); }
-#resultPanel.frame-rainbow { border: 3px solid transparent; background: linear-gradient(rgba(5, 6, 7, .94), rgba(5, 6, 7, .94)) padding-box, linear-gradient(135deg, #ff5ce1, #ffd700, #00e5ff, #7dffc8) border-box; box-shadow: 0 0 24px rgba(255, 92, 225, .4); }
-#resultPanel.frame-sqk { border: 3px solid transparent; background: linear-gradient(rgba(5, 6, 7, .94), rgba(5, 6, 7, .94)) padding-box, linear-gradient(90deg, #3b82f6, #f43f5e, #a3e635, #3b82f6) border-box; background-size: 100% 100%, 300% 100%; animation: sqkFrameShift 3s linear infinite; box-shadow: 0 0 24px rgba(59, 130, 246, .4); }
+/* v43.5: the SAME frame also wraps the play area (#gamePanel) while the
+   song runs — a frame bought in the shop must be visible IN the game, not
+   only on the result screen. One shared rule set covers both panels; the
+   body[data-theme] variant beats the mode-theme glow on #gamePanel
+   (body[data-theme] is set while playing, specificity 1,1,1). */
+#resultPanel.frame-neon, #gamePanel.frame-neon, body[data-theme] #gamePanel.frame-neon { border: 3px solid #00ffff; box-shadow: 0 0 24px rgba(0, 255, 255, .45); }
+#resultPanel.frame-gold, #gamePanel.frame-gold, body[data-theme] #gamePanel.frame-gold { border: 3px solid #ffd700; box-shadow: 0 0 24px rgba(255, 215, 0, .5); }
+#resultPanel.frame-royal, #gamePanel.frame-royal, body[data-theme] #gamePanel.frame-royal { border: 3px solid #a050ff; box-shadow: 0 0 24px rgba(160, 80, 255, .5); }
+#resultPanel.frame-rainbow, #gamePanel.frame-rainbow, body[data-theme] #gamePanel.frame-rainbow { border: 3px solid transparent; background: linear-gradient(rgba(5, 6, 7, .94), rgba(5, 6, 7, .94)) padding-box, linear-gradient(135deg, #ff5ce1, #ffd700, #00e5ff, #7dffc8) border-box; box-shadow: 0 0 24px rgba(255, 92, 225, .4); }
+#resultPanel.frame-sqk, #gamePanel.frame-sqk, body[data-theme] #gamePanel.frame-sqk { border: 3px solid transparent; background: linear-gradient(rgba(5, 6, 7, .94), rgba(5, 6, 7, .94)) padding-box, linear-gradient(90deg, #3b82f6, #f43f5e, #a3e635, #3b82f6) border-box; background-size: 100% 100%, 300% 100%; animation: sqkFrameShift 3s linear infinite; box-shadow: 0 0 24px rgba(59, 130, 246, .4); }
 @keyframes sqkFrameShift { to { background-position: 0 0, 300% 0; } }
 
 /* ==========================================
