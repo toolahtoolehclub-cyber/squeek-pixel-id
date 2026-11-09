@@ -4,11 +4,11 @@
 # esbuild inlines engine.js (and @noble) into ONE bundle because
 # upload_worker.py only uploads a single file.
 # Usage: ./build-worker.sh [deploy|bundle-only]
-#   bundle-only : just produce /tmp/v42.5.2-build/dist/worker.js
+#   bundle-only : just produce /tmp/v42.5.3-build/dist/worker.js
 #   deploy      : bundle + upload (default)
 set -euo pipefail
-V4252="$HOME/workspace/goals/domain-squeekpixel-is-a-dev-submit-genesis-buildooooor/files/squeekchain-v42.5.2"
-BUILD=/tmp/v42.5.2-build
+V4252="$HOME/workspace/goals/domain-squeekpixel-is-a-dev-submit-genesis-buildooooor/files/squeekchain-v42.5.3"
+BUILD=/tmp/v42.5.3-build
 DB_ID=cd6920f3-3efb-491d-ae0c-b287069c8052
 mkdir -p "$BUILD/dist"
 cp "$V4252/worker.js" "$V4252/engine.js" "$BUILD/"

@@ -878,10 +878,13 @@ async function replayHashOf(rep) {
 // menolak dengan "simulated score mismatch"). Presisi 4 desimal (±0,05 ms)
 // supaya not yang jatuh <0,5 ms dari tepi jendela tidak terbalik.
 function replaySongT() { return +songTime().toFixed(4); }
-function recordReplayInput(lane) {
+function recordReplayInput(lane, t) {
   try {
     if (!replay || !G || G.ended) return;
-    if (replay.events.inputs.length < anthem.chart.length + REPLAY_MAX_EXTRA_INPUTS) replay.events.inputs.push({ t: replaySongT(), lane });
+    // v42.5.3: t opsional — bila judge() memberi satu sampel songTime(),
+    // pakai itu (jangan panggil songTime() lagi) supaya rekaman dan judgement
+    // memakai waktu yang sama persis.
+    if (replay.events.inputs.length < anthem.chart.length + REPLAY_MAX_EXTRA_INPUTS) replay.events.inputs.push({ t: (typeof t === 'number' ? +t.toFixed(4) : replaySongT()), lane });
   } catch (_) {}
 }
 function recordReplayPoll(s) {
@@ -1033,8 +1036,18 @@ function judge(lane) {
   if (!G || G.ended || G.paused || !ac) return;
   if (lane < 0 || lane >= G.lanes) return; // v28: lane 3 only exists in 4-lane songs
   G.taps++; // v38: every tap that reaches the game counts (hit, empty tap or miss alike)
-  recordReplayInput(lane); // v39: tiap tap direkam dengan audio time (songTime), bukan event.timeStamp
-  const st = songTime() - offsetMs / 1000; // v28: PRECISION offset — judge the tap as if it came offsetMs earlier
+  // v42.5.3: SATU sampel songTime() per tap — dipakai untuk rekaman input DAN
+  // perhitungan st. Dulu recordReplayInput() memanggil songTime() sendiri lalu
+  // st memanggilnya lagi; audio clock terus jalan di antara kedua panggilan,
+  // sehingga replay tidak mereproduksi judge() persis. Guard raw-expiry di
+  // bawah membuat judgement menjadi fungsi murni dari (chart, input, offset)
+  // — persis yang dimodelkan engine — dan menutup zona ambigu tap lambat
+  // raw dt (0.135, 0.175] yang dulu hasilnya bergantung timing frame rAF:
+  // GHOST race 34720 ditolak server karena satu note (idx 56, t=28.0952)
+  // dipukul tap lambat t=28.2347 (raw dt +0.1395) — client GOOD, engine MISS.
+  const raw = songTime();
+  recordReplayInput(lane, raw);
+  const st = raw - offsetMs / 1000; // v28: PRECISION offset — judge the tap as if it came offsetMs earlier
   let target = null, bd = Infinity;
   for (const n of anthem.chart) {
     if (n.judged || n.lane !== lane) continue;
@@ -1044,6 +1057,7 @@ function judge(lane) {
   G.flash[lane] = 1;
   glShockwave = 0.5; // Shockwave kecil tiap tap
   if (!target || bd > CONFIG.W.good) return;
+  if (raw - target.t > CONFIG.W.good) return; // v42.5.3: raw-expiry guard — note yang sudah lewat batas kedaluwarsa mentahnya (raw songTime - n.t > W.good) tidak boleh dipukul, walau st ber-offset masih di dalam jendela; tanpanya tap lambat di zona (W.good, W.good + offsetMs] kadang GOOD (frame loop belum menandai miss) kadang MISS — engine selalu menolaknya
   updatePrecision((st - target.t) * 1000, 'hit'); // v28: positive = player tapped LATE (matches the LATE/EARLY label)
   const k = bd <= CONFIG.W.perfect ? 'perfect' : bd <= CONFIG.W.great ? 'great' : 'good';
   target.judged = k; G.counts[k]++; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
@@ -2692,7 +2706,7 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 30000); // v42.5.2 (FIX 2): 30 detik — upload replay (puluhan KB) di koneksi ~3 K/s butuh >8 detik
   try {
-    const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.5.2' } : bodyBase;
+    const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.5.3' } : bodyBase;
     let r;
     try { r = await postScores(body); }
     catch (e1) {

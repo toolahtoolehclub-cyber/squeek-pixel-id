@@ -45,7 +45,7 @@ t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
 t('html says v42.5', (html.match(/v42\.5/g) || []).length >= 2);
-t('browser tab title is v42.5.2', html.includes('<title>SQUEEKCHAIN // v42.5.2</title>'));
+t('browser tab title is v42.5.3', html.includes('<title>SQUEEKCHAIN // v42.5.3</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -490,7 +490,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v42.5.2', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.5.2'"));
+t('submit sends replay + hash + gameVersion v42.5.3', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.5.3'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -1325,8 +1325,8 @@ t('worker v6: /league you carries verified', worker.includes('verified: me.verif
 t('worker version is 12', worker.includes('{ service: "squeekchain-leaderboard", version: 12 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v42.5.2', js.includes("gameVersion: 'v42.5.2'"));
-t('html title is v42.5.2', html.includes('<title>SQUEEKCHAIN // v42.5.2</title>'));
+t('submit sends gameVersion v42.5.3', js.includes("gameVersion: 'v42.5.3'"));
+t('html title is v42.5.3', html.includes('<title>SQUEEKCHAIN // v42.5.3</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {
@@ -1518,7 +1518,7 @@ t('worker v10: ghost header validation + checkOppDist ghost branch', worker.incl
 t('worker v10: /dream/harvest + /analytics endpoints', worker.includes('url.pathname === "/dream/harvest"') && worker.includes('url.pathname === "/analytics"'));
 t('worker v10: dreamReward helper (25/50/75)', worker.includes('function dreamReward(stage)'));
 t('migrate-v10.sql exists and covers all 5 new objects', (() => { try { const m = fs.readFileSync('migrate-v10.sql', 'utf8'); return m.includes('resolve_log') && m.includes('session_wallets') && m.includes('dream_harvests') && m.includes('idx_cheese_ledger_dream') && m.includes('analytics_daily'); } catch (_) { return false; } })());
-t('build-worker.sh points at v42.5.2', (() => { try { const b = fs.readFileSync('build-worker.sh', 'utf8'); return b.includes('squeekchain-v42.5.2') && b.includes('/tmp/v42.5.2-build') && b.includes('Worker v12'); } catch (_) { return false; } })());
+t('build-worker.sh points at v42.5.3', (() => { try { const b = fs.readFileSync('build-worker.sh', 'utf8'); return b.includes('squeekchain-v42.5.3') && b.includes('/tmp/v42.5.3-build') && b.includes('Worker v12'); } catch (_) { return false; } })());
 
 runVerifyPollTests().then(() => {
   console.log(`\n${pass} passed, ${fail} failed`);

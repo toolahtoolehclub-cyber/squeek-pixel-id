@@ -1,6 +1,6 @@
 # AUDIT v42.5.2 — UNEQUIP + submit tahan koneksi lambat + WalletConnect restore
 
-Client v42.5.2, Worker v12. GitHub head: (diisi setelah push).
+Client v42.5.2, Worker v12. GitHub head: `a647e19d4ac13cf015c22cce4ef6a55576ca66cd`.
 Tes: TEST-v34-neo.js 1813/1813 + TEST-v42.5.js 144/144 + TEST-motif.js 11/11 + verify-icon-routes.js 9/9.
 
 ## FIX 1 — UNEQUIP (laporan user: "equip jadi permanen, ga bisa dicopot")
@@ -106,10 +106,26 @@ user sendiri, `0xb8337604…`, race 34720, v42.5.1, status **rejected**
 Penolakan GHOST race ini di luar scope v42.5.2 — perlu diagnosis terpisah
 bila terulang di v42.5.2.
 
-## Verifikasi live (diisi setelah push)
+## Verifikasi live (2026-11-09 ~03:40 WIB)
 
-- Worker: `GET /` → version 12 ✓ (sudah, sebelum push)
-- Pages: judul v42.5.2 + `gameVersion: 'v42.5.2'`
-- `GET /icon.png` + `/og.png` → 200
-- 3 bukti Genesis utuh (meta + README + DNS TXT)
-- Board D1 tidak berubah (dead wallet 0; Genesis scores 1 baris)
+- Worker: `GET /` → `{"service":"squeekchain-leaderboard","version":12}` ✓
+- Pages: judul `SQUEEKCHAIN // v42.5.2` + `gameVersion: 'v42.5.2'` ✓
+- `GET /icon.png` → 200, `GET /og.png` → 200 ✓
+- 3 bukti Genesis utuh: meta `05432539-b4e4-4f90-97b3-c258583905b7` ✓,
+  README baris terakhir sama ✓, DNS TXT `_squeekchain` =
+  `squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9` ✓
+  (via Cloudflare DoH; `dig` VM tidak mengembalikan TXT)
+- Board D1 tidak berubah: dead wallet 0 di semua tabel; Genesis scores
+  tetap 1 baris (race 28280 verified); `verify_queue` 3 baris (2 lama +
+  GHOST race user 34720, lihat catatan di atas)
+- Push utama: head `a647e19d`. Follow-up push AUDIT (baris hash) GAGAL —
+  kartu persetujuan kedaluwarsa saat user tidur (`approval_expired`,
+  03:39 WIB); perlu 1 ketukan user pagi hari, atau ulangi push file
+  `AUDIT-v42.5.2.md` saja. Isi AUDIT lokal sudah lengkap.
+- Artifact preview `squeekchain-v26-fix`: v42.5.2 SELESAI (builder handoff
+  03:58 WIB) — UNEQUIP + submit 30/20 detik + restore WC terverifikasi di
+  source; probe drive: PLAY + kartu wallet tampil v42.5.2, SHOP tampil
+  (Cheese Shop, Capsule, SQK Shop); tombol UNEQUIP hanya muncul untuk item
+  owned+equipped (butuh data Worker live — dicek di source, bukan klik).
+  3 perbedaan preview-vs-site dipertahankan. Egress flag ke Worker
+  leaderboard adalah integrasi game sendiri (bukan iklan/tracker).
