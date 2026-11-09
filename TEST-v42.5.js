@@ -321,11 +321,12 @@ async function runWalletTests42() {
       h.disconnectBtn.classList.contains('hidden') === false && h.walletInput.readOnly === true &&
       h.walletManualRow.classList.contains('hidden') === true);
     await h.api.disconnectWallet();
-    t('v43.1 wallet UX: disconnect -> kembali CONNECT tampil, dot mati, alamat tetap di field sebagai manual (bukan GUEST), field editable lagi',
+    t('v43.3 wallet UX: disconnect -> CONNECT tampil, dot mati, kartu GUEST (alamat TIDAK tampil bila belum connect), salin tersembunyi, field editable lagi (alamat tetap di field manual)',
       h.btn.textContent === 'CONNECT' && h.btn.disabled === false && h.btn.classList.contains('hidden') === false &&
-      h.walletDot.classList.contains('on') === false && h.walletAddr.textContent === '0x8853...cf9a' &&
-      h.walletCopyBtn.classList.contains('hidden') === false &&
+      h.walletDot.classList.contains('on') === false && h.walletAddr.textContent === 'GUEST' &&
+      h.walletCopyBtn.classList.contains('hidden') === true &&
       h.disconnectBtn.classList.contains('hidden') === true &&
+      h.walletInput.value === h.ADDR &&
       h.walletInput.readOnly === false && h.walletManualRow.classList.contains('hidden') === true);
   }
   // Failed restore (no wc keys, no injected provider): stays NOT connected, never shows the old address.
@@ -424,7 +425,7 @@ async function runDreamTests42() {
   t('v42.5.1 og:image -> Worker /og.png', html.includes('<meta property="og:image" content="' + W + '/og.png">'));
   t('v42.5.1 twitter:image -> Worker /og.png', html.includes('<meta name="twitter:image" content="' + W + '/og.png">'));
   t('v42.5.1 favicon + apple-touch-icon -> Worker /icon.png', html.includes('<link rel="icon" type="image/png" href="' + W + '/icon.png">') && html.includes('<link rel="apple-touch-icon" href="' + W + '/icon.png">'));
-  t('v43.2 gameVersion v43.2', js.includes("gameVersion: 'v43.2'"));
+  t('v43.3 gameVersion v43.3', js.includes("gameVersion: 'v43.3'"));
   t('v42.5.1 worker routes /icon.png + /og.png exist', worker.includes('"/icon.png"') && worker.includes('"/og.png"') && worker.includes('function pngResponse('));
   t('v13 worker version 13', worker.includes('version: 13'));
   t('v42.5.1 no stale headline-simple.png URL in client', !html.includes('squeekchain-headline-simple.png') && !js.includes('squeekchain-headline-simple.png'));
@@ -483,14 +484,17 @@ async function runBugFixTests4251() {
   const btnEl = { disabled: false, classList: mockClassList() };
   const msgEl = { textContent: '', classList: mockClassList() };
   const $h = id => (id === 'lbSubmitBtn' ? btnEl : id === 'lbSubmitMsg' ? msgEl : null);
-  const mkReset = lastResult => new Function('$', 'stopVerifyPoll', 'lastResult',
-    fnSrcJ('resetLbSubmit') + '\nreturn resetLbSubmit;')($h, () => {}, lastResult);
+  const mkReset = lastResult => new Function('$', 'stopVerifyPoll', 'lastResult', 'I18N', 'lang',
+    fnSrcJ('resetLbSubmit') + '\nreturn resetLbSubmit;')($h, () => {}, lastResult, { en: { lbSubmit: '[ SUBMIT SCORE ]' }, id: { lbSubmit: '[ KIRIM SKOR ]' } }, 'id');
   mkReset({ lullaby: true, practice: false })();
   t('v42.5.1 BUG 2: panel hasil Lullaby -> tombol SUBMIT disembunyikan', btnEl.classList.contains('hidden') === true);
   mkReset({ lullaby: false, practice: true })();
   t('v42.5.1 BUG 2: panel hasil Practice -> tombol SUBMIT disembunyikan', btnEl.classList.contains('hidden') === true);
   mkReset({ lullaby: false, practice: false })();
   t('v42.5.1 BUG 2: lagu biasa -> tombol SUBMIT tetap tampil', btnEl.classList.contains('hidden') === false);
+  btnEl.textContent = '[ COBA LAGI ]'; // v43.3: submit gagal mengubah label jadi COBA LAGI
+  mkReset({ lullaby: false, practice: false })();
+  t('v43.3: resetLbSubmit mengembalikan label [ KIRIM SKOR ]', btnEl.textContent === '[ KIRIM SKOR ]');
   t('v42.5.1 BUG 2: submitLb tetap berjaga untuk Lullaby + Practice (lapis kedua)', js.includes("if (lastResult.lullaby) return show(msg('lbLullaby'));") && js.includes("if (lastResult.practice) return show(msg('lbPractice'));"));
   t('v42.5.1 BUG 2: catatan Lullaby tetap ada di panel hasil (lullabyTag)', js.includes("G.lullaby ? rl('lullabyTag')"));
   // BUG 3 (v43.1: DITUTUP dengan desain ulang) — warna lavender per-mode
@@ -630,15 +634,25 @@ async function runBugFixTests4252() {
   const isTimeoutH = new Function(fnSrcJ('isTimeoutError') + '\nreturn isTimeoutError;')();
   const mkSubmit = (tfetchMock, pollVerifyMock) => {
     const msgEl = { textContent: '', classList: mockClassList() };
-    const btnEl = { disabled: false, classList: mockClassList() };
+    const btnEl = { textContent: '[ KIRIM SKOR ]', disabled: false, classList: mockClassList() };
     const $s = id => (id === 'lbSubmitMsg' ? msgEl : id === 'lbSubmitBtn' ? btnEl : null);
     const lastResult = { score: 61495, acc: 73.05, mode: 'live', sessionId: 's1', notes: 235, taps: 200, durationMs: 60000, replay: { header: {}, events: {} }, replayHash: '0xabc123', lullaby: false, practice: false };
-    const submit = new Function('lastResult', 'currentWallet', 'isAddr', 'lbName', 'lbMode', 'analyticsEvent', 'fetchLb', 'fetchShop', 'fetchLeagueWeekly', 'pollVerify', 'saveJSON', 'renderLbModes', '$', 'stopVerifyPoll', 'msg', 'msgf', 'CONFIG', 'tfetch', 'lbState', 'verifyBadgeText', 'verifyRejectedText', 'isTimeoutError',
-      fnSrcJ('submitLb') + '\nreturn submitLb;')(
+    const store = {};
+    const loadJSONq = (k, fb) => { try { const v = JSON.parse(store[k] === undefined ? 'null' : store[k]); return v === null ? fb : v; } catch { return fb; } };
+    const saveJSONq = (k, v) => { try { store[k] = JSON.stringify(v); return true; } catch { return false; } };
+    // v43.3: submitLb kini memakai antrean + retry (enqueue/submitWithRetries/
+    // scheduleSubmitFlush) — ekstrak semuanya, dengan jeda retry dipercepat
+    // (5/10/15 ms) supaya tes tidak menunggu 10/30/60 detik sungguhan.
+    const queueConsts = ['PENDING_SUBMITS_KEY', 'SUBMIT_TIMEOUT_MS', 'SUBMIT_RETRY_DELAYS_MS', 'SUBMIT_QUEUE_FLUSH_MS', 'SUBMIT_QUEUE_MAX']
+      .map(n => jsLines.find(l => l.startsWith('const ' + n + ' ='))).join('\n')
+      .replace('SUBMIT_RETRY_DELAYS_MS = [10000, 30000, 60000]', 'SUBMIT_RETRY_DELAYS_MS = [5, 10, 15]');
+    const queueFns = ['loadPendingSubmits', 'savePendingSubmits', 'enqueuePendingSubmit', 'dequeuePendingSubmit', 'postOneSubmit', 'submitWithRetries', 'scheduleSubmitFlush', 'flushPendingSubmits', 'submitLb'].map(fnSrcJ).join('\n');
+    const submit = new Function('lastResult', 'currentWallet', 'isAddr', 'lbName', 'lbMode', 'analyticsEvent', 'fetchLb', 'fetchShop', 'fetchLeagueWeekly', 'pollVerify', 'saveJSON', 'loadJSON', 'renderLbModes', '$', 'stopVerifyPoll', 'msg', 'msgf', 'CONFIG', 'tfetch', 'lbState', 'verifyBadgeText', 'verifyRejectedText', 'isTimeoutError', 'I18N', 'lang',
+      'let submitFlushTimer = null;\n' + queueConsts + '\n' + queueFns + '\nreturn { submitLb, loadPendingSubmits };')(
       lastResult, () => ADDR, s => /^0x[a-fA-F0-9]{40}$/.test(s || ''), () => 'TEST', m => m, () => {}, () => {}, () => {}, () => {},
-      pollVerifyMock, () => {}, () => {}, $s, () => {}, msgReal.msg, msgReal.msgf, { LB_URL: 'https://lb.test' }, tfetchMock, { mode: 'live' },
-      verifyBadgeTextH, verifyRejectedTextH, isTimeoutH);
-    return { submit, msgEl, btnEl };
+      pollVerifyMock, saveJSONq, loadJSONq, () => {}, $s, () => {}, msgReal.msg, msgReal.msgf, { LB_URL: 'https://lb.test' }, tfetchMock, { mode: 'live' },
+      verifyBadgeTextH, verifyRejectedTextH, isTimeoutH, { en: { lbSubmit: '[ SUBMIT SCORE ]', lbRetry: '[ RETRY ]' }, id: { lbSubmit: '[ KIRIM SKOR ]', lbRetry: '[ COBA LAGI ]' } }, 'id');
+    return { submit: submit.submitLb, loadPendingSubmits: submit.loadPendingSubmits, msgEl, btnEl };
   };
   const pollOk = (hash, onStatus) => { onStatus('verified', { replayHash: hash, signature: '0x12345678' }); };
   // (a) gagal sekali (timeout) lalu berhasil -> retry otomatis, skor terverifikasi.
@@ -652,14 +666,14 @@ async function runBugFixTests4252() {
   await hA.submit();
   t('v42.5.2 FIX 2: submit gagal timeout sekali -> retry otomatis (2 percobaan)', callsA === 2);
   t('v42.5.2 FIX 2: retry berhasil -> skor TERVERIFIKASI', hA.msgEl.textContent.includes('TERVERIFIKASI ✓'));
-  // (b) selalu timeout -> 2 percobaan lalu pesan KONEKSI LAMBAT, tombol aktif lagi.
+  // (b) selalu timeout -> 4 percobaan (1 + 3 retry v43.3), pesan GAGAL MENGIRIM, tombol COBA LAGI, skor tetap di antrean.
   let callsB = 0;
   const tfetchB = async () => { callsB++; const e = new Error('aborted'); e.name = 'AbortError'; throw e; };
   const hB = mkSubmit(tfetchB, pollOk);
   await hB.submit();
-  t('v42.5.2 FIX 2: selalu timeout -> tepat 2 percobaan (1 retry)', callsB === 2);
-  t('v42.5.2 FIX 2: selalu timeout -> pesan KONEKSI LAMBAT (bukan offline generik)', hB.msgEl.textContent.includes('KONEKSI LAMBAT'));
-  t('v42.5.2 FIX 2: selalu timeout -> tombol SUBMIT aktif lagi', hB.btnEl.disabled === false);
+  t('v43.3 FIX 2: selalu timeout -> 4 percobaan (1 + 3 retry)', callsB === 4);
+  t('v43.3 FIX 2: selalu timeout -> pesan GAGAL MENGIRIM + tombol COBA LAGI aktif', hB.msgEl.textContent.includes('GAGAL MENGIRIM') && hB.btnEl.disabled === false && hB.btnEl.textContent === '[ COBA LAGI ]');
+  t('v43.3 FIX 2: selalu timeout -> skor TETAP di antrean (tidak hilang)', hB.loadPendingSubmits().length === 1);
   // (c) 429 -> TIDAK di-retry, pesan rate limit.
   let callsC = 0;
   const tfetchC = async () => { callsC++; return { status: 429, ok: false, json: async () => ({ error: 'rate_limited', retryAfterSec: 600 }) }; };
@@ -667,25 +681,27 @@ async function runBugFixTests4252() {
   await hC.submit();
   t('v42.5.2 FIX 2: 429 -> TIDAK di-retry (1 percobaan)', callsC === 1);
   t('v42.5.2 FIX 2: 429 -> pesan TERLALU SERING', hC.msgEl.textContent.includes('TERLALU SERING'));
+  t('v43.3 FIX 2: 429 -> tetap di antrean untuk flush latar', hC.loadPendingSubmits().length === 1);
   // (d) 422 -> TIDAK di-retry.
   let callsD = 0;
   const tfetchD = async () => { callsD++; return { status: 422, ok: false, json: async () => ({ error: 'bad replay' }) }; };
   const hD = mkSubmit(tfetchD, pollOk);
   await hD.submit();
   t('v42.5.2 FIX 2: 422 -> TIDAK di-retry (1 percobaan)', callsD === 1);
+  t('v43.3 FIX 2: 422 -> pesan VERIFIKASI DITOLAK + antrean dihapus', hD.msgEl.textContent.includes('VERIFIKASI DITOLAK') && hD.loadPendingSubmits().length === 0);
   // isTimeoutError unit.
   t('v42.5.2 FIX 2: isTimeoutError AbortError -> true', isTimeoutH({ name: 'AbortError' }) === true);
   t('v42.5.2 FIX 2: isTimeoutError TimeoutError -> true', isTimeoutH({ name: 'TimeoutError' }) === true);
   t('v42.5.2 FIX 2: isTimeoutError TypeError -> false', isTimeoutH({ name: 'TypeError' }) === false);
   t('v42.5.2 FIX 2: isTimeoutError null -> false', isTimeoutH(null) === false);
   // Statis: timeout baru + gameVersion + kunci i18n + Worker v12.
-  t('v42.5.2 FIX 2: POST /scores timeout 30 detik', js.includes('body: JSON.stringify(body) }, 30000)'));
+  t('v43.3: POST /scores timeout 60 detik (SUBMIT_TIMEOUT_MS, dari 30)', js.includes('SUBMIT_TIMEOUT_MS = 60000') && js.includes('}, SUBMIT_TIMEOUT_MS)'));
   t('v42.5.2 FIX 2: GET /scores, /rank, /verify timeout 20 detik', js.includes("'/scores?mode=' + lbState.mode + '&limit=10', null, 20000)") && js.includes("'/rank?wallet=' + w + '&mode=' + lbState.mode, null, 20000)") && js.includes('encodeURIComponent(replayHash), null, 20000)') && js.includes('encodeURIComponent(lastVerifyHash), null, 20000)'));
-  t('v43.2: gameVersion v43.2', js.includes("gameVersion: 'v43.2'"));
+  t('v43.3: gameVersion v43.3', js.includes("gameVersion: 'v43.3'"));
   t('v42.5.2 FIX 1: kunci i18n UNEQUIP EN+ID ada', js.includes("sqkUnequipBtn: '[ UNEQUIP ]'") && js.includes("sqkUnequipped: 'UNEQUIPPED: {item} ✓ — BACK TO DEFAULT.'") && js.includes("sqkUnequipBtn: '[ LEPAS ]'") && js.includes("sqkUnequipped: 'DILEPAS: {item} ✓ — KEMBALI KE DEFAULT.'") && js.includes("shopUnequipped: 'UNEQUIPPED {item} ✓'") && js.includes("shopUnequipped: 'DILEPAS {item} ✓'") && js.includes("unequipBtn: '[ UNEQUIP ]'") && js.includes("unequipBtn: '[ LEPAS ]'"));
   t('v42.5.2 FIX 1: Worker v12 punya POST /cheese/unequip + UPDATE equipped=0', worker.includes('"/cheese/unequip"') && worker.includes('UPDATE cheese_inventory SET equipped = 0') && worker.includes('version: 13'));
   t('v42.5.2 FIX 1: render toko memakai data-unequip / data-sqk-unequip', js.includes('data-unequip=') && js.includes('data-sqk-unequip='));
-  t('v43.2: index.html judul v43.2', html.includes('<title>SQUEEKCHAIN // v43.2</title>') && html.includes('PIXEL ID // v43.2'));
+  t('v43.3: index.html judul v43.3', html.includes('<title>SQUEEKCHAIN // v43.3</title>') && html.includes('PIXEL ID // v43.3'));
 }
 
 // --- 13. v42.5.2 FIX 3: WalletConnect session restore ---
@@ -708,7 +724,7 @@ async function runWcRestoreTests4252() {
     };
   };
   // Harness: fungsi WC asli diekstrak dengan local bersama. setTimeout
-  // dibayangi fake supaya watchdog 60 detik tidak menahan proses tes;
+  // dibayangi fake supaya watchdog 5 menit tidak menahan proses tes;
   // fake mencatat durasi watchdog sehingga tes bisa membuktikan 60 s.
   const mkHarness = (deps) => {
     const timers = [];
@@ -718,9 +734,9 @@ async function runWcRestoreTests4252() {
     const noteEl = mockEl();
     let connectedAddr = null;
     const walletEl = { value: '' };
-    const src = ['hasWcSessionKey', 'wcLoadBundle', 'wcGetProvider', 'restoreWalletConnectSession', 'setWcRestoreNote'].map(fnSrcJ).join('\n');
+    const src = ['hasWcSessionKey', 'wcIdbOpen', 'wcIdbGet', 'wcIdbPut', 'wcIdbCacheBundle', 'wcInjectCode', 'wcFetchBundleText', 'wcLoadBundleNetwork', 'wcLoadBundle', 'wcGetProvider', 'restoreWalletConnectSession', 'setWcRestoreNote'].map(fnSrcJ).join('\n');
     const fn = new Function('window', 'document', 'localStorage', 'CONFIG', '$', 'walletEl', 'saveWallet38', 'preview', 'setConnected', 'isAddr', 'msg', 'msgf', 'say', 'fakeSetTimeout',
-      'const setTimeout = fakeSetTimeout;\nlet wcProvider = null;\nlet wcBundlePromise = null;\nlet wcRestoreReason = null;\n' + src +
+      'const setTimeout = fakeSetTimeout;\nlet wcProvider = null;\nlet wcBundlePromise = null;\nlet wcRestoreReason = null;\nlet connectedVia = null;\n' + src +
       '\nreturn { hasWcSessionKey, wcLoadBundle, wcGetProvider, restoreWalletConnectSession, setWcRestoreNote, getWcProvider: () => wcProvider, getReason: () => wcRestoreReason };');
     const api = fn(mockWindow, mockDoc, deps.localStorage,
       { WC_PROJECT_ID: 'x', WC_CHAINS: [11155111], SEPOLIA_RPC: 'https://rpc.test' },
@@ -764,7 +780,7 @@ async function runWcRestoreTests4252() {
     scriptEl.onload();
     await restoreP;
     t('v42.5.2 FIX 3: bundle lambat -> restore menunggu dan TERHUBUNG', h.getConnected() === ADDR);
-    t('v42.5.2 FIX 3: watchdog restore 60 detik (bukan 15)', h.timers.some(rec => rec.ms === 60000));
+    t('v43.3: watchdog restore 5 menit / 300 dtk (bukan 60)', h.timers.some(rec => rec.ms === 300000));
     t('v42.5.2 FIX 3: restore init showQrModal:false saat bundle lambat', initOpts && initOpts.showQrModal === false);
   }
   // 4. enable() reject -> tanpa modal, tetap disconnected, alasan terlihat.
@@ -810,7 +826,7 @@ async function runWcRestoreTests4252() {
     t('v42.5.2 FIX 3: bundle gagal -> alasan bundle-timeout, note tampil', h.api.getReason() === 'bundle-timeout' && h.getConnected() === null && !h.noteEl.classList.contains('hidden') && h.noteEl.textContent.includes('bundle-timeout'));
   }
   // Statis.
-  t('v42.5.2 FIX 3: preload bundle di page load hanya bila kunci sesi ada', js.includes("if (!window.ethereum && hasWcSessionKey()) wcLoadBundle(60000);"));
+  t('v43.3: preload bundle di page load hanya bila kunci sesi ada (watchdog 5 menit)', js.includes("if (!window.ethereum && hasWcSessionKey()) wcLoadBundle(300000);"));
   t('v42.5.2 FIX 3: elemen note ada di HTML + i18n EN/ID', html.includes('id="wcRestoreNote"') && js.includes("wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason}") && js.includes("wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason}"));
 }
 

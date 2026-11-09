@@ -46,8 +46,8 @@ t('v43.1 walletStatus is GONE (address appears once, in the card)', !html.includ
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v43.2', (html.match(/v43\.2/g) || []).length >= 2);
-t('browser tab title is v43.2', html.includes('<title>SQUEEKCHAIN // v43.2</title>'));
+t('html says v43.3', (html.match(/v43\.3/g) || []).length >= 2);
+t('browser tab title is v43.3', html.includes('<title>SQUEEKCHAIN // v43.3</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -281,7 +281,7 @@ t('LB_URL is the workers.dev endpoint', js.includes("LB_URL: 'https://squeekchai
 t('lb modes are the six game modes', js.includes("const LB_MODES = ['free', 'daily', 'live', 'race', 'boss', 'challenge'];"));
 ['lbLoading', 'lbOffline', 'lbEmpty', 'lbSent', 'lbKept', 'lbNeedWallet', 'lbNoScore', 'lbPractice', 'lbYourRank', 'lbVerifying', 'lbVerified', 'lbVerifyRejected', 'lbVerifyUnknown'].forEach(k => t('MSG has lb key: ' + k, js.includes(k + ':')));
 ['lbTitle', 'lbNote', 'lbRefresh', 'lbSubmit'].forEach(k => t('I18N has lb key: ' + k, js.includes(k + ':')));
-t('setTab fetches the board on LEAGUE', js.includes("if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); recheckVerifyOnLeague(); }"));
+t('setTab fetches the board on LEAGUE', js.includes("if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); recheckVerifyOnLeague(); scheduleSubmitFlush(1000); }"));
 t('endGame captures the submittable result (v38: + sessionId/taps/notes/durationMs; v42.5: + lullaby)', js.includes('lastResult = { score: G.score, acc: a, mode: G.mode, practice: G.practice, lullaby: !!G.lullaby, sessionId: G.sessionId || null, taps: G.taps || 0, notes:') && js.includes('durationMs: anthem ? Math.round(anthem.duration * 1000) : 0'));
 t('submit is disabled while sending', js.includes('b.disabled = true') && js.includes('resetLbSubmit()'));
 t('submit posts to /scores', js.includes("CONFIG.LB_URL + '/scores'") && js.includes("method: 'POST'"));
@@ -492,7 +492,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v43.2', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43.2'"));
+t('submit sends replay + hash + gameVersion v43.3', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43.3'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -518,7 +518,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v43.2', readme.startsWith('# Squeekchain v43.2'));
+t('README title is v43.3', readme.startsWith('# Squeekchain v43.3'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -1298,7 +1298,7 @@ t('shopSkin migrates legacy sqk41:skin to both new keys', (() => {
 })());
 // 15d. Client wiring: shop tab, league weekly, cosmetics in the game.
 t('setTab fetches the shop on SHOP', js.includes("if (name === 'shop') { analyticsEvent('shop_open'); fetchShop(); fetchSqkShop(); }"));
-t('setTab fetches the weekly league on LEAGUE', js.includes("if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); recheckVerifyOnLeague(); }"));
+t('setTab fetches the weekly league on LEAGUE', js.includes("if (name === 'league') { fetchLb(lbState.mode); fetchLeagueWeekly(); recheckVerifyOnLeague(); scheduleSubmitFlush(1000); }"));
 ['fetchShop', 'renderShop', 'buyItem', 'pullCapsule', 'equipItem', 'fetchLeagueWeekly', 'renderLeagueWeekly', 'applyResultFrame', 'shopSkin', 'saveKejuSkin', 'saveSqkSkin', 'saveSkinLast', 'noteColor', 'shopOwned', 'shopEquipped'].forEach(s => t('v41 js has ' + s, js.includes('function ' + s)));
 t('shop fetches GET /cheese', js.includes("CONFIG.LB_URL + '/cheese'"));
 t('buy posts to /cheese/buy', js.includes("CONFIG.LB_URL + '/cheese/buy'"));
@@ -1330,8 +1330,8 @@ t('worker v6: /league you carries verified', worker.includes('verified: me.verif
 t('worker version is 13', worker.includes('{ service: "squeekchain-leaderboard", version: 13 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v43.2', js.includes("gameVersion: 'v43.2'"));
-t('html title is v43.2', html.includes('<title>SQUEEKCHAIN // v43.2</title>'));
+t('submit sends gameVersion v43.3', js.includes("gameVersion: 'v43.3'"));
+t('html title is v43.3', html.includes('<title>SQUEEKCHAIN // v43.3</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {
@@ -1392,8 +1392,8 @@ t('vendored WC bundle exists, is self-contained, exposes EthereumProvider', (() 
 t('v42.3 js has wcLoadBundle', js.includes('function wcLoadBundle'));
 t('WC bundle is lazy-loaded on demand (script inject, never a page-load tag)', js.includes("s.src = 'wc-provider.bundle.js'") && js.includes("document.createElement('script')") && !html.includes('src="wc-provider.bundle.js"'));
 t('wcGetProvider lazy-loads the bundle when EthereumProvider is missing', js.includes('await wcLoadBundle(bundleTimeoutMs'));
-t('v42.5.2 FIX 3: restore waits 60 s for the bundle + never shows a modal (showQrModal: !forRestore)', js.includes('wcGetProvider(60000, true)') && js.includes('showQrModal: !forRestore') && js.includes('if (!forRestore) wcProvider = p;'));
-t('v42.5.2 FIX 3: bundle preloaded at page load only when a wc@2: session key exists', js.includes("if (!window.ethereum && hasWcSessionKey()) wcLoadBundle(60000);"));
+t('v43.3: restore waits 5 min for the bundle + never shows a modal (showQrModal: !forRestore)', js.includes('wcGetProvider(300000, true)') && js.includes('showQrModal: !forRestore') && js.includes('if (!forRestore) wcProvider = p;'));
+t('v43.3: bundle preloaded at page load only when a wc@2: session key exists (watchdog 5 min)', js.includes("if (!window.ethereum && hasWcSessionKey()) wcLoadBundle(300000);"));
 t('v42.5.2 FIX 3: restore re-activates a stored session via enable() only when p.session exists', js.includes('if (!addr && p.session)') && js.includes('const enabled = await p.enable();'));
 t('v42.5.2 FIX 3: restore failure reasons recorded + shown under the wallet card', js.includes("function setWcRestoreNote(reason)") && js.includes("msgf('wcRestoreNoteTpl', { reason })") && html.includes('id="wcRestoreNote"'));
 t('v42.5.2 FIX 3: wcRestoreNoteTpl i18n EN + ID', js.includes("wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason}") && js.includes("wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason}"));
@@ -1490,7 +1490,7 @@ t('v42.5 GENERATE CARD is below SUBMIT + small', (() => {
 // P3-1 fail-soft retry is gone.
 t('v42.5 fail-soft no-replay retry REMOVED', !js.includes('if (!r.ok && r.status === 400 && lastResult.replay) r = await postScores(bodyBase);'));
 // P0-1 rate limit: client shows a specific 429 message with the retry time.
-t('v42.5 submitLb handles 429 with retry time', js.includes("r.status === 429") && js.includes("msgf('lbRateLimited', { time: t })"));
+t('v43.3 submitLb handles 429 with retry time (via postOneSubmit + retryTime)', js.includes("r.status === 429") && js.includes("msgf('lbRateLimited', { time: res.retryTime })"));
 t('v42.5 resolve handles 429 with retry time', js.includes("msgf('sqkRateLimited', { time: t"));
 t('v42.5 MSG rate-limit keys exist in EN + ID', js.includes("sqkRateLimited: 'TOO MANY REQUESTS — TRY AGAIN AT {time}.'") && js.includes("sqkRateLimited: 'TERLALU SERING — COBA LAGI {time}.'") && js.includes("lbRateLimited: 'TOO MANY SUBMITS — TRY AGAIN AT {time}.'") && js.includes("lbRateLimited: 'TERLALU SERING KIRIM SKOR — COBA LAGI {time}.'"));
 // P1-1 wallet UX: transactions use txWallet() (connected address), not the field.
@@ -1509,7 +1509,7 @@ t('v42.5 Dream Seeds functions exist', js.includes('function plantDream()') && j
 t('v42.5 Lullaby mode: seedKey + play forces synth/easy + submit blocked', js.includes("if (mode === 'lullaby') return 'LULLABY-' + squeekTodayStr();") && js.includes("if (lastResult.lullaby) return show(msg('lbLullaby'));"));
 t('v42.5 Lullaby XP +50 flat, waters the seed', js.includes('const xpGain = G.lullaby ? 50 :') && js.includes('if (G.lullaby) { const st = waterDream();'));
 // P2-3 verify re-check on LEAGUE tab.
-t('v42.5 recheckVerifyOnLeague exists and is called from setTab(league)', js.includes('async function recheckVerifyOnLeague()') && js.includes('recheckVerifyOnLeague(); } // v37'));
+t('v43.3 recheckVerifyOnLeague exists and is called from setTab(league) (+ submit flush)', js.includes('async function recheckVerifyOnLeague()') && js.includes('recheckVerifyOnLeague(); scheduleSubmitFlush(1000); }'));
 // P2-5 analytics.
 t('v42.5 analytics: allowlist + fire-and-forget POST /analytics', js.includes("const ANALYTICS_EVENTS = ['visit', 'play', 'mode_free'") && js.includes("tfetch(CONFIG.LB_URL + '/analytics'") && js.includes("analyticsEvent('visit');") && js.includes("analyticsEvent('shop_open');"));
 // Worker v10: version + new endpoints + helpers.

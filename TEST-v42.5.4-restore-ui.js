@@ -66,7 +66,7 @@ function mockBtn() { return { textContent: '[ CONNECT WALLET ]', disabled: false
 // --- Harness: fungsi WC asli diekstrak dengan local bersama (pola sama
 // dengan runWcRestoreTests4252 di TEST-v42.5.js), ditambah updateConnectBtn
 // + setConnected di preamble (cerminan aslinya) supaya status tombol bisa
-// diuji end-to-end. setTimeout dibayangi fake supaya watchdog 60 detik
+// diuji end-to-end. setTimeout dibayangi fake supaya watchdog 5 menit
 // tidak menahan proses tes.
 const ADDR = '0x88538a82143065664232422e2dec4309038fcf9a';
 const isAddrH = s => /^0x[a-fA-F0-9]{40}$/.test(s || '');
@@ -107,9 +107,9 @@ const mkHarness = (deps) => {
   const walletCopyBtn = mockEl();
   const walletEl = { value: '', readOnly: false };
   const els = { wcRestoreNote: noteEl, connectBtn: btn, disconnectBtn, walletManualNote, walletDot, walletAddr, walletCopyBtn };
-  const src = ['hasWcSessionKey', 'wcLoadBundle', 'wcGetProvider', 'restoreWalletConnectSession', 'setWcRestoreNote', 'updateConnectBtn', 'shortAddr'].map(fnSrcJ).join('\n');
+  const src = ['hasWcSessionKey', 'wcIdbOpen', 'wcIdbGet', 'wcIdbPut', 'wcIdbCacheBundle', 'wcInjectCode', 'wcFetchBundleText', 'wcLoadBundleNetwork', 'wcLoadBundle', 'wcGetProvider', 'restoreWalletConnectSession', 'setWcRestoreNote', 'updateConnectBtn', 'shortAddr'].map(fnSrcJ).join('\n');
   const fn = new Function('window', 'document', 'localStorage', 'CONFIG', '$', 'walletEl', 'saveWallet38', 'preview', 'isAddr', 'msg', 'msgf', 'fakeSetTimeout', 'I18N', 'lang',
-    'const setTimeout = fakeSetTimeout;\nlet wcProvider = null;\nlet wcBundlePromise = null;\nlet wcRestoreReason = null;\nlet connectedAddr = null;\n' +
+    'const setTimeout = fakeSetTimeout;\nlet wcProvider = null;\nlet wcBundlePromise = null;\nlet wcRestoreReason = null;\nlet connectedAddr = null;\nlet connectedVia = null;\n' +
     'function setConnected(a) { connectedAddr = (a && isAddr(a)) ? a : null; if (connectedAddr) setWcRestoreNote(null); updateConnectBtn(); }\n' + src +
     '\nreturn { hasWcSessionKey, wcLoadBundle, wcGetProvider, restoreWalletConnectSession, setWcRestoreNote, updateConnectBtn, getWcProvider: () => wcProvider, getReason: () => wcRestoreReason, getConnectedAddr: () => connectedAddr };');
   const api = fn(deps.window, deps.document, deps.localStorage,
@@ -228,7 +228,7 @@ const mkWindow = (ethProvider) => { const w = {}; if (ethProvider) w.EthereumPro
   t('v43.1 statis: template gagal tidak berubah (EN+ID)', js.includes("wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason}") && js.includes("wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason}"));
   t('v43.1 statis: CSS note terlihat (13px bold) + kelas restoring/failed', css.includes('#wcRestoreNote { font-size: 13px;') && css.includes('#wcRestoreNote.restoring') && css.includes('#wcRestoreNote.failed'));
   t('v43.1 statis: elemen note ada di HTML', html.includes('id="wcRestoreNote"'));
-  t('v43.2 statis: gameVersion v43.2', js.includes("gameVersion: 'v43.2'"));
+  t('v43.3 statis: gameVersion v43.3', js.includes("gameVersion: 'v43.3'"));
   {
     const setTabSrc = fnSrcJ('setTab');
     t('v43.1 statis: setTab tidak menyentuh elemen/alasan restore (status tidak bisa menempel lewat pindah tab)', !setTabSrc.includes('wcRestoreNote') && !setTabSrc.includes('wcRestoreReason') && setTabSrc.includes("say('')"));

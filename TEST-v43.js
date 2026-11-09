@@ -105,7 +105,7 @@ const harnessSrc = [
   "__out.s1_connHidden = __byId.connectBtn.classList.contains('hidden');",
   "__out.s1_connDisabled = __byId.connectBtn.disabled;",
   "__out.s1_dcHidden = __byId.disconnectBtn.classList.contains('hidden');",
-  "// (2) alamat manual diketik (bukan koneksi) — tampil singkat, CONNECT tetap ada",
+  "// (2) alamat manual diketik (bukan koneksi) — v43.3: TIDAK tampil di kartu (TAMU), CONNECT tetap ada",
   "__resetEls(); walletEl.value = '0x88538a82143065664232422e2dec4309038fcf9a'; updateConnectBtn();",
   "__out.s2_addr = __byId.walletAddr.textContent;",
   "__out.s2_copyHidden = __byId.walletCopyBtn.classList.contains('hidden');",
@@ -177,8 +177,8 @@ t('wallet s1: belum connect — dot mati semua', !__out.s1_dotOn && !__out.s1_do
 t('wallet s1: belum connect — alamat TAMU (ID)', __out.s1_addr === 'TAMU');
 t('wallet s1: salin tersembunyi, CONNECT tampil + aktif, PUTUSKAN tersembunyi',
   __out.s1_copyHidden && !__out.s1_connHidden && !__out.s1_connDisabled && __out.s1_dcHidden);
-t('wallet s2: alamat manual — tampil singkat, salin muncul, CONNECT tetap ada, dot mati, field bisa diedit',
-  __out.s2_addr === '0x8853...cf9a' && !__out.s2_copyHidden && !__out.s2_connHidden && !__out.s2_dotOn && !__out.s2_readOnly);
+t('wallet s2: alamat manual — v43.3 TIDAK tampil di kartu (TAMU), salin tersembunyi, CONNECT tetap ada, dot mati, field bisa diedit',
+  __out.s2_addr === 'TAMU' && __out.s2_copyHidden && !__out.s2_connHidden && !__out.s2_dotOn && !__out.s2_readOnly);
 t('wallet s3: restoring — dot restoring, CONNECT nonaktif, note terlihat + berisi MENGHUBUNGKAN KEMBALI',
   __out.s3_dotRest && __out.s3_connDisabled && !__out.s3_noteHidden && /MENGHUBUNGKAN KEMBALI/.test(__out.s3_note));
 t('wallet s4: terhubung — dot hijau, alamat singkat, CONNECT hilang, PUTUSKAN muncul, field read-only (tanpa baris status ganda)',
@@ -264,7 +264,7 @@ t('chart: sapuan 60 kombinasi mode/diff/seed deterministik + berisi note', sweep
 t('chart: judgement windows TIDAK berubah (0.045/0.09/0.135, BREAK 0.185)',
   /perfect: 0\.045, great: 0\.09, good: 0\.135/.test(fs.readFileSync('engine.js', 'utf8')) &&
   /BREAK = W\.good \+ 0\.05/.test(fs.readFileSync('engine.js', 'utf8')));
-t('versi: gameVersion v43.2 + judul v43.2', js.includes("gameVersion: 'v43.2'") && html.includes('<title>SQUEEKCHAIN // v43.2</title>'));
+t('versi: gameVersion v43.3 + judul v43.3', js.includes("gameVersion: 'v43.3'") && html.includes('<title>SQUEEKCHAIN // v43.3</title>'));
 
 // ============ (d) PANEL HASIL + PESAN KAPSUL ============
 t('kapsul EN: "CAPSULE: Kapsul #102 (rare) ✓" — rarity SEKALI', __out.capEn === 'CAPSULE: Kapsul #102 (rare) ✓');
