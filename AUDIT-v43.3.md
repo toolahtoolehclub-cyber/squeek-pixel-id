@@ -186,6 +186,23 @@ layar begitu user main lagu lain / menutup halaman. Skor lokal AMAN
    ulang lagunya bila mau skor itu di board.)
 5. Rental #4136: klaim SQK sebelum 15:18 WIB 9 Nov 2026 (tidak berubah).
 
+## 8. Verifikasi live (diisi setelah deploy, 2026-11-09 ~12:00 WIB)
+- Repo head setelah push: **`67c38707`** (push-files, 76 file teks, 0 biner).
+- Judul live `squeekpixel.web.id`: **SQUEEKCHAIN // v43.3** ✓ (GitHub Pages
+  sudah ter-deploy).
+- Raw GitHub `index.html`: judul v43.3 ✓; meta proof ✓.
+- Raw GitHub `script.js`: `gameVersion: 'v43.3'` ✓; 7 kemunculan identifier
+  baru v43.3 (`wcIdbOpen`, `sqk43:pending`, `SUBMIT_TIMEOUT_MS = 60000`) ✓.
+- Worker: `GET /` → `{"service":"squeekchain-leaderboard","version":13}` ✓.
+- 3 bukti Genesis utuh: meta tag ✓, baris README ✓, DNS TXT via Google
+  DoH = `squeekchain-verify=5a1592c9dc62c4ad09e9038ec8b41f67d1d137bfc3eda6f9` ✓.
+- Board D1: FREE **36115** (yui, verified=1) + race **50605** (yui,
+  verified=1 — skor race BARU dari user, dimainkan setelah 11:10 WIB;
+  bukan efek deploy). FREE 125515 tetap tidak ada di board — sesuai
+  harapan: ia tidak pernah sampai ke server dan antrean v43.3 hanya
+  melindungi submit BERIKUTNYA. `verify_queue` = 6 baris (dari 4; +2 dari
+  permainan baru user — audit trail, jangan dihapus).
+
 ## 7. Risiko / kejujuran
 - IndexedDB bisa dimatikan/diblokir di sebagian browser privat — fallback
   ke unduh jaringan tetap jalan (perilaku v42.3), restore kembali lambat
