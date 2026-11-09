@@ -610,7 +610,12 @@ body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 1
 .wallet-status.not-connected { border-color: var(--yellow); color: var(--yellow); }
 #walletInput[readonly] { opacity: .65; }
 #walletManualNote { font-size: 11px; }
-#wcRestoreNote { font-size: 11px; opacity: .75; text-align: center; margin-top: 6px; }
+/* v42.5.4: the WC restore status is a VISIBLE one-line status (same
+   weight as .wallet-status), not a small dim note — the user must see
+   at a glance whether the session is reconnecting or why it failed. */
+#wcRestoreNote { font-size: 13px; font-weight: bold; text-align: center; margin-top: 10px; padding: 10px; border-radius: 10px; border: 1px solid var(--yellow); color: var(--yellow); }
+#wcRestoreNote.restoring { border-color: var(--cyan); color: var(--cyan); }
+#wcRestoreNote.failed { border-color: var(--yellow); color: var(--yellow); }
 /* P1-5: shop previews — the product itself, rendered from the skin's own
    palette (no new image assets). Note skins: a row of hamster-note dots;
    frames: a mini framed panel; capsules: a rarity-coloured dot + label. */

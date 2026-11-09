@@ -121,7 +121,7 @@ const MSG = {
     noWallet: 'NO WALLET FOUND IN THIS BROWSER — TYPE YOUR 0x ADDRESS MANUALLY.',
     walletInvalid: 'WALLET RETURNED NO VALID ADDRESS — TYPE YOUR 0x ADDRESS MANUALLY.',
     walletConnected: 'WALLET CONNECTED: {addr} — ADDRESS ONLY, NO SIGNATURE REQUESTED.',
-    connRejected: 'CONNECTION REJECTED — TYPE YOUR 0x ADDRESS MANUALLY.', connFail: 'CONNECT FAILED: {err}', wcLoadFail: 'WALLETCONNECT FAILED TO LOAD — CHECK YOUR CONNECTION AND RETRY.', wcRejected: 'WALLETCONNECT CANCELLED — NOTHING WAS CONNECTED.', wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason} — TAP [ CONNECT WALLET ] TO RECONNECT.', wcChainFail: 'COULD NOT SWITCH TO SEPOLIA — SWITCH MANUALLY IN YOUR WALLET.',
+    connRejected: 'CONNECTION REJECTED — TYPE YOUR 0x ADDRESS MANUALLY.', connFail: 'CONNECT FAILED: {err}', wcLoadFail: 'WALLETCONNECT FAILED TO LOAD — CHECK YOUR CONNECTION AND RETRY.', wcRejected: 'WALLETCONNECT CANCELLED — NOTHING WAS CONNECTED.', wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason} — TAP [ CONNECT WALLET ] TO RECONNECT.', wcRestoring: 'RECONNECTING TO YOUR WALLET…', wcChainFail: 'COULD NOT SWITCH TO SEPOLIA — SWITCH MANUALLY IN YOUR WALLET.',
     walletSwitched: 'WALLET SWITCHED TO {addr}.', walletDisconnected: 'WALLET DISCONNECTED.', walletConnectedTpl: 'WALLET CONNECTED: {addr} • Transactions use THIS address (OKX / WalletConnect / in-app wallet).', calibStart: 'CALIBRATING… TAP ON EACH OF THE 8 BEATS.',
     qltyEco: ' — WebGL off, static gradient background.', qltyUltra: ' — WebGL / moving grid.',
     voidLock: '🔒 VOID GENRE UNLOCKS AT LV5 — PLAY MORE SONGS TO EARN XP.',
@@ -248,7 +248,7 @@ const MSG = {
     noWallet: 'TIDAK ADA WALLET DI BROWSER INI — KETIK ALAMAT 0x SECARA MANUAL.',
     walletInvalid: 'WALLET TIDAK MENGEMBALIKAN ALAMAT VALID — KETIK ALAMAT 0x SECARA MANUAL.',
     walletConnected: 'WALLET TERHUBUNG: {addr} — HANYA ALAMAT, TANPA SIGNATURE.',
-    connRejected: 'KONEKSI DITOLAK — KETIK ALAMAT 0x SECARA MANUAL.', connFail: 'KONEKSI GAGAL: {err}', wcLoadFail: 'WALLETCONNECT GAGAL DIMUAT — PERIKSA KONEKSIMU DAN COBA LAGI.', wcRejected: 'WALLETCONNECT DIBATALKAN — TIDAK ADA YANG TERHUBUNG.', wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason} — KETUK [ CONNECT WALLET ] UNTUK MENGHUBUNGKAN LAGI.', wcChainFail: 'TIDAK BISA PINDAH KE SEPOLIA — PINDAH MANUAL DI WALLETMU.',
+    connRejected: 'KONEKSI DITOLAK — KETIK ALAMAT 0x SECARA MANUAL.', connFail: 'KONEKSI GAGAL: {err}', wcLoadFail: 'WALLETCONNECT GAGAL DIMUAT — PERIKSA KONEKSIMU DAN COBA LAGI.', wcRejected: 'WALLETCONNECT DIBATALKAN — TIDAK ADA YANG TERHUBUNG.', wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason} — KETUK [ CONNECT WALLET ] UNTUK MENGHUBUNGKAN LAGI.', wcRestoring: 'MENGHUBUNGKAN KEMBALI KE WALLET…', wcChainFail: 'TIDAK BISA PINDAH KE SEPOLIA — PINDAH MANUAL DI WALLETMU.',
     walletSwitched: 'WALLET BERGANTI KE {addr}.', walletDisconnected: 'WALLET TERPUTUS.', walletConnectedTpl: 'WALLET TERHUBUNG: {addr} • Transaksi memakai alamat INI (OKX / WalletConnect / wallet dalam aplikasi).', calibStart: 'MENGALIBRASI… KETUK DI SETIAP DARI 8 KETUKAN.',
     qltyEco: ' — WebGL mati, latar gradien statis.', qltyUltra: ' — WebGL / grid bergerak.',
     voidLock: '🔒 GENRE VOID TERBUKA DI LV5 — MAIN LAGU LAGI UNTUK XP.',
@@ -2010,12 +2010,31 @@ async function connectWalletConnect() {
 let wcRestoreReason = null; // v42.5.2 FIX 3: last restore failure code, for diagnosis
 function setWcRestoreNote(reason) {
   wcRestoreReason = reason || null;
-  const el = $('wcRestoreNote'); if (!el) return;
-  // Only real failures are shown: a missing session key is the normal
-  // never-connected state, not a failure worth displaying.
-  const show = reason === 'bundle-timeout' || reason === 'no-accounts' || reason === 'enable-rejected';
-  el.classList.toggle('hidden', !show);
-  if (show) el.textContent = msgf('wcRestoreNoteTpl', { reason });
+  const el = $('wcRestoreNote');
+  if (el) {
+    // v42.5.4: the restore status is VISIBLE, not a small hidden note.
+    // 'restoring' = the stored session is being re-activated (the 2.1 MB
+    // bundle can take 1–3 minutes on a slow connection) — shown in cyan.
+    // The three failure codes are shown in yellow, one readable line.
+    // A missing session key is the normal never-connected state, not a
+    // failure worth displaying.
+    const show = reason === 'restoring' || reason === 'bundle-timeout' || reason === 'no-accounts' || reason === 'enable-rejected';
+    el.classList.toggle('hidden', !show);
+    el.classList.toggle('restoring', reason === 'restoring');
+    el.classList.toggle('failed', reason === 'bundle-timeout' || reason === 'no-accounts' || reason === 'enable-rejected');
+    if (reason === 'restoring') el.textContent = msg('wcRestoring');
+    else if (show) el.textContent = msgf('wcRestoreNoteTpl', { reason });
+  }
+  // v42.5.4: disable the CONNECT WALLET button while a restore runs, so
+  // the user cannot tap connect mid-restore and create a second session.
+  // Re-enabling on failure is done here; on success updateConnectBtn()
+  // (via setConnected) owns the button. null / no-session-key leave the
+  // button alone — updateConnectBtn() owns its normal state.
+  const cb = $('connectBtn');
+  if (cb) {
+    if (reason === 'restoring') cb.disabled = true;
+    else if (reason === 'bundle-timeout' || reason === 'no-accounts' || reason === 'enable-rejected') cb.disabled = false;
+  }
 }
 function hasWcSessionKey() {
   try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('wc@2:') === 0) return true; } } catch (_) {}
@@ -2025,26 +2044,40 @@ async function restoreWalletConnectSession() {
   try {
     if (window.ethereum) return; // injected path owns the wallet field
     if (!hasWcSessionKey()) { setWcRestoreNote('no-session-key'); return; }
-    const p = await wcGetProvider(60000, true); // v42.5.2 FIX 3: 60 s bundle wait, no modal
-    if (!p) { setWcRestoreNote('bundle-timeout'); return; }
-    let accounts = (p.accounts && p.accounts.length) ? p.accounts : null;
-    if (!accounts) { try { accounts = await p.request({ method: 'eth_accounts' }); } catch (_) { accounts = null; } }
-    let addr = Array.isArray(accounts) ? accounts[0] : null;
-    if (!addr && p.session) {
-      // Passive read empty but a stored session exists: re-activate it
-      // silently. enable() skips connect() when this.session is set
-      // (verified in the vendored bundle), so no modal and no hang.
-      try {
-        const enabled = await p.enable();
-        addr = Array.isArray(enabled) ? enabled[0] : null;
-        if (!addr) { try { const a2 = await p.request({ method: 'eth_accounts' }); addr = Array.isArray(a2) ? a2[0] : null; } catch (_) {} }
-      } catch (_) { setWcRestoreNote('enable-rejected'); return; }
+    // v42.5.4: show a VISIBLE "reconnecting" status and disable the
+    // CONNECT WALLET button while the restore runs (the 2.1 MB bundle
+    // can take 1–3 minutes on a slow connection — until now the button
+    // still said CONNECT WALLET, so users thought the restore had failed
+    // when it was still running). The finally below guarantees the
+    // status never sticks: every exit path ends with a final reason.
+    setWcRestoreNote('restoring');
+    try {
+      const p = await wcGetProvider(60000, true); // v42.5.2 FIX 3: 60 s bundle wait, no modal
+      if (!p) { setWcRestoreNote('bundle-timeout'); return; }
+      let accounts = (p.accounts && p.accounts.length) ? p.accounts : null;
+      if (!accounts) { try { accounts = await p.request({ method: 'eth_accounts' }); } catch (_) { accounts = null; } }
+      let addr = Array.isArray(accounts) ? accounts[0] : null;
+      if (!addr && p.session) {
+        // Passive read empty but a stored session exists: re-activate it
+        // silently. enable() skips connect() when this.session is set
+        // (verified in the vendored bundle), so no modal and no hang.
+        try {
+          const enabled = await p.enable();
+          addr = Array.isArray(enabled) ? enabled[0] : null;
+          if (!addr) { try { const a2 = await p.request({ method: 'eth_accounts' }); addr = Array.isArray(a2) ? a2[0] : null; } catch (_) {} }
+        } catch (_) { setWcRestoreNote('enable-rejected'); return; }
+      }
+      if (addr && isAddr(addr)) {
+        wcProvider = p; // cache only after a successful restore
+        if (walletEl) walletEl.value = addr; saveWallet38(addr); preview(); setConnected(addr);
+        setWcRestoreNote(null);
+      } else setWcRestoreNote('no-accounts');
+    } finally {
+      // v42.5.4: the "reconnecting" status must never stick — if the
+      // body ended without setting a final reason (unexpected throw),
+      // clear it here; the outer catch then reports bundle-timeout.
+      if (wcRestoreReason === 'restoring') setWcRestoreNote(null);
     }
-    if (addr && isAddr(addr)) {
-      wcProvider = p; // cache only after a successful restore
-      if (walletEl) walletEl.value = addr; saveWallet38(addr); preview(); setConnected(addr);
-      setWcRestoreNote(null);
-    } else setWcRestoreNote('no-accounts');
   } catch (_) { setWcRestoreNote('bundle-timeout'); }
 }
 async function restoreInjectedSession() { // v42.4: browser dalam-app wallet (MetaMask/OKX) tetap terhubung saat reload — baca akun TANPA prompt (eth_accounts tidak pernah membuka pop-up)
@@ -2069,8 +2102,18 @@ function updateConnectBtn() {
   const connected = !!(connectedAddr && isAddr(connectedAddr));
   const dict = I18N[lang] || I18N.en;
   const short = connected ? connectedAddr.slice(0, 6) + '...' + connectedAddr.slice(-4) : '';
+  // v42.5.4: while a WC session restore is running, the button stays
+  // disabled — the restore re-activates the stored session, and tapping
+  // connect mid-restore would open a second session. The visible
+  // "MENGHUBUNGKAN KEMBALI…" status lives in #wcRestoreNote. (typeof
+  // guard: unit harnesses that extract this function may not declare
+  // wcRestoreReason.)
+  const restoring = (typeof wcRestoreReason !== 'undefined') && wcRestoreReason === 'restoring';
   if (connected) {
     b.textContent = (dict.connectedTpl || '[ CONNECTED: {addr} ]').split('{addr}').join(short);
+    b.disabled = true;
+  } else if (restoring) {
+    b.textContent = dict.connect || '[ CONNECT WALLET ]';
     b.disabled = true;
   } else {
     b.textContent = dict.connect || '[ CONNECT WALLET ]';
@@ -2706,7 +2749,7 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 30000); // v42.5.2 (FIX 2): 30 detik — upload replay (puluhan KB) di koneksi ~3 K/s butuh >8 detik
   try {
-    const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.5.3' } : bodyBase;
+    const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.5.4' } : bodyBase;
     let r;
     try { r = await postScores(body); }
     catch (e1) {
