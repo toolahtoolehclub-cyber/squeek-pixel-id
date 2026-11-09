@@ -424,7 +424,7 @@ async function runDreamTests42() {
   t('v42.5.1 og:image -> Worker /og.png', html.includes('<meta property="og:image" content="' + W + '/og.png">'));
   t('v42.5.1 twitter:image -> Worker /og.png', html.includes('<meta name="twitter:image" content="' + W + '/og.png">'));
   t('v42.5.1 favicon + apple-touch-icon -> Worker /icon.png', html.includes('<link rel="icon" type="image/png" href="' + W + '/icon.png">') && html.includes('<link rel="apple-touch-icon" href="' + W + '/icon.png">'));
-  t('v43.1 gameVersion v43.1', js.includes("gameVersion: 'v43.1'"));
+  t('v43.2 gameVersion v43.2', js.includes("gameVersion: 'v43.2'"));
   t('v42.5.1 worker routes /icon.png + /og.png exist', worker.includes('"/icon.png"') && worker.includes('"/og.png"') && worker.includes('function pngResponse('));
   t('v13 worker version 13', worker.includes('version: 13'));
   t('v42.5.1 no stale headline-simple.png URL in client', !html.includes('squeekchain-headline-simple.png') && !js.includes('squeekchain-headline-simple.png'));
@@ -681,11 +681,11 @@ async function runBugFixTests4252() {
   // Statis: timeout baru + gameVersion + kunci i18n + Worker v12.
   t('v42.5.2 FIX 2: POST /scores timeout 30 detik', js.includes('body: JSON.stringify(body) }, 30000)'));
   t('v42.5.2 FIX 2: GET /scores, /rank, /verify timeout 20 detik', js.includes("'/scores?mode=' + lbState.mode + '&limit=10', null, 20000)") && js.includes("'/rank?wallet=' + w + '&mode=' + lbState.mode, null, 20000)") && js.includes('encodeURIComponent(replayHash), null, 20000)') && js.includes('encodeURIComponent(lastVerifyHash), null, 20000)'));
-  t('v43.1: gameVersion v43.1', js.includes("gameVersion: 'v43.1'"));
+  t('v43.2: gameVersion v43.2', js.includes("gameVersion: 'v43.2'"));
   t('v42.5.2 FIX 1: kunci i18n UNEQUIP EN+ID ada', js.includes("sqkUnequipBtn: '[ UNEQUIP ]'") && js.includes("sqkUnequipped: 'UNEQUIPPED: {item} ✓ — BACK TO DEFAULT.'") && js.includes("sqkUnequipBtn: '[ LEPAS ]'") && js.includes("sqkUnequipped: 'DILEPAS: {item} ✓ — KEMBALI KE DEFAULT.'") && js.includes("shopUnequipped: 'UNEQUIPPED {item} ✓'") && js.includes("shopUnequipped: 'DILEPAS {item} ✓'") && js.includes("unequipBtn: '[ UNEQUIP ]'") && js.includes("unequipBtn: '[ LEPAS ]'"));
   t('v42.5.2 FIX 1: Worker v12 punya POST /cheese/unequip + UPDATE equipped=0', worker.includes('"/cheese/unequip"') && worker.includes('UPDATE cheese_inventory SET equipped = 0') && worker.includes('version: 13'));
   t('v42.5.2 FIX 1: render toko memakai data-unequip / data-sqk-unequip', js.includes('data-unequip=') && js.includes('data-sqk-unequip='));
-  t('v43.1: index.html judul v43.1', html.includes('<title>SQUEEKCHAIN // v43.1</title>') && html.includes('PIXEL ID // v43.1'));
+  t('v43.2: index.html judul v43.2', html.includes('<title>SQUEEKCHAIN // v43.2</title>') && html.includes('PIXEL ID // v43.2'));
 }
 
 // --- 13. v42.5.2 FIX 3: WalletConnect session restore ---

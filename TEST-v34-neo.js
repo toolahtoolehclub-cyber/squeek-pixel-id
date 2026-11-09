@@ -46,8 +46,8 @@ t('v43.1 walletStatus is GONE (address appears once, in the card)', !html.includ
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v43.1', (html.match(/v43\.1/g) || []).length >= 2);
-t('browser tab title is v43.1', html.includes('<title>SQUEEKCHAIN // v43.1</title>'));
+t('html says v43.2', (html.match(/v43\.2/g) || []).length >= 2);
+t('browser tab title is v43.2', html.includes('<title>SQUEEKCHAIN // v43.2</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -492,7 +492,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v43.1', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43.1'"));
+t('submit sends replay + hash + gameVersion v43.2', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43.2'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -518,7 +518,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v43.1', readme.startsWith('# Squeekchain v43.1'));
+t('README title is v43.2', readme.startsWith('# Squeekchain v43.2'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -1330,8 +1330,8 @@ t('worker v6: /league you carries verified', worker.includes('verified: me.verif
 t('worker version is 13', worker.includes('{ service: "squeekchain-leaderboard", version: 13 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v43.1', js.includes("gameVersion: 'v43.1'"));
-t('html title is v43.1', html.includes('<title>SQUEEKCHAIN // v43.1</title>'));
+t('submit sends gameVersion v43.2', js.includes("gameVersion: 'v43.2'"));
+t('html title is v43.2', html.includes('<title>SQUEEKCHAIN // v43.2</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {

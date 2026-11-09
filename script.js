@@ -2895,7 +2895,7 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 30000); // v42.5.2 (FIX 2): 30 detik — upload replay (puluhan KB) di koneksi ~3 K/s butuh >8 detik
   try {
-    const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v43.1' } : bodyBase;
+    const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v43.2' } : bodyBase;
     let r;
     try { r = await postScores(body); }
     catch (e1) {

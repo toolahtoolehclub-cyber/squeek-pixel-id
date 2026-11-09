@@ -16,7 +16,20 @@ button, canvas, h1, h2, .stat { user-select: none; -webkit-tap-highlight-color: 
 input[type=text] { user-select: text; }
 
 body {
-    margin: 0; min-height: 100dvh; background-color: var(--bg); color: var(--fg);
+    margin: 0; min-height: 100dvh; color: var(--fg);
+    /* v43.2: first-load background is VISIBLY colored, not plain black.
+       v43.1 made the aurora static + WebGL lazy, so before the first tap
+       the page was practically pure black (--bg #000000 + faint .10/.08
+       aurora) and the user asked if black was the design. The DARK theme
+       is intentional (NEO near-black since v32), but an empty black load
+       is not. This static CSS gradient — top green wash + bottom cyan
+       wash over NEO near-black #050607 — is visible from the first paint
+       at ZERO cost: no animation, no blur, no particles, no WebGL. The
+       aurora + bgWake still wake the gentle drift on the first tap. */
+    background:
+        radial-gradient(ellipse 80% 55% at 50% 0%, rgba(0, 255, 136, .10), transparent 70%),
+        radial-gradient(ellipse 70% 50% at 50% 100%, rgba(0, 229, 255, .08), transparent 70%),
+        #050607;
     font-family: 'Space Mono', monospace; overflow-x: hidden;
     display: flex; flex-direction: column; align-items: center;
     /* Animated Grid Background */
@@ -158,9 +171,14 @@ body.live-day #bg-aurora { filter: saturate(1.4); }
 #bg-aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 #bg-aurora .aurora {
     position: absolute; inset: -20% -10%;
+    /* v43.2: STATIC tints raised so the first load is visibly colored
+       (v43.1's .10/.08 was practically black on a phone). Still static
+       (animation: none) until body.bg-awake — zero cost, no blur, no
+       particles. The slow transform pan still wakes on the first tap. */
     background:
-        radial-gradient(ellipse 55% 40% at 30% 20%, rgba(0, 229, 255, .10), transparent 70%),
-        radial-gradient(ellipse 45% 35% at 75% 70%, rgba(0, 255, 136, .08), transparent 70%);
+        radial-gradient(ellipse 60% 45% at 25% 15%, rgba(0, 229, 255, .22), transparent 70%),
+        radial-gradient(ellipse 50% 40% at 78% 72%, rgba(0, 255, 136, .20), transparent 70%),
+        radial-gradient(ellipse 40% 32% at 72% 8%, rgba(139, 92, 246, .12), transparent 70%);
     animation: none;
 }
 body.bg-awake:not(.playing):not(.hemat) #bg-aurora .aurora { animation: auroraPan 36s ease-in-out infinite alternate; }
