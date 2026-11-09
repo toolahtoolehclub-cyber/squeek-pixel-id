@@ -2490,6 +2490,12 @@ function setConnected(addr) {
   try { renderSqkShop(); } catch (_) {}
   try { renderLb(); } catch (_) {}
   try { renderLeagueWeekly(); } catch (_) {}
+  // v43.6: status koneksi berubah — terapkan langsung frame yang
+  // di-equip (atau hapus bila disconnect), supaya frame di #gamePanel +
+  // #resultPanel tidak bertahan setelah disconnect sampai lagu
+  // berikutnya. shopSkin() sudah mengembalikan default saat GUEST, jadi
+  // disconnect menghapus frame seketika dan reconnect mengembalikannya.
+  try { applyResultFrame(); } catch (_) {}
   if (connectedAddr) {
     try { fetchShop(); } catch (_) {}
     try { fetchSqkShop(); } catch (_) {}
@@ -3221,7 +3227,7 @@ async function submitLb() {
   // tanpa-replay dengan 422. 400/422 = replay tidak valid, tunjukkan apa
   // adanya. 429 (rate limit) TIDAK pernah di-retry.
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
-  const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v43.5' } : bodyBase;
+  const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v43.6' } : bodyBase;
   enqueuePendingSubmit(body);
   show(msg('lbSending'));
   const res = await submitWithRetries(body, () => show(msg('lbRetrying')));
@@ -3314,6 +3320,16 @@ const FRAME_SKINS = ['frame-neon', 'frame-gold', 'frame-royal', 'frame-rainbow',
 // pernah lagi tertimpa. Migrasi sekali: kunci lama sqk41:skin (v42.4)
 // disalin ke kedua kunci baru, lalu dihapus.
 function shopSkin() {
+  // v43.6: equip terikat WALLET — bila tidak ada wallet yang benar-benar
+  // terhubung (GUEST / disconnect), kembalikan tampilan DEFAULT. Equip
+  // yang tersimpan di localStorage TIDAK dihapus: begitu user reconnect,
+  // tampilan equip kembali sendiri. Tanpa gate ini, skin/frame dari sesi
+  // connect tetap menempel di game setelah disconnect (laporan user
+  // 9 Nov 2026 ~23:47 WIB) — padahal v43.4 sudah menetapkan tampilan
+  // yang terikat wallet hanya berlaku saat terhubung. Gate tunggal di
+  // sini memperbaiki semua call site sekaligus (warna not di play(),
+  // frame di #gamePanel + #resultPanel, cek EQUIPPED di toko).
+  if (!connectedWallet()) return { note: null, frame: null };
   let keju = loadJSON('sqk41:skin-keju', null);
   let sqk = loadJSON('sqk41:skin-sqk', null);
   if (!keju && !sqk) {

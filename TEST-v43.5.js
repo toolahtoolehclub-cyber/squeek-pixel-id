@@ -57,14 +57,17 @@ function mkFrameHarness(storeInit, opts) {
   if (!(opts && opts.noResultPanel)) els.resultPanel = mockEl();
   const localStorageStub = { getItem: () => null, setItem() {}, removeItem() {} };
   const src = [fnSrcJ('shopSkin'), fnSrcJ('applyResultFrame'), fnSrcJ('noteColor')].join('\n');
-  const api = new Function('$', 'loadJSON', 'saveJSON', 'localStorage', 'FRAME_SKINS', 'NOTE_SKINS',
+  // v43.6: shopSkin() gates on connectedWallet() — this harness tests the
+  // CONNECTED case (frame applies when equipped); the disconnected case
+  // (GUEST -> default) is covered by TEST-v43.6.js.
+  const api = new Function('$', 'loadJSON', 'saveJSON', 'localStorage', 'FRAME_SKINS', 'NOTE_SKINS', 'connectedWallet',
     src + '\nreturn { shopSkin, applyResultFrame, noteColor };'
   )(
     id => els[id] || null,
     (k, fb) => store.has(k) ? store.get(k) : fb,
     (k, v) => { store.set(k, v); },
     localStorageStub,
-    FRAME_SKINS, NOTE_SKINS
+    FRAME_SKINS, NOTE_SKINS, () => '0x88538a82143065664232422e2dec4309038fcf9a'
   );
   return { api, els, store };
 }
@@ -173,25 +176,26 @@ function hasOnlyFrame(el, f) { return el.classList.contains(f) && FRAME_SKINS.fi
   // C4: play() applies the frame the moment the game panel shows.
   t('v43.5 C4: play() calls applyResultFrame() right after show(\'gamePanel\')', js.includes("show('gamePanel'); applyResultFrame();"));
   // C5: applyResultFrame is called from every equip/unequip path + result + play
-  // (6 call sites + 1 definition = 7 occurrences of the name).
+  // + setConnected (v43.6: connect/disconnect re-applies the frame at once)
+  // (7 call sites + 1 definition = 8 occurrences of the name).
   {
     const calls = jsCode.split('applyResultFrame()').length - 1;
-    t('v43.5 C5: applyResultFrame() called from play + result + equip/unequip paths (6 calls + definition)', calls === 7);
+    t('v43.5 C5: applyResultFrame() called from play + result + equip/unequip paths + setConnected (7 calls + definition)', calls === 8);
   }
-  // C6: version strings are v43.5.
-  t('v43.5 C6: version v43.5 (title + header + footer + meta + gameVersion + README)',
-    html.includes('<title>SQUEEKCHAIN // v43.5</title>') && html.includes('PIXEL ID // v43.5') && html.includes('• v43.5 •') && html.includes('SQUEEKCHAIN v43.5 —') &&
-    js.includes("gameVersion: 'v43.5'") && fs.readFileSync('README.md', 'utf8').startsWith('# Squeekchain v43.5'));
+  // C6: version strings are v43.6.
+  t('v43.5 C6: version v43.6 (title + header + footer + meta + gameVersion + README)',
+    html.includes('<title>SQUEEKCHAIN // v43.6</title>') && html.includes('PIXEL ID // v43.6') && html.includes('• v43.6 •') && html.includes('SQUEEKCHAIN v43.6 —') &&
+    js.includes("gameVersion: 'v43.6'") && fs.readFileSync('README.md', 'utf8').startsWith('# Squeekchain v43.6'));
   // C7: v43.4 gating untouched (connected-only profile/shop/rank).
   t('v43.5 C7: gating v43.4 intact (connectedWallet() helper + profile gate)',
     js.includes('function connectedWallet()') && js.includes('if (!wrap || !c || !connectedWallet() || !isAddr(w))'));
   // C8: structure intact (game panel + canvas + result panel present).
   t('v43.5 C8: structure intact (#gamePanel + #game-canvas + #resultPanel in index.html)',
     html.includes('id="gamePanel"') && html.includes('id="game-canvas"') && html.includes('id="resultPanel"'));
-  // C9: engine + worker byte-identical to v43.4 (client UI only).
+  // C9: engine + worker byte-identical to v43.5 (client UI only).
   {
     const eq = (a, b) => fs.readFileSync(a).equals(fs.readFileSync(b));
-    t('v43.5 C9: engine.js + worker.js byte-identical to v43.4', eq('engine.js', '../squeekchain-v43.4/engine.js') && eq('worker.js', '../squeekchain-v43.4/worker.js'));
+    t('v43.5 C9: engine.js + worker.js byte-identical to v43.5', eq('engine.js', '../squeekchain-v43.5/engine.js') && eq('worker.js', '../squeekchain-v43.5/worker.js'));
   }
   // C10: engine regression — golden charts + judgement windows unchanged.
   {

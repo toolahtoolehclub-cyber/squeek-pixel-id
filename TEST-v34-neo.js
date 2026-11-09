@@ -46,8 +46,8 @@ t('v43.1 walletStatus is GONE (address appears once, in the card)', !html.includ
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v43.5', (html.match(/v43\.5/g) || []).length >= 2);
-t('browser tab title is v43.4', html.includes('<title>SQUEEKCHAIN // v43.5</title>'));
+t('html says v43.6', (html.match(/v43\.6/g) || []).length >= 2);
+t('browser tab title is v43.4', html.includes('<title>SQUEEKCHAIN // v43.6</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -492,7 +492,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v43.5', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43.5'"));
+t('submit sends replay + hash + gameVersion v43.6', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43.6'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -518,7 +518,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v43.5', readme.startsWith('# Squeekchain v43.5'));
+t('README title is v43.6', readme.startsWith('# Squeekchain v43.6'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -1026,7 +1026,7 @@ async function runEquipTests42() {
     msgStub, msgfStub,
     { SHOP_ADDRESS: '0x43f568AcfaDcee4333785c9F26596719ED0B02fb' },
     { balanceOfItem: '0x4496166b' }, loadJSON, saveJSON, sqkStateH);
-  const shopSkinH = new Function('loadJSON', 'saveJSON', fnSrc38('shopSkin') + '\nreturn shopSkin;')(loadJSON, saveJSON);
+  const shopSkinH = new Function('loadJSON', 'saveJSON', 'connectedWallet', fnSrc38('shopSkin') + '\nreturn shopSkin;')(loadJSON, saveJSON, () => ADDR); // v43.6: shopSkin() gates on connectedWallet() — harness ini menguji kasus CONNECTED; GUEST -> default di TEST-v43.6.js
   const skinOf = () => shopSkinH(); // skin EFEKTIF (gabungan Keju + SQK), bukan satu kunci mentah
   await equipSqkItem(1); // owned -> bisa equip
   t('v42.4 equipSqk: item 1 (owned) -> shopSkin.note = note-sqk-rare', skinOf().note === 'note-sqk-rare');
@@ -1282,7 +1282,10 @@ t('every catalog note skin has client colors', CHEESE_CATALOG.filter(c => c.slot
 t('every catalog frame skin has a client class', CHEESE_CATALOG.filter(c => c.slot === 'frame').every(c => js.includes("FRAME_SKINS = ['frame-neon', 'frame-gold', 'frame-royal', 'frame-rainbow', 'frame-sqk']") && js.includes("'" + c.id + "'")));
 const skinStore = {};
 const skinLS = { getItem: k => (k in skinStore ? skinStore[k] : null), setItem: (k, v) => { skinStore[k] = String(v); }, removeItem: k => { delete skinStore[k]; } };
-const skinFns = new Function('localStorage', oneLine38('function loadJSON') + '\n' + oneLine38('function saveJSON') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('saveKejuSkin') + '\n' + fnSrc38('saveSqkSkin') + '\n' + fnSrc38('saveSkinLast') + '\nreturn { shopSkin, saveKejuSkin, saveSqkSkin, saveSkinLast };')(skinLS);
+// v43.6: shopSkin() gates on connectedWallet() — this harness tests the
+// CONNECTED case (equip round-trips when equipped); GUEST -> default is
+// covered by TEST-v43.6.js.
+const skinFns = new Function('localStorage', 'connectedWallet', oneLine38('function loadJSON') + '\n' + oneLine38('function saveJSON') + '\n' + fnSrc38('shopSkin') + '\n' + fnSrc38('saveKejuSkin') + '\n' + fnSrc38('saveSqkSkin') + '\n' + fnSrc38('saveSkinLast') + '\nreturn { shopSkin, saveKejuSkin, saveSqkSkin, saveSkinLast };')(skinLS, () => '0x88538a82143065664232422e2dec4309038fcf9a');
 t('shopSkin defaults to nothing equipped', skinFns.shopSkin().note === null && skinFns.shopSkin().frame === null);
 skinFns.saveKejuSkin({ note: 'note-gold', frame: 'frame-neon' });
 t('shopSkin round-trips Keju skin through sqk41:skin-keju', skinFns.shopSkin().note === 'note-gold' && skinFns.shopSkin().frame === 'frame-neon');
@@ -1290,7 +1293,7 @@ t('shopSkin survives a corrupt store', (() => { skinStore['sqk41:skin-keju'] = '
 // v42.5.1 (BUG 1): migrasi kunci lama sqk41:skin (v42.4) ke dua kunci baru.
 t('shopSkin migrates legacy sqk41:skin to both new keys', (() => {
   const ls2 = { getItem: k => (k in skinStore ? skinStore[k] : null), setItem: (k, v) => { skinStore[k] = String(v); }, removeItem: k => { delete skinStore[k]; } };
-  const fns2 = new Function('localStorage', oneLine38('function loadJSON') + '\n' + oneLine38('function saveJSON') + '\n' + fnSrc38('shopSkin') + '\nreturn { shopSkin };')(ls2);
+  const fns2 = new Function('localStorage', 'connectedWallet', oneLine38('function loadJSON') + '\n' + oneLine38('function saveJSON') + '\n' + fnSrc38('shopSkin') + '\nreturn { shopSkin };')(ls2, () => '0x88538a82143065664232422e2dec4309038fcf9a');
   delete skinStore['sqk41:skin-keju']; delete skinStore['sqk41:skin-sqk']; delete skinStore['sqk41:skin-last'];
   skinStore['sqk41:skin'] = JSON.stringify({ note: 'note-gold', frame: 'frame-neon' });
   const eff = fns2.shopSkin();
@@ -1330,8 +1333,8 @@ t('worker v6: /league you carries verified', worker.includes('verified: me.verif
 t('worker version is 13', worker.includes('{ service: "squeekchain-leaderboard", version: 13 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v43.5', js.includes("gameVersion: 'v43.5'"));
-t('html title is v43.5', html.includes('<title>SQUEEKCHAIN // v43.5</title>'));
+t('submit sends gameVersion v43.6', js.includes("gameVersion: 'v43.6'"));
+t('html title is v43.6', html.includes('<title>SQUEEKCHAIN // v43.6</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {

@@ -228,7 +228,7 @@ const mkWindow = (ethProvider) => { const w = {}; if (ethProvider) w.EthereumPro
   t('v43.1 statis: template gagal tidak berubah (EN+ID)', js.includes("wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason}") && js.includes("wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason}"));
   t('v43.1 statis: CSS note terlihat (13px bold) + kelas restoring/failed', css.includes('#wcRestoreNote { font-size: 13px;') && css.includes('#wcRestoreNote.restoring') && css.includes('#wcRestoreNote.failed'));
   t('v43.1 statis: elemen note ada di HTML', html.includes('id="wcRestoreNote"'));
-  t('v43.4 statis: gameVersion v43.5', js.includes("gameVersion: 'v43.5'"));
+  t('v43.4 statis: gameVersion v43.6', js.includes("gameVersion: 'v43.6'"));
   {
     const setTabSrc = fnSrcJ('setTab');
     t('v43.1 statis: setTab tidak menyentuh elemen/alasan restore (status tidak bisa menempel lewat pindah tab)', !setTabSrc.includes('wcRestoreNote') && !setTabSrc.includes('wcRestoreReason') && setTabSrc.includes("say('')"));

@@ -546,7 +546,7 @@ function runGateTests() {
   t('v43.4 statis: alamat TIDAK tampil bila belum connect (updateConnectBtn)', js.includes('const shown = connected ? connectedAddr : null;') && !js.includes("const shown = connected ? connectedAddr : (isAddr(typed) ? typed : null);"));
   t('v43.4 statis: anti-duplikat di connectWalletConnect (enable sebelum connect)', js.includes('if (hasWcSessionKey() || (p.session && typeof p.session === \'object\'))'));
   t('v43.4 statis: akar masalah didokumentasi jujur di kode (max-age=600)', js.includes('max-age=600') && js.includes('v42.5.2/v43/v43.1/v43.2 mengklaim memperbaiki restore tapi tidak pernah'));
-  t('v43.4 statis: index.html judul v43.5 + gameVersion v43.5', html.includes('<title>SQUEEKCHAIN // v43.5</title>') && html.includes('PIXEL ID // v43.5') && js.includes("gameVersion: 'v43.5'"));
+  t('v43.4 statis: index.html judul v43.6 + gameVersion v43.6', html.includes('<title>SQUEEKCHAIN // v43.6</title>') && html.includes('PIXEL ID // v43.6') && js.includes("gameVersion: 'v43.6'"));
   // v43.4 gating — static: the gate helper + all renders keyed on it.
   t('v43.4 statis: gate helper connectedWallet() ada + profil pakai itu', js.includes('function connectedWallet()') && js.includes('if (!wrap || !c || !connectedWallet() || !isAddr(w))') && js.includes('const w = connectedWallet();'));
   t('v43.4 statis: setConnected mengevaluasi ulang tampilan wallet (avatar + toko + peringkat)', js.includes('renderAvatarPreview(connectedAddr)') && js.includes('renderShop();') && js.includes('renderSqkShop();') && js.includes('renderLb();') && js.includes('renderLeagueWeekly();'));

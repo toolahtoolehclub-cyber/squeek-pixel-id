@@ -87,7 +87,7 @@ function mkResult(score) {
 }
 function mkBody(score) {
   const r = mkResult(score);
-  return { wallet: ADDR, name: 'yui', score: r.score, acc: r.acc, mode: 'free', sessionId: 's1', notes: r.notes, taps: r.taps, durationMs: r.durationMs, replay: r.replay, replayHash: r.replayHash, gameVersion: 'v43.5' };
+  return { wallet: ADDR, name: 'yui', score: r.score, acc: r.acc, mode: 'free', sessionId: 's1', notes: r.notes, taps: r.taps, durationMs: r.durationMs, replay: r.replay, replayHash: r.replayHash, gameVersion: 'v43.6' };
 }
 
 // --- Harness: the submit section sliced from script.js ---
@@ -248,7 +248,7 @@ function mkHarness(store) {
   t('v43.4 statis: label tombol retry ID+EN di I18N', js.includes("lbRetry: '[ COBA LAGI ]'") && js.includes("lbRetry: '[ RETRY ]'"));
   t('v43.4 statis: flush di-hook (load 5 dtk + online + tab LEAGUE)', js.includes('scheduleSubmitFlush(5000)') && js.includes("window.addEventListener('online'") && js.includes('scheduleSubmitFlush(1000)'));
   t('v43.4 statis: board gagal muat punya tombol muat ulang inline', js.includes('id="lbReloadBtn"') && js.includes("id=\"leagueWeeklyReloadBtn\""));
-  t('v43.4 statis: format body submit TIDAK berubah (replay + replayHash + gameVersion)', js.includes('replay: lastResult.replay, replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43.5'"));
+  t('v43.4 statis: format body submit TIDAK berubah (replay + replayHash + gameVersion)', js.includes('replay: lastResult.replay, replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43.6'"));
   t('v43.4 statis: engine.js byte-identik v43.2', fs.readFileSync('engine.js', 'utf8') === fs.readFileSync('../squeekchain-v43.2/engine.js', 'utf8'));
   t('v43.4 statis: worker.js byte-identik v43.2 (Worker tetap v13)', fs.readFileSync('worker.js', 'utf8') === fs.readFileSync('../squeekchain-v43.2/worker.js', 'utf8'));
   let goldenOk = true;

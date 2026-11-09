@@ -170,8 +170,8 @@ t('regresi: 14 chart golden identik (buildChart == fixture v40)', goldenOk);
 t('regresi: judgement windows TIDAK berubah (0.045/0.09/0.135, BREAK 0.185)',
   /perfect: 0\.045, great: 0\.09, good: 0\.135/.test(fs.readFileSync('engine.js', 'utf8')) &&
   /BREAK = W\.good \+ 0\.05/.test(fs.readFileSync('engine.js', 'utf8')));
-t('regresi: gameVersion v43.5 + judul v43.5',
-  js.includes("gameVersion: 'v43.5'") && html.includes('<title>SQUEEKCHAIN // v43.5</title>'));
+t('regresi: gameVersion v43.6 + judul v43.6',
+  js.includes("gameVersion: 'v43.6'") && html.includes('<title>SQUEEKCHAIN // v43.6</title>'));
 t('regresi: 3 bukti Genesis utuh — meta tag + baris README',
   html.includes('name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7"') &&
   fs.readFileSync('README.md', 'utf8').includes('squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7'));

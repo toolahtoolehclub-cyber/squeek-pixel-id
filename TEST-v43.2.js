@@ -197,10 +197,10 @@ t('biaya: overlay OBS tetap transparan (background: transparent)',
   /body\.overlay \{[^}]*background: transparent;/.test(cssCode));
 
 // ============ (C) VERSI + GENESIS + TIDAK ADA REGRESI ============
-t('versi: gameVersion v43.5 + judul v43.5', js.includes("gameVersion: 'v43.5'") && html.includes('<title>SQUEEKCHAIN // v43.5</title>'));
-t('versi: h2 + footer + meta + README v43.5',
-  html.includes('PIXEL ID // v43.5') && html.includes('• v43.5 •') && html.includes('SQUEEKCHAIN v43.5 —') &&
-  fs.readFileSync('README.md', 'utf8').startsWith('# Squeekchain v43.5'));
+t('versi: gameVersion v43.6 + judul v43.6', js.includes("gameVersion: 'v43.6'") && html.includes('<title>SQUEEKCHAIN // v43.6</title>'));
+t('versi: h2 + footer + meta + README v43.6',
+  html.includes('PIXEL ID // v43.6') && html.includes('• v43.6 •') && html.includes('SQUEEKCHAIN v43.6 —') &&
+  fs.readFileSync('README.md', 'utf8').startsWith('# Squeekchain v43.6'));
 t('genesis: 3 bukti utuh — meta tag + baris README',
   html.includes('name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7"') &&
   fs.readFileSync('README.md', 'utf8').includes('squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7'));
