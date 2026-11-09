@@ -7,7 +7,11 @@
     --shadow-black: 6px 6px 0px #333;
 }
 
-* { box-sizing: border-box; border-radius: 0 !important; }
+* { box-sizing: border-box; }
+/* v43: the old "border-radius: 0 !important" on * silently killed every
+   rounded corner the v32 NEO layer sets (panels, pills, tabs) — !important
+   on * beats all normal declarations. The NEO glass design is rounded;
+   removing it restores the intended look. */
 button, canvas, h1, h2, .stat { user-select: none; -webkit-tap-highlight-color: transparent; }
 input[type=text] { user-select: text; }
 
@@ -638,3 +642,154 @@ body[data-theme] #gamePanel { border-color: var(--theme-accent); box-shadow: 0 1
 /* P2-6: GENERATE CARD is now a small button under SUBMIT, not a full-width
    button next to RETRY (it was too easy to tap by accident). */
 .btn-small { font-size: 11px; padding: 8px 12px; width: auto; align-self: center; }
+
+/* ==========================================
+   v43 REVOLUTION — glass, aurora, beat, glow
+   ==========================================
+   Design language (references, no copied assets): Cytus II's
+   color-coded inputs + score kept at the top corners; Phigros'
+   judgement-line energy; Arcaea's glassy sky; glassmorphism's
+   light wells + frosted panels (deep night canvas, 5–12% white,
+   40–60px blur, lit top edge); Neon Arcade's deep-purple / hot-pink
+   / cyan palette, translated into the NEO identity (#050607 +
+   #00e5ff + #00ff88). Everything is transform/opacity only — no
+   layout thrash, no new CDN, no new assets. */
+
+/* --- aurora light wells: the night canvas finally has light to blur --- */
+body {
+    background-image:
+        radial-gradient(ellipse 90% 40% at 50% -5%, rgba(0, 229, 255, .12), transparent 70%),
+        radial-gradient(ellipse 60% 35% at 92% 8%, rgba(160, 80, 255, .10), transparent 70%),
+        radial-gradient(ellipse 55% 30% at 4% 88%, rgba(0, 255, 136, .09), transparent 70%);
+}
+
+/* --- header: gradient wordmark + version pill --- */
+.neo-head h1 {
+    background: linear-gradient(90deg, #00e5ff, #00ff88 55%, #ffd700);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent; text-shadow: none;
+    filter: drop-shadow(0 0 14px rgba(0, 229, 255, .35));
+}
+.neo-head h2 {
+    display: inline-block; padding: 4px 10px;
+    border: 1px solid rgba(0, 229, 255, .35); border-radius: 999px;
+    background: rgba(0, 229, 255, .08); color: rgba(255, 255, 255, .6);
+}
+.tagline {
+    background: linear-gradient(90deg, rgba(0,229,255,.9), rgba(0,255,136,.9));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* --- glass, upgraded: frosted panels that borrow the aurora --- */
+.panel {
+    background: linear-gradient(160deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .02));
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, .14);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+
+/* --- aurora orbs: a third (violet) joins green + pink; the whole field
+   brightens on the beat via --beat (set by JS, ~10 Hz, transform-free) --- */
+#bg-anim { filter: brightness(calc(1 + var(--beat, 0) * .45)) saturate(calc(1 + var(--beat, 0) * .3)); }
+#bg-anim .orb { border-radius: 50%; }
+#bg-anim .orb-v { background: #a050ff; box-shadow: 0 0 60px #a050ff; top: 52%; left: 68%; animation: driftV 16s ease-in-out infinite alternate; }
+@keyframes driftV { from { transform: translate(0, 0); } to { transform: translate(-50px, 60px); } }
+#bg-particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+body.playing #bg-particles { display: none !important; }
+body.hemat #bg-particles { display: none; }
+
+/* --- tab transitions: panels fade + rise in (replays on every tab switch) --- */
+.tab-panel { animation: tabIn .22s ease both; }
+@keyframes tabIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* --- buttons: the primary CTA's gradient slides on hover --- */
+.btn-primary {
+    background: linear-gradient(135deg, #00ff88, #00e5ff 50%, #00ff88);
+    background-size: 200% 100%;
+    transition: background-position .4s, transform .12s, box-shadow .2s;
+}
+.btn-primary:hover { background-position: 100% 0; }
+
+/* ==========================================
+   v43 — WALLET CARD (one compact glass bar)
+   ========================================== */
+.wallet-card {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, .14);
+    background: linear-gradient(160deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+.wallet-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex: none;
+    background: #666; box-shadow: 0 0 0 3px rgba(255, 255, 255, .06);
+}
+.wallet-dot.on { background: #00ff88; box-shadow: 0 0 10px rgba(0, 255, 136, .8); animation: dotPulse 2s ease-in-out infinite; }
+.wallet-dot.restoring { background: #00e5ff; box-shadow: 0 0 10px rgba(0, 229, 255, .8); animation: dotPulse 1s ease-in-out infinite; }
+.wallet-dot.fail { background: #ffb020; box-shadow: 0 0 8px rgba(255, 176, 32, .7); }
+@keyframes dotPulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+.wallet-addr {
+    flex: 1; min-width: 0; font-size: 13px; font-weight: 700; color: #fff;
+    letter-spacing: .5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wallet-mini {
+    flex: none; width: auto; min-width: 0; padding: 8px 10px;
+    font-size: 11px; border-radius: 999px;
+}
+.wallet-connect {
+    flex: none; width: auto; padding: 9px 14px; font-size: 12px;
+    border-radius: 999px; font-weight: 700;
+    background: linear-gradient(135deg, #00ff88, #00e5ff);
+    color: #001318; border-color: transparent;
+    box-shadow: 0 0 16px rgba(0, 229, 255, .3);
+}
+.wallet-connect:disabled { opacity: .5; }
+.wallet-x { color: #fda4af; border-color: rgba(255, 0, 80, .4); }
+.wallet-hint { font-size: 10px; color: rgba(255, 255, 255, .5); margin: 6px 0 0; text-align: left; }
+#walletManualRow { display: flex; flex-direction: column; gap: 6px; }
+#walletManualRow.hidden { display: none !important; }
+/* Slim confirmation line, connected only. */
+.wallet-status { font-size: 11px; padding: 6px 10px; border-radius: 999px; margin-top: 8px; }
+
+/* ==========================================
+   v43 — RESULT PANEL (cleaner) + HIT FX
+   ========================================== */
+#resultPanel { animation: resultIn .35s ease both; }
+@keyframes resultIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+#resultPanel .grade { position: relative; z-index: 0; }
+#resultPanel .grade::before {
+    content: ""; position: absolute; left: 50%; top: 50%; z-index: -1;
+    width: 150px; height: 150px; transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 255, 136, .22), transparent 65%);
+}
+.kv { gap: 0; padding: 4px 6px; border: 1px solid rgba(255, 255, 255, .10); border-radius: 12px; }
+.kv span, .kv b { padding: 9px 0; border-bottom: 1px solid rgba(255, 255, 255, .07); }
+.kv span:last-child, .kv b:last-child { border-bottom: none; }
+/* FEVER: the COMBO chip glows gold. */
+.stat.fever { border-color: rgba(255, 215, 0, .6); box-shadow: 0 0 16px rgba(255, 215, 0, .25); }
+.stat.fever b { color: #ffd700; }
+/* PERFECT flashes the canvas frame; combo milestones burst the panel. */
+.canvas-wrapper.hit-flash { animation: hitFlash .18s ease-out 1; }
+@keyframes hitFlash {
+    0% { box-shadow: 0 0 0 rgba(0, 255, 136, 0); }
+    30% { box-shadow: 0 0 28px rgba(0, 255, 136, .55); }
+    100% { box-shadow: 0 0 0 rgba(0, 255, 136, 0); }
+}
+#gamePanel.combo-burst { animation: comboBurst .4s ease-out 1; }
+@keyframes comboBurst {
+    0% { box-shadow: 0 0 0 rgba(255, 215, 0, 0); }
+    30% { box-shadow: 0 0 34px rgba(255, 215, 0, .5); }
+    100% { box-shadow: 0 0 0 rgba(255, 215, 0, 0); }
+}
+/* v32 freezes ALL animations while playing — the hit FX must keep running. */
+body.playing .canvas-wrapper.hit-flash { animation-play-state: running !important; }
+body.playing #gamePanel.combo-burst { animation-play-state: running !important; }
+body.playing .stat.fever { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+    .tab-panel, #resultPanel, .wallet-dot.on, .wallet-dot.restoring { animation: none !important; }
+    #bg-anim { filter: none; }
+}

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="SQUEEKCHAIN v42.5.4 — a pixel rhythm game on Squeekchain: build an anthem from your wallet, play Daily, LIVE and RACE against the real hamster wheel, earn XP across 8 levels, complete daily missions, earn Keju to spend in the Cheese Shop, and climb the global leaderboard and the weekly league.">
+<meta name="description" content="SQUEEKCHAIN v43 — a pixel rhythm game on Squeekchain: build an anthem from your wallet, play Daily, LIVE and RACE against the real hamster wheel, earn XP across 8 levels, complete daily missions, earn Keju to spend in the Cheese Shop, and climb the global leaderboard and the weekly league.">
 <meta name="squeekchain-project" content="05432539-b4e4-4f90-97b3-c258583905b7">
 <meta property="og:title" content="SQUEEKCHAIN // Pixel ID">
 <meta property="og:description" content="A pixel rhythm game on Squeekchain — build an anthem from your wallet, race the real hamster wheel, earn XP and climb the global leaderboard.">
@@ -18,7 +18,7 @@
 <meta name="theme-color" content="#050607">
 <link rel="icon" type="image/png" href="https://squeekchain-leaderboard.pancigoreng.workers.dev/icon.png">
 <link rel="apple-touch-icon" href="https://squeekchain-leaderboard.pancigoreng.workers.dev/icon.png">
-<title>SQUEEKCHAIN // v42.5.4</title>
+<title>SQUEEKCHAIN // v43</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -26,7 +26,8 @@
 </head>
 <body>
 <canvas id="bg-gl" aria-hidden="true"></canvas>
-<div id="bg-anim" aria-hidden="true"><i class="orb orb-g"></i><i class="orb orb-p"></i><i class="sweep"></i></div>
+<div id="bg-anim" aria-hidden="true"><i class="orb orb-g"></i><i class="orb orb-p"></i><i class="orb orb-v"></i><i class="sweep"></i></div>
+<canvas id="bg-particles" aria-hidden="true"></canvas>
 <div id="crt" aria-hidden="true"></div>
 
 <div id="musicSplash" role="dialog" aria-label="Start music">
@@ -42,7 +43,7 @@
     <header class="neo-head">
         <div>
             <h1 id="mainTitle">SQUEEKCHAIN</h1>
-            <h2>PIXEL ID // v42.5.4</h2>
+            <h2>PIXEL ID // v43</h2>
         </div>
         <button class="btn-icon" id="settingsBtn" type="button" aria-label="Settings" title="Settings">⚙️</button>
     </header>
@@ -61,15 +62,27 @@
 
             <div class="tab-panel" id="tab-play" role="tabpanel" aria-label="Play">
             <div class="stack">
-                <label for="walletInput" data-i18n="wallet">WALLET ADDRESS</label>
-                <input id="walletInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
-                       inputmode="text" maxlength="42" placeholder="0x..." aria-describedby="walletWarn anthemInfo">
-                <p class="warn" id="walletWarn" data-i18n="warn">⚠️ 0x address ONLY. NEVER enter a seed phrase / private key here, anywhere.</p>
-                <p class="msg" id="walletManualNote" data-i18n="walletManualNote">MANUAL — type an address to play &amp; submit scores without connecting a wallet. This is NOT a connection.</p>
-                <button class="btn-secondary" type="button" id="connectBtn" data-i18n="connect">[ CONNECT WALLET ]</button>
+                <!-- v43 REVOLUTION: one compact glass wallet card — dot + short
+                     address + copy + [ ALAMAT ] + [ CONNECT ] / [ ✕ ]. The long
+                     MANUAL text is gone; the manual input lives behind ALAMAT
+                     and only shows a one-line hint. All ids stay the same, so
+                     the connect / restore / disconnect logic is untouched. -->
+                <div id="walletCard" class="wallet-card" aria-label="Wallet">
+                    <span id="walletDot" class="wallet-dot" aria-hidden="true"></span>
+                    <span id="walletAddr" class="wallet-addr">—</span>
+                    <button class="wallet-mini hidden" type="button" id="walletCopyBtn" aria-label="Copy address" title="Copy">⧉</button>
+                    <button class="wallet-mini" type="button" id="walletAddrBtn" data-i18n="addrBtn">ALAMAT</button>
+                    <button class="wallet-connect" type="button" id="connectBtn" data-i18n="connect">CONNECT</button>
+                    <button class="wallet-mini wallet-x hidden" type="button" id="disconnectBtn" aria-label="Disconnect" title="Disconnect">✕</button>
+                </div>
+                <div id="walletManualRow" class="hidden">
+                    <input id="walletInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+                           inputmode="text" maxlength="42" placeholder="0x..." aria-describedby="walletWarn walletManualNote">
+                    <p class="wallet-hint" id="walletWarn" data-i18n="warn">⚠️ 0x saja — jangan seed phrase.</p>
+                    <p class="wallet-hint" id="walletManualNote" data-i18n="walletManualNote">Manual — bukan koneksi.</p>
+                </div>
                 <div id="walletStatus" class="wallet-status hidden" role="status"></div>
                 <div id="wcRestoreNote" class="hidden" role="status"></div>
-                <button class="btn-secondary hidden" type="button" id="disconnectBtn" data-i18n="disconnect">[ DISCONNECT ]</button>
                 <p class="anthem" id="anthemInfo" aria-live="polite">AWAITING INPUT...</p>
 
                 <!-- WRAPPER FOR THE 3D AVATAR -->
@@ -412,7 +425,7 @@
         </div>
     </section>
     <div id="cardBar" class="hidden"><button id="cardBarOpen" type="button"><span data-i18n="cardBarLbl">ID CARD — TAP TO OPEN</span></button><button id="cardBarClose" type="button" aria-label="Close card">✕</button></div>
-    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v42.5.4 • <span data-i18n="footerNote">UNOFFICIAL. On-chain data is read read-only (Sepolia token). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia.</span><br>Daily: ?daily=1 • Live: ?live=1 • Race: ?race=1 • Lullaby: ?lullaby=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard • OBS: ?overlay=1</footer>
+    <footer class="footer">BUILT BY <a class="creator-link" href="https://x.com/pancigoreng" target="_blank" rel="noopener">pancigoreng</a> • v43 • <span data-i18n="footerNote">UNOFFICIAL. On-chain data is read read-only (Sepolia token). Optional wallet connect reads your address only — no signature, no approval, no transactions. Made in Indonesia.</span><br>Daily: ?daily=1 • Live: ?live=1 • Race: ?race=1 • Lullaby: ?lullaby=1 • Duel: ?challenge=KODE&amp;genre=cyber&amp;diff=hard • Anthem: ?wallet=0x...&amp;genre=cyber&amp;diff=hard • OBS: ?overlay=1</footer>
 </div>
 
 <div id="overlayBox" class="hidden" aria-label="OBS overlay — live hamster status">

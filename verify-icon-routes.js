@@ -1,5 +1,6 @@
-// Verify v42.5.3 Worker image routes against the esbuild bundle (local, no deploy).
-// Run: node verify-icon-routes.js  (cwd = the v42.5.3 folder)
+// Verify v43 Worker image routes against the esbuild bundle (local, no deploy).
+// Run: node verify-icon-routes.js  (cwd = the v43 folder)
+// Prerequisite: ./build-worker.sh bundle-only  (produces /tmp/v43-build/dist/worker.js)
 const fs = require('fs');
 
 function pngDims(buf) {
@@ -12,7 +13,7 @@ function b64ToBuf(b64) { return Buffer.from(b64, 'base64'); }
   let pass = 0, fail = 0;
   const t = (name, ok) => { if (ok) { pass++; } else { fail++; console.log('FAIL:', name); } };
 
-  const mod = await import('/tmp/v42.5.3-build/dist/worker.js');
+  const mod = await import('/tmp/v43-build/dist/worker.js');
   const worker = mod.default;
   const env = {}; // image + root routes need no D1
 

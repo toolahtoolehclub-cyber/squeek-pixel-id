@@ -121,8 +121,8 @@ const MSG = {
     noWallet: 'NO WALLET FOUND IN THIS BROWSER — TYPE YOUR 0x ADDRESS MANUALLY.',
     walletInvalid: 'WALLET RETURNED NO VALID ADDRESS — TYPE YOUR 0x ADDRESS MANUALLY.',
     walletConnected: 'WALLET CONNECTED: {addr} — ADDRESS ONLY, NO SIGNATURE REQUESTED.',
-    connRejected: 'CONNECTION REJECTED — TYPE YOUR 0x ADDRESS MANUALLY.', connFail: 'CONNECT FAILED: {err}', wcLoadFail: 'WALLETCONNECT FAILED TO LOAD — CHECK YOUR CONNECTION AND RETRY.', wcRejected: 'WALLETCONNECT CANCELLED — NOTHING WAS CONNECTED.', wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason} — TAP [ CONNECT WALLET ] TO RECONNECT.', wcRestoring: 'RECONNECTING TO YOUR WALLET…', wcChainFail: 'COULD NOT SWITCH TO SEPOLIA — SWITCH MANUALLY IN YOUR WALLET.',
-    walletSwitched: 'WALLET SWITCHED TO {addr}.', walletDisconnected: 'WALLET DISCONNECTED.', walletConnectedTpl: 'WALLET CONNECTED: {addr} • Transactions use THIS address (OKX / WalletConnect / in-app wallet).', calibStart: 'CALIBRATING… TAP ON EACH OF THE 8 BEATS.',
+    connRejected: 'CONNECTION REJECTED — TYPE YOUR 0x ADDRESS MANUALLY.', connFail: 'CONNECT FAILED: {err}', wcLoadFail: 'WALLETCONNECT FAILED TO LOAD — CHECK YOUR CONNECTION AND RETRY.', wcRejected: 'WALLETCONNECT CANCELLED — NOTHING WAS CONNECTED.', wcRestoreNoteTpl: 'WC RESTORE FAILED: {reason} — TAP CONNECT TO RECONNECT.', wcRestoring: 'RECONNECTING TO YOUR WALLET…', wcChainFail: 'COULD NOT SWITCH TO SEPOLIA — SWITCH MANUALLY IN YOUR WALLET.',
+    walletSwitched: 'WALLET SWITCHED TO {addr}.', walletDisconnected: 'WALLET DISCONNECTED.', walletConnectedTpl: '● {addr} — CONNECTED', calibStart: 'CALIBRATING… TAP ON EACH OF THE 8 BEATS.',
     qltyEco: ' — WebGL off, static gradient background.', qltyUltra: ' — WebGL / moving grid.',
     voidLock: '🔒 VOID GENRE UNLOCKS AT LV5 — PLAY MORE SONGS TO EARN XP.',
     lanesLock: '🔒 4 LANES UNLOCKS AT LV6 — PLAY MORE SONGS TO EARN XP.',
@@ -248,8 +248,8 @@ const MSG = {
     noWallet: 'TIDAK ADA WALLET DI BROWSER INI — KETIK ALAMAT 0x SECARA MANUAL.',
     walletInvalid: 'WALLET TIDAK MENGEMBALIKAN ALAMAT VALID — KETIK ALAMAT 0x SECARA MANUAL.',
     walletConnected: 'WALLET TERHUBUNG: {addr} — HANYA ALAMAT, TANPA SIGNATURE.',
-    connRejected: 'KONEKSI DITOLAK — KETIK ALAMAT 0x SECARA MANUAL.', connFail: 'KONEKSI GAGAL: {err}', wcLoadFail: 'WALLETCONNECT GAGAL DIMUAT — PERIKSA KONEKSIMU DAN COBA LAGI.', wcRejected: 'WALLETCONNECT DIBATALKAN — TIDAK ADA YANG TERHUBUNG.', wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason} — KETUK [ CONNECT WALLET ] UNTUK MENGHUBUNGKAN LAGI.', wcRestoring: 'MENGHUBUNGKAN KEMBALI KE WALLET…', wcChainFail: 'TIDAK BISA PINDAH KE SEPOLIA — PINDAH MANUAL DI WALLETMU.',
-    walletSwitched: 'WALLET BERGANTI KE {addr}.', walletDisconnected: 'WALLET TERPUTUS.', walletConnectedTpl: 'WALLET TERHUBUNG: {addr} • Transaksi memakai alamat INI (OKX / WalletConnect / wallet dalam aplikasi).', calibStart: 'MENGALIBRASI… KETUK DI SETIAP DARI 8 KETUKAN.',
+    connRejected: 'KONEKSI DITOLAK — KETIK ALAMAT 0x SECARA MANUAL.', connFail: 'KONEKSI GAGAL: {err}', wcLoadFail: 'WALLETCONNECT GAGAL DIMUAT — PERIKSA KONEKSIMU DAN COBA LAGI.', wcRejected: 'WALLETCONNECT DIBATALKAN — TIDAK ADA YANG TERHUBUNG.', wcRestoreNoteTpl: 'WC RESTORE GAGAL: {reason} — KETUK CONNECT UNTUK MENGHUBUNGKAN LAGI.', wcRestoring: 'MENGHUBUNGKAN KEMBALI KE WALLET…', wcChainFail: 'TIDAK BISA PINDAH KE SEPOLIA — PINDAH MANUAL DI WALLETMU.',
+    walletSwitched: 'WALLET BERGANTI KE {addr}.', walletDisconnected: 'WALLET TERPUTUS.', walletConnectedTpl: '● {addr} — TERHUBUNG', calibStart: 'MENGALIBRASI… KETUK DI SETIAP DARI 8 KETUKAN.',
     qltyEco: ' — WebGL mati, latar gradien statis.', qltyUltra: ' — WebGL / grid bergerak.',
     voidLock: '🔒 GENRE VOID TERBUKA DI LV5 — MAIN LAGU LAGI UNTUK XP.',
     lanesLock: '🔒 4 JALUR TERBUKA DI LV6 — MAIN LAGU LAGI UNTUK XP.',
@@ -333,8 +333,8 @@ function rl(k) { const d = RLBL[lang] || RLBL.en; return d[k] !== undefined ? d[
 
 // --- EN/ID toggle (v32: menu labels AND dynamic messages are both translated) ---
 const I18N = {
-  en: { wallet: 'WALLET ADDRESS', connect: '[ CONNECT WALLET ]', connectedTpl: '[ CONNECTED: {addr} ]', genre: '// GENRE', diff: '// DIFFICULTY', options: '// OPTIONS', mode: '// MODE', play: 'INITIALIZE RHYTHM', card: 'GENERATE ID CARD', retry: 'RETRY', resultCard: '[ SHARE RESULT CARD ]', obs: '[ OBS OVERLAY LINK ]', wheelcall: 'WHEEL CALL — PREDICT THE NEXT ROUND', boss: 'WEEKLY BOSS', bossFight: '[ FIGHT WEEKLY BOSS ]', league: 'DUEL LEAGUE — LOCAL RIVALS', lbTitle: 'GLOBAL LEADERBOARD — TOP SCORES', lbNote: 'Scores are public. Your wallet shows truncated.', lbRefresh: '[ REFRESH ]', lbSubmit: '[ SUBMIT SCORE ]', ach: 'ACHIEVEMENTS', away: 'WHILE YOU WERE AWAY', addNote: '[ ADD NOTE ]', howto: 'HOW TO PLAY', gotIt: '[ GOT IT — LET\'S PLAY ]', howBtn: '[ HOW TO PLAY ]', roundhist: 'ROUND HISTORY — LAST 12 ROUNDS', chainTitle: 'CHAIN — LIVE FROM SQUEEKCORE', chainLoading: 'FETCHING CHAIN STATE…', champs: 'DAILY CHAMPIONS — YOUR BEST SCORE EACH DAY',
-    warn: '⚠️ 0x address ONLY. NEVER enter a seed phrase / private key here, anywhere.',
+  en: { wallet: 'WALLET ADDRESS', connect: 'CONNECT', addrBtn: 'ADDRESS', connectedTpl: '[ CONNECTED: {addr} ]', genre: '// GENRE', diff: '// DIFFICULTY', options: '// OPTIONS', mode: '// MODE', play: 'INITIALIZE RHYTHM', card: 'GENERATE ID CARD', retry: 'RETRY', resultCard: '[ SHARE RESULT CARD ]', obs: '[ OBS OVERLAY LINK ]', wheelcall: 'WHEEL CALL — PREDICT THE NEXT ROUND', boss: 'WEEKLY BOSS', bossFight: '[ FIGHT WEEKLY BOSS ]', league: 'DUEL LEAGUE — LOCAL RIVALS', lbTitle: 'GLOBAL LEADERBOARD — TOP SCORES', lbNote: 'Scores are public. Your wallet shows truncated.', lbRefresh: '[ REFRESH ]', lbSubmit: '[ SUBMIT SCORE ]', ach: 'ACHIEVEMENTS', away: 'WHILE YOU WERE AWAY', addNote: '[ ADD NOTE ]', howto: 'HOW TO PLAY', gotIt: '[ GOT IT — LET\'S PLAY ]', howBtn: '[ HOW TO PLAY ]', roundhist: 'ROUND HISTORY — LAST 12 ROUNDS', chainTitle: 'CHAIN — LIVE FROM SQUEEKCORE', chainLoading: 'FETCHING CHAIN STATE…', champs: 'DAILY CHAMPIONS — YOUR BEST SCORE EACH DAY',
+    warn: '0x only — never a seed phrase.',
     splashSub: 'CHOOSE YOUR OPENING MUSIC', splashNote: 'Browsers block sound before your first tap — the music starts on your first tap, not before.',
     liveInfo: 'The song\'s tempo follows the real hamster wheel, live from api.squeekchain.com/v1/status. Resting hamster = CALM 100 BPM. Running hamster = 100 + RPM (max 180). At 70+ RPM ZOOMIES starts and all scores double. Day follows the wheel running, night follows it resting. If the wheel is offline, the song uses a 128 BPM fallback and says so.',
     raceInfo: 'A real race against the live hamster: your distance grows with every note you hit (PERFECT 1.0 m • GREAT 0.7 m • GOOD 0.4 m). Squeektoshi\'s distance is the real wheel\'s distance since the song started. Win the race for +50 XP. When a new 10-minute round starts mid-song, the next note turns GOLDEN (+1000 pts, +5 m).',
@@ -354,9 +354,9 @@ const I18N = {
     cardBarLbl: 'ID CARD — TAP TO OPEN',
     forgetWallet: '[ FORGET SAVED WALLET ]', pauseTitle: 'PAUSED', pauseCalib: '[ CALIBRATE ]', pauseResume: '[ RESUME ]', pauseExit: '[ EXIT ]', pauseSure: '[ SURE? TAP AGAIN ]', backToGame: '[ BACK TO GAME ]',
     shopTitle: 'CHEESE SHOP — SPEND KEJU, NOT MONEY', shopNote: 'Keju is earned by playing: 100 per verified song, +500 for grade S, +50 for the daily mission (first verified song of the day). Capsule: 100 Keju per pull. Cosmetics only — nothing here makes you stronger.', capsuleTitle: 'CHEESE CAPSULE — 100 KEJU / PULL', capsuleBtn: '[ PULL CAPSULE — 100 🧀 ]', equipBtn: '[ EQUIP ]', unequipBtn: '[ UNEQUIP ]', equippedLbl: 'EQUIPPED ✓', ownedLbl: 'OWNED', capsuleOnlyLbl: 'CAPSULE ONLY', leagueWeekly: 'WEEKLY LEAGUE — TOP 30 THIS WEEK', leagueWeekNote: 'Best FREE score of the week. Resets every Monday 19:00 WIB.', leagueWeeklyEmpty: 'No weekly scores yet — play a FREE song and verify it to join this week.',
-    sqkShopTitle: 'SQK SHOP — COSMETICS FOR SQK (TESTNET)', sqkShopNote: 'Cosmetics only — nothing here makes you stronger. You pay with SQK (Sepolia testnet, no real money value) via permit: 1 signature + 1 transaction, exact amount, 10-minute deadline. NO unlimited approval, ever.', sqkShopSoon: 'SQK SHOP COMING SOON — the shop contract is not deployed yet. SQK shopping opens after the deploy.', sqkPoolTpl: '🏆 PRIZE POOL: {pool} SQK', sqkSeasonTpl: 'SEASON ENDS: {date}', sqkSweepTpl: 'After the season ends, the remaining pool is swept to the owner 7 days later ({date}).', sqkSwept: 'PRIZE POOL SWEPT — SEASON OVER.', sqkBalanceTpl: 'SQK BALANCE: {n}', sqkBuyTpl: '[ BUY — {price} SQK ]', sqkOwnedTpl: 'OWNED ×{n}', sqkBought: 'BOUGHT {item} ✓', sqkEquipBtn: '[ EQUIP ]', sqkEquippedTpl: 'EQUIPPED ✓', sqkEquipped: 'EQUIPPED: {item} ✓ — YOUR NEXT SONG USES THE NEW SKIN.', sqkNotOwned: 'YOU DO NOT OWN {item} YET — BUY IT FIRST.', sqkEquipFail: 'CANNOT EQUIP THIS ITEM.', sqkNeedWallet: 'CONNECT A WALLET FIRST TO USE THE SQK SHOP.', sqkNoProvider: 'NO WALLET CONNECTED — TAP [ CONNECT WALLET ] TO CONNECT (WORKS WITH OKX, METAMASK AND OTHER WALLETS).', sqkWrongChain: 'SWITCH YOUR WALLET TO SEPOLIA TO BUY.', sqkNoSqk: 'NOT ENOUGH SQK.', sqkPermitRejected: 'SIGNATURE REJECTED — NOTHING WAS BOUGHT.', sqkTxRejected: 'TRANSACTION REJECTED — NOTHING WAS BOUGHT.', sqkWaiting: 'WAITING FOR CONFIRMATION…', sqkTxFail: 'TRANSACTION FAILED ON-CHAIN.', sqkShopOffline: 'SQK SHOP OFFLINE — CHECK YOUR CONNECTION.', sqkCapsuleTitle: 'GOLDEN CAPSULE — 2 SQK / PULL', sqkCapsuleOdds: 'ODDS: COMMON 70% • RARE 22% • EPIC 7% • LEGENDARY 1%. Duplicate → Keju compensation (25/50/100/250). Hard pity: pull 20 is at least RARE.', sqkPityTpl: 'PITY: {n} / 20', sqkCommitBtn: '[ COMMIT CAPSULE — 2 SQK ]', sqkResolveBtn: '[ RESOLVE CAPSULE ]', sqkCommitted: 'CAPSULE COMMITTED (PULL #{pull}, ROUND {round}) — RESOLVE AFTER ROUND {round} SETTLES.', sqkResolved: 'CAPSULE: {item} ({rarity}) ✓', sqkDupKeju: 'CAPSULE: {item} ({rarity}, DUPLICATE) → +{n} 🧀', sqkRoundUnknown: 'CURRENT ROUND UNKNOWN — CHECK YOUR CONNECTION.', sqkNotSettled: 'ROUND {round} HAS NOT SETTLED YET — SETTLEMENTS ONLY HAPPEN WHEN THE HAMSTER RUNS (DAYTIME). TRY AGAIN AFTER THE MORNING RUN.', sqkNoPending: 'NO PENDING CAPSULE — COMMIT ONE FIRST.', sqkResolveFail: 'RESOLVE FAILED — CHECK THE WORKER / TRY AGAIN.', tagline: 'Your high score depends on a hamster.', walletManualNote: 'MANUAL — type an address to play & submit scores without connecting a wallet. This is NOT a connection.', disconnect: '[ DISCONNECT ]', modeLullaby: 'LULLABY', lullabyInfo: 'A slow 60 BPM song for the night, while the hamster sleeps. No board submit — this is a lullaby, not a race. Finish it for +50 XP and to water your Dream Seed.', dreamTitle: 'DREAM SEEDS — GROW OVERNIGHT', dreamPlant: '[ PLANT DREAM SEED ]', dreamHarvest: '[ HARVEST ]' },
-  id: { wallet: 'ALAMAT WALLET', connect: '[ HUBUNGKAN WALLET ]', connectedTpl: '[ TERHUBUNG: {addr} ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', lbTitle: 'LEADERBOARD GLOBAL — SKOR TERATAS', lbNote: 'Skor bersifat publik. Walletmu tampil terpotong.', lbRefresh: '[ MUAT ULANG ]', lbSubmit: '[ KIRIM SKOR ]', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR', chainTitle: 'CHAIN — LIVE DARI SQUEEKCORE', chainLoading: 'MENGAMBIL STATUS CHAIN…', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI',
-    warn: '⚠️ Hanya alamat 0x. JANGAN PERNAH memasukkan seed phrase / private key di sini, di mana pun.',
+    sqkShopTitle: 'SQK SHOP — COSMETICS FOR SQK (TESTNET)', sqkShopNote: 'Cosmetics only — nothing here makes you stronger. You pay with SQK (Sepolia testnet, no real money value) via permit: 1 signature + 1 transaction, exact amount, 10-minute deadline. NO unlimited approval, ever.', sqkShopSoon: 'SQK SHOP COMING SOON — the shop contract is not deployed yet. SQK shopping opens after the deploy.', sqkPoolTpl: '🏆 PRIZE POOL: {pool} SQK', sqkSeasonTpl: 'SEASON ENDS: {date}', sqkSweepTpl: 'After the season ends, the remaining pool is swept to the owner 7 days later ({date}).', sqkSwept: 'PRIZE POOL SWEPT — SEASON OVER.', sqkBalanceTpl: 'SQK BALANCE: {n}', sqkBuyTpl: '[ BUY — {price} SQK ]', sqkOwnedTpl: 'OWNED ×{n}', sqkBought: 'BOUGHT {item} ✓', sqkEquipBtn: '[ EQUIP ]', sqkEquippedTpl: 'EQUIPPED ✓', sqkEquipped: 'EQUIPPED: {item} ✓ — YOUR NEXT SONG USES THE NEW SKIN.', sqkNotOwned: 'YOU DO NOT OWN {item} YET — BUY IT FIRST.', sqkEquipFail: 'CANNOT EQUIP THIS ITEM.', sqkNeedWallet: 'CONNECT A WALLET FIRST TO USE THE SQK SHOP.', sqkNoProvider: 'NO WALLET CONNECTED — TAP CONNECT (OKX, METAMASK, …).', sqkWrongChain: 'SWITCH YOUR WALLET TO SEPOLIA TO BUY.', sqkNoSqk: 'NOT ENOUGH SQK.', sqkPermitRejected: 'SIGNATURE REJECTED — NOTHING WAS BOUGHT.', sqkTxRejected: 'TRANSACTION REJECTED — NOTHING WAS BOUGHT.', sqkWaiting: 'WAITING FOR CONFIRMATION…', sqkTxFail: 'TRANSACTION FAILED ON-CHAIN.', sqkShopOffline: 'SQK SHOP OFFLINE — CHECK YOUR CONNECTION.', sqkCapsuleTitle: 'GOLDEN CAPSULE — 2 SQK / PULL', sqkCapsuleOdds: 'ODDS: COMMON 70% • RARE 22% • EPIC 7% • LEGENDARY 1%. Duplicate → Keju compensation (25/50/100/250). Hard pity: pull 20 is at least RARE.', sqkPityTpl: 'PITY: {n} / 20', sqkCommitBtn: '[ COMMIT CAPSULE — 2 SQK ]', sqkResolveBtn: '[ RESOLVE CAPSULE ]', sqkCommitted: 'CAPSULE COMMITTED (PULL #{pull}, ROUND {round}) — RESOLVE AFTER ROUND {round} SETTLES.', sqkResolved: 'CAPSULE: {item} ({rarity}) ✓', sqkDupKeju: 'CAPSULE: {item} ({rarity}, DUPLICATE) → +{n} 🧀', sqkRoundUnknown: 'CURRENT ROUND UNKNOWN — CHECK YOUR CONNECTION.', sqkNotSettled: 'ROUND {round} HAS NOT SETTLED YET — SETTLEMENTS ONLY HAPPEN WHEN THE HAMSTER RUNS (DAYTIME). TRY AGAIN AFTER THE MORNING RUN.', sqkNoPending: 'NO PENDING CAPSULE — COMMIT ONE FIRST.', sqkResolveFail: 'RESOLVE FAILED — CHECK THE WORKER / TRY AGAIN.', tagline: 'Your high score depends on a hamster.', walletManualNote: 'Manual — no connection.', disconnect: '[ DISCONNECT ]', modeLullaby: 'LULLABY', lullabyInfo: 'A slow 60 BPM song for the night, while the hamster sleeps. No board submit — this is a lullaby, not a race. Finish it for +50 XP and to water your Dream Seed.', dreamTitle: 'DREAM SEEDS — GROW OVERNIGHT', dreamPlant: '[ PLANT DREAM SEED ]', dreamHarvest: '[ HARVEST ]' },
+  id: { wallet: 'ALAMAT WALLET', connect: 'HUBUNGKAN', addrBtn: 'ALAMAT', connectedTpl: '[ TERHUBUNG: {addr} ]', genre: '// GENRE', diff: '// KESULITAN', options: '// OPSI', mode: '// MODE', play: 'MULAI RHYTHM', card: 'BUAT ID CARD', retry: 'ULANGI', resultCard: '[ BAGIKAN KARTU HASIL ]', obs: '[ TAUTAN OVERLAY OBS ]', wheelcall: 'WHEEL CALL — TEBAK RONDE BERIKUTNYA', boss: 'BOSS MINGGUAN', bossFight: '[ LAWAN BOSS MINGGUAN ]', league: 'LIGA DUEL — RIVAL LOKAL', lbTitle: 'LEADERBOARD GLOBAL — SKOR TERATAS', lbNote: 'Skor bersifat publik. Walletmu tampil terpotong.', lbRefresh: '[ MUAT ULANG ]', lbSubmit: '[ KIRIM SKOR ]', ach: 'PENCAPAIAN', away: 'SELAMA KAMU PERGI', addNote: '[ TAMBAH CATATAN ]', howto: 'CARA MAIN', gotIt: '[ PAHAM — AYO MAIN ]', howBtn: '[ CARA MAIN ]', roundhist: 'RIWAYAT RONDE — 12 RONDE TERAKHIR', chainTitle: 'CHAIN — LIVE DARI SQUEEKCORE', chainLoading: 'MENGAMBIL STATUS CHAIN…', champs: 'JUARA HARIAN — SKOR TERBAIKMU SETIAP HARI',
+    warn: '0x saja — jangan seed phrase.',
     splashSub: 'PILIH MUSIK PEMBUKA', splashNote: 'Browser memblokir suara sebelum ketukan pertamamu — musik mulai saat kamu pertama kali mengetuk, bukan sebelumnya.',
     liveInfo: 'Tempo lagu mengikuti roda hamster asli, live dari api.squeekchain.com/v1/status. Hamster istirahat = CALM 100 BPM. Hamster berlari = 100 + RPM (maks 180). Di 70+ RPM ZOOMIES mulai dan semua skor berlipat dua. Siang mengikuti roda yang berlari, malam mengikuti roda yang istirahat. Kalau rodanya offline, lagu memakai 128 BPM cadangan dan mengatakannya.',
     raceInfo: 'Balapan sungguhan melawan hamster live: jarakmu bertambah setiap not yang kamu pukul (PERFECT 1,0 m • GREAT 0,7 m • GOOD 0,4 m). Jarak Squeektoshi adalah jarak roda aslinya sejak lagu dimulai. Menangkan balapannya untuk +50 XP. Saat ronde 10 menit baru dimulai di tengah lagu, not berikutnya berubah EMAS (+1000 poin, +5 m).',
@@ -376,7 +376,7 @@ const I18N = {
     cardBarLbl: 'KARTU ID — KETUK UNTUK BUKA',
     forgetWallet: '[ LUPAKAN WALLET TERSIMPAN ]', pauseTitle: 'DIJEDA', pauseCalib: '[ KALIBRASI ]', pauseResume: '[ LANJUT ]', pauseExit: '[ KELUAR ]', pauseSure: '[ YAKIN? KETUK LAGI ]', backToGame: '[ KEMBALI KE GAME ]',
     shopTitle: 'TOKO KEJU — BELANJA PAKAI KEJU', shopNote: 'Keju didapat dari bermain: 100 per lagu terverifikasi, +500 untuk grade S, +50 untuk misi harian (lagu terverifikasi pertama hari itu). Kapsul: 100 Keju per pull. Kosmetik saja — tidak ada yang membuatmu lebih kuat.', capsuleTitle: 'KAPSUL KEJU — 100 KEJU / PULL', capsuleBtn: '[ TARIK KAPSUL — 100 🧀 ]', equipBtn: '[ PAKAI ]', unequipBtn: '[ LEPAS ]', equippedLbl: 'DIPAKAI ✓', ownedLbl: 'DIMILIKI', capsuleOnlyLbl: 'HANYA KAPSUL', leagueWeekly: 'LIGA MINGGUAN — 30 TERATAS MINGGU INI', leagueWeekNote: 'Skor FREE terbaik minggu ini. Reset tiap Senin 19:00 WIB.', leagueWeeklyEmpty: 'Belum ada skor minggu ini — main satu lagu FREE dan verifikasi untuk ikut minggu ini.',
-    sqkShopTitle: 'TOKO SQK — KOSMETIK UNTUK SQK (TESTNET)', sqkShopNote: 'Kosmetik saja — tidak ada yang membuatmu lebih kuat. Bayar pakai SQK (testnet Sepolia, tanpa nilai uang) via permit: 1 signature + 1 transaksi, jumlah exact, deadline 10 menit. TIDAK ADA unlimited approve.', sqkShopSoon: 'TOKO SQK SEGERA HADIR — kontrak toko belum di-deploy. Belanja SQK dibuka setelah deploy.', sqkPoolTpl: '🏆 PRIZE POOL: {pool} SQK', sqkSeasonTpl: 'MUSIM BERAKHIR: {date}', sqkSweepTpl: 'Setelah musim berakhir, sisa pool disapu ke owner 7 hari kemudian ({date}).', sqkSwept: 'PRIZE POOL SUDAH DISAPU — MUSIM SELESAI.', sqkBalanceTpl: 'SALDO SQK: {n}', sqkBuyTpl: '[ BELI — {price} SQK ]', sqkOwnedTpl: 'DIMILIKI ×{n}', sqkBought: 'TERBELI {item} ✓', sqkEquipBtn: '[ PAKAI ]', sqkEquippedTpl: 'DIPAKAI ✓', sqkEquipped: 'DIPAKAI: {item} ✓ — LAGU BERIKUTNYA PAKAI SKIN BARU.', sqkNotOwned: 'KAMU BELUM MEMILIKI {item} — BELI DULU.', sqkEquipFail: 'TIDAK BISA MEMAKAI ITEM INI.', sqkNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK MEMAKAI TOKO SQK.', sqkNoProvider: 'WALLET BELUM TERHUBUNG — TEKAN [ HUBUNGKAN WALLET ] UNTUK CONNECT (OKX, METAMASK, DLL).', sqkWrongChain: 'PINDAHKAN WALLETMU KE SEPOLIA UNTUK MEMBELI.', sqkNoSqk: 'SQK TIDAK CUKUP.', sqkPermitRejected: 'SIGNATURE DITOLAK — TIDAK ADA YANG TERBELI.', sqkTxRejected: 'TRANSAKSI DITOLAK — TIDAK ADA YANG TERBELI.', sqkWaiting: 'MENUNGGU KONFIRMASI…', sqkTxFail: 'TRANSAKSI GAGAL ON-CHAIN.', sqkShopOffline: 'TOKO SQK OFFLINE — PERIKSA KONEKSIMU.', sqkCapsuleTitle: 'KAPSUL EMAS — 2 SQK / TARIK', sqkCapsuleOdds: 'PELUANG: COMMON 70% • RARE 22% • EPIC 7% • LEGENDARY 1%. Duplikat → kompensasi Keju (25/50/100/250). Hard pity: tarikan ke-20 minimal RARE.', sqkPityTpl: 'PITY: {n} / 20', sqkCommitBtn: '[ COMMIT KAPSUL — 2 SQK ]', sqkResolveBtn: '[ RESOLVE KAPSUL ]', sqkCommitted: 'KAPSUL DI-COMMIT (PULL #{pull}, RONDE {round}) — RESOLVE SETELAH RONDE {round} SETTLED.', sqkResolved: 'KAPSUL: {item} ({rarity}) ✓', sqkDupKeju: 'KAPSUL: {item} ({rarity}, DUPLIKAT) → +{n} 🧀', sqkRoundUnknown: 'RONDE SAAT INI TIDAK DIKETAHUI — PERIKSA KONEKSIMU.', sqkNotSettled: 'RONDE {round} BELUM SETTLED — SETTLEMENT HANYA TERJADI SAAT HAMSTER LARI (SIANG HARI). COBA LAGI SETELAH LARI PAGI.', sqkNoPending: 'TIDAK ADA KAPSUL TERTUNDA — COMMIT DULU.', sqkResolveFail: 'RESOLVE GAGAL — PERIKSA WORKER / COBA LAGI.', tagline: 'Skormu tergantung pada seekor hamster.', walletManualNote: 'MANUAL — ketik alamat untuk main & kirim skor tanpa connect wallet. Ini BUKAN koneksi.', disconnect: '[ PUTUSKAN ]', modeLullaby: 'LULLABY', lullabyInfo: 'Lagu pelan 60 BPM untuk malam hari, saat hamster tidur. Tidak masuk board — ini lagu pengantar tidur, bukan balapan. Selesaikan untuk +50 XP dan menyiram Dream Seed.', dreamTitle: 'DREAM SEEDS — TUMBUH SEMALAM', dreamPlant: '[ TANAM DREAM SEED ]', dreamHarvest: '[ PANEN ]' },
+    sqkShopTitle: 'TOKO SQK — KOSMETIK UNTUK SQK (TESTNET)', sqkShopNote: 'Kosmetik saja — tidak ada yang membuatmu lebih kuat. Bayar pakai SQK (testnet Sepolia, tanpa nilai uang) via permit: 1 signature + 1 transaksi, jumlah exact, deadline 10 menit. TIDAK ADA unlimited approve.', sqkShopSoon: 'TOKO SQK SEGERA HADIR — kontrak toko belum di-deploy. Belanja SQK dibuka setelah deploy.', sqkPoolTpl: '🏆 PRIZE POOL: {pool} SQK', sqkSeasonTpl: 'MUSIM BERAKHIR: {date}', sqkSweepTpl: 'Setelah musim berakhir, sisa pool disapu ke owner 7 hari kemudian ({date}).', sqkSwept: 'PRIZE POOL SUDAH DISAPU — MUSIM SELESAI.', sqkBalanceTpl: 'SALDO SQK: {n}', sqkBuyTpl: '[ BELI — {price} SQK ]', sqkOwnedTpl: 'DIMILIKI ×{n}', sqkBought: 'TERBELI {item} ✓', sqkEquipBtn: '[ PAKAI ]', sqkEquippedTpl: 'DIPAKAI ✓', sqkEquipped: 'DIPAKAI: {item} ✓ — LAGU BERIKUTNYA PAKAI SKIN BARU.', sqkNotOwned: 'KAMU BELUM MEMILIKI {item} — BELI DULU.', sqkEquipFail: 'TIDAK BISA MEMAKAI ITEM INI.', sqkNeedWallet: 'HUBUNGKAN WALLET DULU UNTUK MEMAKAI TOKO SQK.', sqkNoProvider: 'WALLET BELUM TERHUBUNG — TEKAN CONNECT (OKX, METAMASK, DLL).', sqkWrongChain: 'PINDAHKAN WALLETMU KE SEPOLIA UNTUK MEMBELI.', sqkNoSqk: 'SQK TIDAK CUKUP.', sqkPermitRejected: 'SIGNATURE DITOLAK — TIDAK ADA YANG TERBELI.', sqkTxRejected: 'TRANSAKSI DITOLAK — TIDAK ADA YANG TERBELI.', sqkWaiting: 'MENUNGGU KONFIRMASI…', sqkTxFail: 'TRANSAKSI GAGAL ON-CHAIN.', sqkShopOffline: 'TOKO SQK OFFLINE — PERIKSA KONEKSIMU.', sqkCapsuleTitle: 'KAPSUL EMAS — 2 SQK / TARIK', sqkCapsuleOdds: 'PELUANG: COMMON 70% • RARE 22% • EPIC 7% • LEGENDARY 1%. Duplikat → kompensasi Keju (25/50/100/250). Hard pity: tarikan ke-20 minimal RARE.', sqkPityTpl: 'PITY: {n} / 20', sqkCommitBtn: '[ COMMIT KAPSUL — 2 SQK ]', sqkResolveBtn: '[ RESOLVE KAPSUL ]', sqkCommitted: 'KAPSUL DI-COMMIT (PULL #{pull}, RONDE {round}) — RESOLVE SETELAH RONDE {round} SETTLED.', sqkResolved: 'KAPSUL: {item} ({rarity}) ✓', sqkDupKeju: 'KAPSUL: {item} ({rarity}, DUPLIKAT) → +{n} 🧀', sqkRoundUnknown: 'RONDE SAAT INI TIDAK DIKETAHUI — PERIKSA KONEKSIMU.', sqkNotSettled: 'RONDE {round} BELUM SETTLED — SETTLEMENT HANYA TERJADI SAAT HAMSTER LARI (SIANG HARI). COBA LAGI SETELAH LARI PAGI.', sqkNoPending: 'TIDAK ADA KAPSUL TERTUNDA — COMMIT DULU.', sqkResolveFail: 'RESOLVE GAGAL — PERIKSA WORKER / COBA LAGI.', tagline: 'Skormu tergantung pada seekor hamster.', walletManualNote: 'Manual — bukan koneksi.', disconnect: '[ PUTUSKAN ]', modeLullaby: 'LULLABY', lullabyInfo: 'Lagu pelan 60 BPM untuk malam hari, saat hamster tidur. Tidak masuk board — ini lagu pengantar tidur, bukan balapan. Selesaikan untuk +50 XP dan menyiram Dream Seed.', dreamTitle: 'DREAM SEEDS — TUMBUH SEMALAM', dreamPlant: '[ TANAM DREAM SEED ]', dreamHarvest: '[ PANEN ]' },
 };
 let lang = loadJSON('sqk29:lang', 'en');
 
@@ -606,6 +606,65 @@ try { const savedQ = localStorage.getItem('sqk-quality'); if (savedQ === 'hemat'
 if (quality === 'hemat') setQuality('hemat');
 
 // ==========================================
+// v43 REVOLUTION — LIVING AURORA (particles + beat driver)
+// ==========================================
+// A lightweight 2D particle field (36 dots, half-res canvas, ~30 fps)
+// that breathes with the music: drift speed + glow follow the beat
+// pulse. The same pulse (--beat, 0..1) brightens the aurora orbs
+// (#bg-anim, CSS) and the WebGL blob (glAudio). Frozen while a game
+// runs (body.playing hides the layer, like the GL freeze), in ECO
+// quality, and under reduced motion. Pure helper bgBeatPulse is unit
+// tested; the loop itself is fail-soft (any error just stops drawing).
+const bgParticles = document.getElementById('bg-particles');
+let bgPctx = null, bgParts = [], bgPulse = 0, bgLastFrame = 0;
+function bgBeatPulse(audioLevel, combo, zoomies) { // pure: 0..1 — menu pulse + play pulse share one formula
+  let v = (audioLevel || 0) * 1.1;
+  if (combo >= 30) v += 0.25;
+  if (zoomies) v += 0.25;
+  return Math.max(0, Math.min(1, v));
+}
+function bgInitParticles() {
+  if (!bgParticles) return;
+  try { bgPctx = bgParticles.getContext('2d'); } catch (_) { bgPctx = null; }
+  if (!bgPctx) return;
+  bgParticles.width = Math.max(2, Math.floor(window.innerWidth * 0.5));
+  bgParticles.height = Math.max(2, Math.floor(window.innerHeight * 0.5));
+  const hues = ['#00e5ff', '#00ff88', '#ff5ce1', '#a050ff', '#ffd700'];
+  bgParts = [];
+  for (let i = 0; i < 36; i++) bgParts.push({ x: Math.random(), y: Math.random(), r: 1 + Math.random() * 2.2, s: 0.0004 + Math.random() * 0.0008, h: hues[i % hues.length], tw: Math.random() * Math.PI * 2, ts: 0.5 + Math.random() * 1.5 });
+}
+function bgStepParticles(now) {
+  try {
+    requestAnimationFrame(bgStepParticles); // always reschedule — drawing is skipped cheaply when paused
+    if (!bgPctx || document.hidden || document.body.classList.contains('playing') || quality === 'hemat' || prefersReducedMotion) return;
+    if (now - bgLastFrame < 33) return; // ~30 fps cap
+    bgLastFrame = now;
+    const level = getAudioLevel();
+    const combo = (typeof G !== 'undefined' && G) ? G.combo : 0;
+    const zoom = (typeof liveZoomies !== 'undefined') ? liveZoomies : false;
+    bgPulse = bgPulse * 0.85 + bgBeatPulse(level, combo, zoom) * 0.15; // smooth the pulse
+    try { document.documentElement.style.setProperty('--beat', bgPulse.toFixed(3)); } catch (_) {}
+    if (gl) glAudio = Math.max(glAudio, level); // the WebGL blob pulses with the intro music in the menu
+    const W = bgParticles.width, H = bgParticles.height, ctx = bgPctx;
+    ctx.clearRect(0, 0, W, H);
+    const boost = 1 + bgPulse * 2.2;
+    for (const p of bgParts) {
+      p.y -= p.s * boost; // upward drift, faster on the beat
+      if (p.y < -0.02) { p.y = 1.02; p.x = Math.random(); }
+      const tw = 0.5 + 0.5 * Math.sin(now * 0.001 * p.ts + p.tw);
+      ctx.globalAlpha = Math.max(0.08, Math.min(1, (0.25 + 0.55 * tw) * (0.6 + bgPulse * 0.8)));
+      ctx.fillStyle = p.h;
+      const r = p.r * (1 + bgPulse * 0.6);
+      ctx.beginPath(); ctx.arc(p.x * W, p.y * H, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } catch (_) { /* fail-soft: a dead particle layer never breaks the game */ }
+}
+bgInitParticles();
+requestAnimationFrame(bgStepParticles);
+window.addEventListener('resize', () => { try { bgInitParticles(); } catch (_) {} });
+
+// ==========================================
 // 2. WEB3 & API
 // ==========================================
 class CircuitBreaker {
@@ -754,16 +813,42 @@ async function initAudio() {
     const comp = ac.createDynamicsCompressor(); master.connect(comp); comp.connect(analyser); analyser.connect(ac.destination);
     noiseBuf = ac.createBuffer(1, ac.sampleRate * .3, ac.sampleRate); const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    initFxBus(); // v43: echo + synthetic reverb sends (built once, no assets)
   }
   if (ac.state !== 'running') await ac.resume();
+}
+
+// --- v43 REVOLUTION: FX BUS (echo + reverb) — presentation only ---
+// A dotted-eighth delay (feedback 0.32, wet 0.16) and a synthetic impulse
+// reverb (1.1 s decaying noise, generated in code — no audio assets, no
+// CDN). Lead / arpeggio / hit tones send a little of themselves here;
+// the dry signal is unchanged, so nothing about timing or judgement moves.
+let echoBus = null, echoWet = null, verbBus = null, verbWet = null;
+function initFxBus() {
+  if (!ac || echoBus) return;
+  try {
+    echoBus = ac.createDelay(1.0); echoBus.delayTime.value = 0.27;
+    const fb = ac.createGain(); fb.gain.value = 0.32;
+    echoWet = ac.createGain(); echoWet.gain.value = 0.16;
+    echoBus.connect(fb); fb.connect(echoBus); echoBus.connect(echoWet); echoWet.connect(master);
+    const len = Math.floor(ac.sampleRate * 1.1), imp = ac.createBuffer(2, len, ac.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = imp.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+    verbBus = ac.createConvolver(); verbBus.buffer = imp;
+    verbWet = ac.createGain(); verbWet.gain.value = 0.12;
+    verbBus.connect(verbWet); verbWet.connect(master);
+  } catch (_) { echoBus = null; verbBus = null; }
 }
 
 // INTRO MUSIC: 2 MODES — CALM 100 BPM (soft, pleasant to loop) and
 // HYPE 128 BPM (catchy, power chord, double-kick, all notes >=220 Hz).
 // Default HYPE. Switch modes anytime with 1 tap.
+// v43 REVOLUTION: both hooks rewritten — CALM arcs gently up to 84 and
+// back (a lullaby you can hum), HYPE climbs to 86 with a syncopated
+// bass that walks (48-48-50-48 / 45-48-50-43). The sound itself is
+// richer now (bassNote / snareHit / hatHit / echo sends below).
 const INTRO_MODES = {
-  santai: { bpm: 100, lead: [72, 76, 79, 81, 79, 76, 72, 76, 74, 77, 81, 84, 81, 77, 74, 77], bass: [48, 48, 45, 43, 48, 48, 45, 43, 48, 48, 45, 43, 41, 43, 45, 48], leadType: 'triangle', leadVol: 0.10, bassType: 'triangle', bassVol: 0.20, kickSteps: [0, 8], snare: false, hatVol: 0.02, pad: true, label: 'CALM 100 BPM' },
-  seru: { bpm: 128, lead: [72, 79, 76, 81, 79, 76, 74, 79, 72, 79, 81, 84, 81, 79, 76, 74], bass: [48, 48, 45, 43, 48, 48, 50, 43, 48, 48, 45, 43, 41, 43, 45, 48], leadType: 'square', leadVol: 0.12, bassType: 'sawtooth', bassVol: 0.22, kickSteps: [0, 4, 8, 12, 14], snare: true, hatVol: 0.04, pad: false, label: 'HYPE 128 BPM' }
+  santai: { bpm: 100, lead: [72, 76, 79, 81, 79, 76, 74, 76, 72, 76, 79, 84, 81, 79, 76, 74], bass: [48, 43, 45, 48, 48, 43, 45, 41, 48, 43, 45, 48, 41, 43, 45, 48], leadType: 'triangle', leadVol: 0.10, bassType: 'triangle', bassVol: 0.20, kickSteps: [0, 8], snare: false, hatVol: 0.02, pad: true, label: 'CALM 100 BPM' },
+  seru: { bpm: 128, lead: [72, 79, 81, 79, 76, 79, 81, 84, 86, 84, 81, 79, 76, 79, 81, 79], bass: [48, 48, 50, 48, 45, 48, 50, 43, 48, 48, 50, 48, 41, 43, 45, 48], leadType: 'square', leadVol: 0.12, bassType: 'sawtooth', bassVol: 0.22, kickSteps: [0, 4, 8, 12, 14], snare: true, hatVol: 0.04, pad: false, label: 'HYPE 128 BPM' }
 };
 let introMode = 'seru';
 let introStep = 0, introNextTime = 0;
@@ -773,13 +858,15 @@ function scheduleIntro() {
     const cfg = introCfg(), stepDur = 60 / cfg.bpm / 4;
     while (introNextTime < ac.currentTime + 0.18) {
         const s = introStep % 16, t = introNextTime;
-        tone(mtof(cfg.lead[s]), t, cfg.leadType, cfg.leadVol, stepDur * 1.4);
-        if (introMode === 'seru') tone(mtof(cfg.lead[s] + 7), t, 'sawtooth', 0.06, stepDur * 1.2);
-        tone(mtof(cfg.bass[s]), t, cfg.bassType, cfg.bassVol, stepDur * 1.8);
-        if (cfg.pad && (s === 0 || s === 8)) { tone(mtof(60), t, 'triangle', 0.04, stepDur * 8); tone(mtof(64), t, 'triangle', 0.04, stepDur * 8); tone(mtof(67), t, 'triangle', 0.04, stepDur * 8); }
-        if (cfg.kickSteps.includes(s)) kick(t);
-        if (cfg.snare && (s === 4 || s === 12)) noise(t, 1500, 0.25, 0.12);
-        if (s % 2 === 1) noise(t, 7000, cfg.hatVol, 0.03);
+        toneFx(mtof(cfg.lead[s]), t, cfg.leadType, cfg.leadVol, stepDur * 1.4, 0.5); // v43: lead floats on the echo bus
+        if (introMode === 'seru') toneFx(mtof(cfg.lead[s] + 7), t, 'sawtooth', 0.06, stepDur * 1.2, 0.4);
+        if (introMode === 'seru') bassNote(mtof(cfg.bass[s]), t, stepDur * 1.8); else tone(mtof(cfg.bass[s]), t, cfg.bassType, cfg.bassVol, stepDur * 1.8);
+        if (cfg.pad && (s === 0 || s === 8)) { toneFx(mtof(60), t, 'triangle', 0.04, stepDur * 8, 0.6); toneFx(mtof(64), t, 'triangle', 0.04, stepDur * 8, 0.6); toneFx(mtof(67), t, 'triangle', 0.04, stepDur * 8, 0.6); }
+        // v43: a quiet 8th-note arpeggio shimmers over CALM (the scale's top)
+        if (introMode === 'santai' && s % 2 === 0) toneFx(mtof([84, 79, 81, 84][(introStep / 2) % 4 | 0]), t, 'triangle', 0.03, stepDur * 1.2, 0.8);
+        if (cfg.kickSteps.includes(s)) kick2(t);
+        if (cfg.snare && (s === 4 || s === 12)) snareHit(t);
+        if (s % 2 === 1) hatHit(t, false);
         introStep++; introNextTime += stepDur;
     }
 }
@@ -821,6 +908,48 @@ function env(g, t, a, p, d) { g.gain.setValueAtTime(0, t); g.gain.linearRampToVa
 function tone(f, t, ty, p, d) { if (!ac || muted) return; const o = ac.createOscillator(), g = ac.createGain(); o.type = ty; o.frequency.setValueAtTime(f, t); o.connect(g); g.connect(master); env(g, t, .004, p, d); o.start(t); o.stop(t + d + .05) }
 function kick(t) { if (!ac || muted) return; const o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(40, t + .12); o.connect(g); g.connect(master); env(g, t, .002, .9, .18); o.start(t); o.stop(t + .25) }
 function noise(t, hp, p, d) { if (!ac || muted) return; const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = hp; s.connect(f); f.connect(g); g.connect(master); env(g, t, .001, p, d); s.start(t); s.stop(t + d + .05) }
+// --- v43 REVOLUTION: richer synth voices (presentation only — the chart,
+// its timing and the judgement windows are untouched; these functions
+// only change HOW a scheduled note sounds, never WHEN it sounds) ---
+function toneFx(f, t, ty, p, d, send) { // tone + echo/reverb send (0..1)
+  if (!ac || muted) return;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = ty; o.frequency.setValueAtTime(f, t); o.connect(g); g.connect(master);
+  if (send && echoBus) { const s = ac.createGain(); s.gain.value = send; g.connect(s); s.connect(echoBus); }
+  if (send && verbBus) { const s2 = ac.createGain(); s2.gain.value = send * 0.7; g.connect(s2); s2.connect(verbBus); }
+  env(g, t, .004, p, d); o.start(t); o.stop(t + d + .05);
+}
+function bassNote(f, t, d) { // saw + sub-square through a sweeping lowpass — the bass finally has weight
+  if (!ac || muted) return;
+  const flt = ac.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.setValueAtTime(900, t); flt.frequency.exponentialRampToValueAtTime(220, t + d);
+  const g = ac.createGain(); flt.connect(g); g.connect(master);
+  const o1 = ac.createOscillator(); o1.type = 'sawtooth'; o1.frequency.setValueAtTime(f, t);
+  const o2 = ac.createOscillator(); o2.type = 'square'; o2.frequency.setValueAtTime(f / 2, t);
+  const g2 = ac.createGain(); g2.gain.value = 0.5; o2.connect(g2); g2.connect(flt);
+  o1.connect(flt);
+  env(g, t, .006, .32, d); o1.start(t); o1.stop(t + d + .05); o2.start(t); o2.stop(t + d + .05);
+}
+function snareHit(t) { noise(t, 1500, .30, .12); tone(180, t, 'triangle', .18, .09); } // crack (bandpass noise) + 180 Hz body
+function hatHit(t, open) { noise(t, 8000, open ? .10 : .06, open ? .16 : .035); } // closed tick / open shimmer
+function kick2(t) { // punchier kick — faster pitch drop + click transient
+  if (!ac || muted) return;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(38, t + .10);
+  o.connect(g); g.connect(master); env(g, t, .001, 1.0, .20); o.start(t); o.stop(t + .26);
+  noise(t, 4000, .12, .02);
+}
+function hitTone(midi, kind) { // detuned saw pair + echo; PERFECT gets an octave sparkle
+  if (!ac || muted) return;
+  const f = mtof(midi), t = ac.currentTime;
+  const p = kind === 'perfect' ? .20 : kind === 'great' ? .15 : .11;
+  toneFx(f, t, 'sawtooth', p, .22, .5);
+  toneFx(f * 1.005, t, 'sawtooth', p * .6, .20, .4);
+  if (kind === 'perfect') toneFx(f * 2, t, 'triangle', .08, .18, .6);
+}
+// v43: the riff is genre-aware now (one 8-degree pattern per genre — the
+// scale still comes from the anthem, only WHICH degrees play changes).
+const RIFF_PATTERNS = { cyber: [7, 5, 4, 7, 5, 3, 2, 4], synth: [0, 2, 4, 7, 4, 2, 5, 3], chip: [0, 4, 7, 4, 2, 5, 7, 4], void: [0, 1, 3, 5, 6, 5, 3, 1] };
+function riffDegreesFor(genre, barNo) { const pat = RIFF_PATTERNS[genre] || RIFF_PATTERNS.cyber; return pat[barNo % pat.length]; }
 function getAudioLevel() { if (!analyser || muted) return 0; if (!audioDataArray) audioDataArray = new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(audioDataArray); let s = 0; for (let i = 0; i < audioDataArray.length; i++) s += audioDataArray[i]; return (s / audioDataArray.length) / 255; }
 
 // Musik mulai di ketukan pertama (browser memblokir autoplay suara sebelum interaksi).
@@ -1017,15 +1146,22 @@ function schedule() {
   while (G.next < anthem.drums.length && G.start + anthem.drums[G.next].t < ahead) {
     const d = anthem.drums[G.next], t = G.start + d.t;
     const stepInBar = G.next % 16, barNo = Math.floor(G.next / 16);
-    if (d.kick) kick(t); if (d.hat) noise(t, 7000, .08, .04); if (d.snare) noise(t, 1500, .35, .12);
-    if (d.bass !== null) tone(mtof(36 + anthem.root + anthem.scale[d.bass]), t, 'triangle', .35, anthem.step * 7);
-    // v26-musik: lapisan punk di semua difficulty — bass 8th-note + riff lead dari scale anthem
-    if (stepInBar % 2 === 0) tone(mtof(36 + anthem.root), t, 'sawtooth', 0.16, anthem.step * 1.5);
-    if (stepInBar === 2 || stepInBar === 6 || stepInBar === 10 || stepInBar === 14) {
-      const riffDeg = [7, 5, 4, 7, 5, 3, 2, 4][barNo % 8];
+    const soft = !!G.lullaby; // v43: Lullaby stays soft — triangle bass, no kick, no riff, no arp
+    if (d.kick && !soft) kick2(t); if (d.hat) hatHit(t, false); if (d.snare && !soft) snareHit(t);
+    if (stepInBar === 14 && !soft) hatHit(t, true); // v43: open hat lifts the end of each bar
+    if (d.bass !== null) { if (soft) tone(mtof(36 + anthem.root + anthem.scale[d.bass]), t, 'triangle', .22, anthem.step * 7); else bassNote(mtof(36 + anthem.root + anthem.scale[d.bass]), t, anthem.step * 7); }
+    // v26-musik: lapisan punk di semua difficulty — bass 8th-note + riff lead dari scale anthem (v43: riff kini per-genre + echo, bass 8th lebih pelan di bawah bassNote)
+    if (stepInBar % 2 === 0 && !soft) tone(mtof(36 + anthem.root), t, 'sawtooth', .10, anthem.step * 1.5);
+    if ((stepInBar === 2 || stepInBar === 6 || stepInBar === 10 || stepInBar === 14) && !soft) {
+      const riffDeg = riffDegreesFor(G.genre, barNo);
       const riffMidi = 72 + anthem.root + anthem.scale[riffDeg % anthem.scale.length];
-      tone(mtof(riffMidi), t, 'square', 0.10, anthem.step * 1.5);
-      tone(mtof(riffMidi + 7), t, 'sawtooth', 0.05, anthem.step * 1.5);
+      toneFx(mtof(riffMidi), t, 'square', .09, anthem.step * 1.5, .5);
+      toneFx(mtof(riffMidi + 7), t, 'sawtooth', .04, anthem.step * 1.5, .4);
+    }
+    // v43: quiet 16th-note arpeggio — the song's scale, sparkling on top (echo send)
+    if (!soft && stepInBar % 4 === 0) {
+      const arpDeg = [0, 2, 4, 7][(barNo + (stepInBar / 4)) % 4];
+      toneFx(mtof(84 + anthem.root + anthem.scale[arpDeg % anthem.scale.length]), t, 'triangle', .045, anthem.step * 1.2, .7);
     }
     G.next++;
   }
@@ -1068,14 +1204,14 @@ function judge(lane) {
   try { if (navigator.vibrate) navigator.vibrate(k === 'perfect' ? 12 : 6); } catch (_) {} // v30: haptic on mobile hits
   // v29 RACE: every hit moves you forward; a GOLDEN NOTE pays +1000 pts and +5 m.
   if (G.race) G.race.playerDist += { perfect: 1.0, great: 0.7, good: 0.4 }[k];
-  if (G.race && G.race.goldenNote === target) { G.score += 1000; G.race.playerDist += 5; G.race.goldenNote = null; addFloatText('GOLDEN NOTE! +1000', '#ffd700'); tone(mtof(target.midi + 12), ac.currentTime, 'square', .25, .3); }
+  if (G.race && G.race.goldenNote === target) { G.score += 1000; G.race.playerDist += 5; G.race.goldenNote = null; addFloatText('GOLDEN NOTE! +1000', '#ffd700'); toneFx(mtof(target.midi + 12), ac.currentTime, 'square', .22, .3, .7); }
   if (G.combo === 30) addFloatText('FEVER! x1.5', '#ffd700');
-  tone(mtof(target.midi), ac.currentTime, 'sawtooth', k === 'perfect' ? .22 : .15, .22); // v26-musik: hit note sawtooth, lebih galak
+  hitTone(target.midi, k); // v43: detuned saw pair + echo, PERFECT gets an octave sparkle (was a single sawtooth)
   const jcol = k === 'perfect' ? '#00ff00' : k === 'great' ? '#00e5ff' : '#ffe14d';
   addFloatText(k === 'perfect' ? 'PERFECT!' : k === 'great' ? 'GREAT!' : 'GOOD', jcol, lane * LW + LW / 2); // v33: every hit shows its judgement at the lane
   if (k === 'perfect') juiceHit('perfect');
   else if (G.combo > 0 && G.combo % 10 === 0) addFloatText(`COMBO x${G.combo}!`, '#00ffff');
-  if (G.combo === 25 || G.combo === 50 || G.combo === 100) addFloatText(`COMBO x${G.combo}!!`, '#ffff00');
+  if (G.combo === 25 || G.combo === 50 || G.combo === 100) { addFloatText(`COMBO x${G.combo}!!`, '#ffff00'); comboBurst(); } // v43: milestone burst
   for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 180; G.fx.push({ x: lane * LW + LW / 2, y: CONFIG.HIT_Y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 60, life: .5, s: 6, c: k === 'perfect' ? '#00ff00' : k === 'great' ? '#00e5ff' : '#ffe14d' }) } // v33: 14 bigger particles (was 8 tiny ones)
   G.fx.push({ type: 'ring', x: lane * LW + LW / 2, y: CONFIG.HIT_Y, r: 10, life: .35, c: k === 'perfect' ? '#00ff00' : '#00e5ff' }); // v33: shockwave ring, in-canvas (WebGL is paused while playing)
   hud();
@@ -1156,7 +1292,7 @@ function draw(st, dt) {
 
 function accuracy() { const c = G.counts, tot = c.perfect + c.great + c.good + c.miss; return tot ? (c.perfect * 300 + c.great * 200 + c.good * 100) / (tot * 300) * 100 : 100 }
 const grade = (a, miss) => a >= 95 && miss === 0 ? 'SS' : a >= 95 ? 'S' : a >= 88 ? 'A' : a >= 75 ? 'B' : a >= 60 ? 'C' : 'D';
-function hud() { $('scoreVal').textContent = G.score; $('comboVal').textContent = G.combo; $('accVal').textContent = Math.round(accuracy()) + '%'; const ft = $('feverTag'); if (ft) ft.classList.toggle('hidden', !(G && G.fever)); } // v33: ACC as an integer — "58.1%" was truncated to "58..." on phones
+function hud() { $('scoreVal').textContent = G.score; $('comboVal').textContent = G.combo; $('accVal').textContent = Math.round(accuracy()) + '%'; const ft = $('feverTag'); if (ft) ft.classList.toggle('hidden', !(G && G.fever)); if (!hud.comboEl) hud.comboEl = document.querySelectorAll('.stat')[1] || null; if (hud.comboEl) hud.comboEl.classList.toggle('fever', !!(G && G.fever)); } // v33: ACC as an integer — "58.1%" was truncated to "58..." on phones; v43: the COMBO chip glows gold in FEVER
 
 async function finish() { // v39: async — hash replay (SHA-256) dihitung di akhir, sebelum panel tampil
   G.ended = true; disarmPauseExit(); clearInterval(sched); cancelAnimationFrame(raf); stopLivePoll(); stopRaceTick(); liveZoomies = false; document.body.classList.remove('live-day', 'live-night');
@@ -1270,11 +1406,13 @@ async function finish() { // v39: async — hash replay (SHA-256) dihitung di ak
 }
 function playResultJingle(g) {
   // v26-musik: fanfare hasil — SS/S naik penuh, A/B sedang, C/D pendek turun
+  // v43: same notes, richer voices (echo lead + bass + punchier kick + SS sparkle arp)
   if (!ac || muted) return;
   const t0 = ac.currentTime + 0.05;
   const seq = (g === 'SS' || g === 'S') ? [81, 84, 88, 93, 88, 93] : (g === 'A' || g === 'B') ? [81, 84, 88, 84] : [81, 79, 76];
-  seq.forEach((m, i) => { tone(mtof(m), t0 + i * 0.11, 'square', 0.16, 0.16); tone(mtof(m + 7), t0 + i * 0.11, 'sawtooth', 0.07, 0.16); });
-  if (g === 'SS' || g === 'S') kick(t0);
+  seq.forEach((m, i) => { toneFx(mtof(m), t0 + i * 0.11, 'square', 0.15, 0.16, 0.6); toneFx(mtof(m + 7), t0 + i * 0.11, 'sawtooth', 0.06, 0.16, 0.5); });
+  if (g === 'SS' || g === 'S') { kick2(t0); bassNote(mtof(48), t0, 0.5); }
+  if (g === 'SS') [93, 96, 100, 105].forEach((m, i) => toneFx(mtof(m), t0 + 0.66 + i * 0.07, 'triangle', 0.10, 0.20, 0.8));
 }
 function stop() { hidePauseOverlay(); syncBackToGameBtn(); if (G) { clearInterval(sched); cancelAnimationFrame(raf); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); G = null; } stopLivePoll(); stopRaceTick(); liveZoomies = false; replay = null; // v39: replay lagu yang dibatalkan dibuang — tidak boleh menempel ke hasil berikutnya
   document.body.classList.remove('live-day', 'live-night'); delete document.body.dataset.theme; /* v34: the mode theme leaves with the game */ const lh = $('liveHud'); if (lh) lh.classList.add('hidden'); const rh = $('raceHud'); if (rh) rh.classList.add('hidden'); document.body.classList.remove('playing'); resumeGL(); show('mainPanel'); playIntroMusic(); startMenuPoll(); }
@@ -1760,6 +1898,14 @@ function juiceHit(kind) {
   const scoreStat = document.querySelector('.stat');
   if (kind === 'perfect' && scoreStat) { scoreStat.classList.remove('pop'); void scoreStat.offsetWidth; scoreStat.classList.add('pop'); }
   if (kind === 'miss') { const gp = $('gamePanel'); if (gp) { gp.classList.remove('shake'); void gp.offsetWidth; gp.classList.add('shake'); } }
+  // v43: PERFECT flashes the canvas frame (glow ring); combo milestones
+  // burst the whole game panel gold. Both are class toggles + CSS
+  // animations — no per-frame JS, no layout thrash.
+  if (kind === 'perfect') { const cw = document.querySelector('.canvas-wrapper'); if (cw) { cw.classList.remove('hit-flash'); void cw.offsetWidth; cw.classList.add('hit-flash'); } }
+}
+function comboBurst() { // v43: called at combo 25 / 50 / 100 (see judge())
+  const gp = $('gamePanel');
+  if (gp) { gp.classList.remove('combo-burst'); void gp.offsetWidth; gp.classList.add('combo-burst'); }
 }
 
 // ==========================================
@@ -1863,7 +2009,7 @@ function forgetWallet38() {
   preview(); renderUnlocks(); renderDailyBox(); renderMastery(); renderAchievements(); renderLeague(); renderChamps();
   say(msg('walletForgotten'), 'cyan');
 }
-if (walletEl) walletEl.addEventListener('input', preview);
+if (walletEl) walletEl.addEventListener('input', () => { preview(); updateConnectBtn(); }); // v43: typed address shows short in the card live
 if (walletEl) { walletEl.addEventListener('change', () => saveWallet38(walletEl.value.trim())); walletEl.addEventListener('blur', () => saveWallet38(walletEl.value.trim())); }
 
 // v26.1 CONNECT WALLET (read-only): fills the address field from the browser
@@ -2036,6 +2182,9 @@ function setWcRestoreNote(reason) {
     if (reason === 'restoring') cb.disabled = true;
     else if (reason === 'bundle-timeout' || reason === 'no-accounts' || reason === 'enable-rejected') cb.disabled = false;
   }
+  // v43: the card dot mirrors the restore state (pulsing cyan while
+  // restoring, amber on failure) — updateConnectBtn owns the dot.
+  try { updateConnectBtn(); } catch (_) {}
 }
 function hasWcSessionKey() {
   try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('wc@2:') === 0) return true; } } catch (_) {}
@@ -2094,47 +2243,67 @@ async function restoreInjectedSession() { // v42.4: browser dalam-app wallet (Me
 // adalah koneksi provider yang AKTIF (path A injected atau path B WC),
 // BUKAN isi field alamat (alamat bisa diketik manual tanpa connect).
 // connectedAddr = alamat provider yang terhubung, null bila tidak ada.
-// Tombol yang terhubung menampilkan alamat + disabled (tidak bisa
-// diklik dua kali / disconnect tak sengaja); ganti wallet dilakukan dari
-// aplikasi wallet-nya (accountsChanged), disconnect mengembalikan tombol.
 let connectedAddr = null;
+// v43 REVOLUTION — the wallet card is ONE compact glass bar (dot + short
+// address + copy + [ ALAMAT ] + [ CONNECT ] / [ ✕ ]). This function is the
+// single source of truth for the card's state, driven by the same two
+// facts as before: connectedAddr (an ACTIVE provider connection) and
+// wcRestoreReason (a restore in flight or failed). The typed manual
+// address shows short in the card too — it is NOT a connection, and the
+// dot stays grey. Nothing about the connect / restore / disconnect
+// FLOW changed; only what the user sees.
+function shortAddr(a) { return (a && isAddr(a)) ? a.slice(0, 6) + '...' + a.slice(-4) : ''; }
 function updateConnectBtn() {
-  const b = $('connectBtn'); if (!b) return;
   const connected = !!(connectedAddr && isAddr(connectedAddr));
-  const dict = I18N[lang] || I18N.en;
-  const short = connected ? connectedAddr.slice(0, 6) + '...' + connectedAddr.slice(-4) : '';
-  // v42.5.4: while a WC session restore is running, the button stays
-  // disabled — the restore re-activates the stored session, and tapping
-  // connect mid-restore would open a second session. The visible
-  // "MENGHUBUNGKAN KEMBALI…" status lives in #wcRestoreNote. (typeof
-  // guard: unit harnesses that extract this function may not declare
-  // wcRestoreReason.)
   const restoring = (typeof wcRestoreReason !== 'undefined') && wcRestoreReason === 'restoring';
-  if (connected) {
-    b.textContent = (dict.connectedTpl || '[ CONNECTED: {addr} ]').split('{addr}').join(short);
-    b.disabled = true;
-  } else if (restoring) {
-    b.textContent = dict.connect || '[ CONNECT WALLET ]';
-    b.disabled = true;
-  } else {
-    b.textContent = dict.connect || '[ CONNECT WALLET ]';
-    b.disabled = false;
+  const failed = !connected && !restoring && (wcRestoreReason === 'bundle-timeout' || wcRestoreReason === 'no-accounts' || wcRestoreReason === 'enable-rejected');
+  const typed = walletEl ? walletEl.value.trim() : '';
+  const shown = connected ? connectedAddr : (isAddr(typed) ? typed : null);
+  const dot = $('walletDot');
+  if (dot) {
+    dot.classList.toggle('on', connected);
+    dot.classList.toggle('restoring', restoring);
+    dot.classList.toggle('fail', failed);
   }
-  // v42.5 (P1-1): kartu status hijau + tombol DISCONNECT sendiri saat
-  // terhubung; field alamat jadi read-only (isinya alamat koneksi, bukan
-  // input bebas). Saat belum terhubung: kartu + disconnect disembunyikan,
-  // field bisa diedit dan dilabeli MANUAL — alamat lama yang tersimpan
-  // tidak boleh tampil seolah-olah connect.
-  const st = $('walletStatus');
-  if (st) {
-    st.classList.toggle('hidden', !connected);
-    if (connected) { st.classList.remove('not-connected'); st.textContent = msgf('walletConnectedTpl', { addr: short }); }
+  const addrEl = $('walletAddr');
+  if (addrEl) addrEl.textContent = shown ? shortAddr(shown) : (lang === 'id' ? 'TAMU' : 'GUEST');
+  const copy = $('walletCopyBtn');
+  if (copy) copy.classList.toggle('hidden', !shown);
+  const b = $('connectBtn');
+  if (b) {
+    const dict = I18N[lang] || I18N.en;
+    b.textContent = dict.connect || 'CONNECT';
+    b.disabled = restoring;
+    b.classList.toggle('hidden', connected);
   }
   const dc = $('disconnectBtn');
   if (dc) dc.classList.toggle('hidden', !connected);
+  // Slim confirmation line, connected only (the card already shows the
+  // address; this line is just the green confirmation).
+  const st = $('walletStatus');
+  if (st) {
+    st.classList.toggle('hidden', !connected);
+    if (connected) st.textContent = msgf('walletConnectedTpl', { addr: shortAddr(connectedAddr) });
+  }
   if (walletEl) walletEl.readOnly = connected;
-  const mn = $('walletManualNote');
-  if (mn) mn.classList.toggle('hidden', connected);
+}
+// v43: the manual address input lives behind the [ ALAMAT ] button —
+// collapsed by default so the card stays one clean bar. Opening it
+// focuses the input; the typed address shows short in the card live.
+function walletToggleManualRow() {
+  const row = $('walletManualRow');
+  if (!row) return;
+  row.classList.toggle('hidden');
+  if (!row.classList.contains('hidden') && walletEl) walletEl.focus({ preventScroll: true });
+}
+async function walletCopyAddr() {
+  const a = connectedAddr || (walletEl && walletEl.value.trim()) || '';
+  if (!isAddr(a)) return;
+  try { await navigator.clipboard.writeText(a); } catch (_) {
+    try { if (walletEl) { walletEl.select(); document.execCommand('copy'); } } catch (_) {}
+  }
+  const b = $('walletCopyBtn');
+  if (b) { b.textContent = '✓'; setTimeout(() => { b.textContent = '⧉'; }, 1200); }
 }
 // v42.5 (P1-1): DISCONNECT sendiri di halaman (dulu hanya bisa dari
 // aplikasi wallet). WalletConnect: putuskan sesi provider. Injected
@@ -2192,6 +2361,8 @@ restoreInjectedSession(); // v42.4: pulihkan status terhubung di in-app browser 
 updateConnectBtn();
 bindClick('connectBtn', connectWallet);
 bindClick('disconnectBtn', disconnectWallet); // v42.5 (P1-1)
+bindClick('walletAddrBtn', walletToggleManualRow); // v43: manual input behind ALAMAT
+bindClick('walletCopyBtn', walletCopyAddr); // v43: copy short address
 bindClick('playBtn', play); bindClick('genBtn', generateCard);
 bindClick('dlBtn', download); bindClick('shareBtn', share);
 bindClick('stopBtn', () => armOrExit($('stopBtn'), 'stop')); bindClick('againBtn', play);
@@ -2750,7 +2921,7 @@ async function submitLb() {
   const bodyBase = { wallet: w, name: lbName(), score: lastResult.score, acc: lastResult.acc, mode: lbMode(lastResult.mode), sessionId: lastResult.sessionId || undefined, notes: lastResult.notes, taps: lastResult.taps, durationMs: lastResult.durationMs };
   const postScores = body => tfetch(CONFIG.LB_URL + '/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, 30000); // v42.5.2 (FIX 2): 30 detik — upload replay (puluhan KB) di koneksi ~3 K/s butuh >8 detik
   try {
-    const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v42.5.4' } : bodyBase;
+    const body = lastResult.replay ? { ...bodyBase, replay: lastResult.replay, replayHash: lastResult.replayHash || undefined, gameVersion: 'v43' } : bodyBase;
     let r;
     try { r = await postScores(body); }
     catch (e1) {
@@ -3407,7 +3578,10 @@ async function resolveSqkCapsule() {
   sqkClearPendingCapsule();
   renderSqkShop();
   if (!result) { await fetchSqkShop(); return sqkShopMsg(msg('sqkResolveFail')); }
-  const itemLabel = 'Kapsul #' + result.itemId + ' (' + result.rarity + ')';
+  // v43: itemLabel is JUST the item name — the templates (sqkResolved /
+  // sqkDupKeju) already add "({rarity})". Before, itemLabel carried the
+  // rarity too, so the message read "Kapsul #102 (rare) (rare) ✓".
+  const itemLabel = 'Kapsul #' + result.itemId;
   if (result.duplicate && result.kejuCompensation > 0) {
     // Credit the Keju compensation via the Worker (verified receipt).
     try {

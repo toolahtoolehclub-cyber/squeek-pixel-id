@@ -44,8 +44,8 @@ t('cardArea is gone (overlay replaces it)', !html.includes('cardArea'));
 t('html has neo-head', html.includes('class="neo-head"'));
 // --- 3. no arcade leftovers in the HTML ---
 ['INSERT COIN', 'class="marquee"', 'class="bulbs"', 'cab-side', 'splash-coin', 'btn-arcade', 'v31 ARCADE'].forEach(s => t('html free of arcade leftover: ' + s, !html.includes(s)));
-t('html says v42.5', (html.match(/v42\.5/g) || []).length >= 2);
-t('browser tab title is v42.5.4', html.includes('<title>SQUEEKCHAIN // v42.5.4</title>'));
+t('html says v43', (html.match(/v43/g) || []).length >= 2);
+t('browser tab title is v43', html.includes('<title>SQUEEKCHAIN // v43</title>'));
 t('no BNB/Binance anywhere (v37.1)', !/BNB|Binance/i.test(html + css + js + readme));
 t('SQK token is the current deployment (v37.1)', /TOKEN: '0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e'/.test(js) && !js.includes('0x810239'));
 // --- v37.1 CHAIN panel + frontier-aware Round History ---
@@ -401,7 +401,7 @@ t('Genesis meta tag is line 8, byte-identical', htmlLines[7] === '<meta name="sq
 t('README last line is the Genesis proof', readme.trimEnd().split('\n').pop() === 'squeekchain-project: 05432539-b4e4-4f90-97b3-c258583905b7');
 t('OG image is absolute on the Worker (v42.5.1)', html.includes('og:image" content="https://squeekchain-leaderboard.pancigoreng.workers.dev/og.png"'));
 t('Twitter card is summary_large_image', html.includes('twitter:card" content="summary_large_image"'));
-t('meta description is v42.5, not v32 NEO', html.includes('SQUEEKCHAIN v42.5') && !html.includes('v32 NEO'));
+t('meta description is v43, not v32 NEO', html.includes('SQUEEKCHAIN v43') && !html.includes('v32 NEO'));
 t('README documents 11 achievements', readme.includes('11 named achievements'));
 t('README documents the v38 XP economy', readme.includes('54,000 total XP') && readme.includes('[0, 700, 2000, 4300, 8500, 16000, 29500, 54000]'));
 t('README documents the 19:00 WIB Squeek-day reset', readme.includes('19:00 WIB'));
@@ -490,7 +490,7 @@ function fnSrcW(name) {
 }
 ['canonicalJSON', 'replayHashOf', 'recordReplayInput', 'recordReplayPoll', 'recordReplayGolden', 'replaySongT'].forEach(s => t('v39 replay recorder has ' + s, js.includes('function ' + s)));
 t('finish() is async (replay hash awaited before the panel)', js.includes('async function finish()') && js.includes('lastResult.replayHash = await replayHashOf(replay);'));
-t('submit sends replay + hash + gameVersion v42.5.4', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v42.5.4'"));
+t('submit sends replay + hash + gameVersion v43', js.includes('replay: lastResult.replay') && js.includes('replayHash: lastResult.replayHash') && js.includes("gameVersion: 'v43'"));
 t('client hashes the canonical JSON with SHA-256', js.includes('const data = new TextEncoder().encode(canonicalJSON(rep));') && js.includes("await crypto.subtle.digest('SHA-256', data)"));
 t('server hashes the canonical JSON with SHA-256', worker.includes('sha256(new TextEncoder().encode(canonical(replay)))'));
 const canonicalJSON = new Function(fnSrc38('canonicalJSON') + '\nreturn canonicalJSON;')();
@@ -516,7 +516,7 @@ t('G carries sessionSeed for the finish() seed check', js.includes('sessionId: s
 t('finish() throws away the replay on a seed mismatch', js.includes("if (G.sessionId && replay.header.seed !== G.sessionSeed) throw new Error('replay seed mismatch');"));
 
 // 13e. Label versi v39 yang terlihat.
-t('README title is v42.5', readme.startsWith('# Squeekchain v42.5'));
+t('README title is v43', readme.startsWith('# Squeekchain v43'));
 t('README documents the v40 engine extraction', readme.includes('**v40**') && readme.includes('engine.js'));
 t('README still documents the v39 Batch 2 upgrade (history)', readme.includes('**v39**') && readme.includes('EIP-712'));
 
@@ -610,7 +610,7 @@ function runClientGame(chartNotes, replay) {
   };
   const songTime = () => ac.currentTime - G.start;
   const noop = () => {};
-  const recordReplayInput = noop, updatePrecision = noop, tone = noop, addFloatText = noop, hud = noop, juiceHit = noop;
+  const recordReplayInput = noop, updatePrecision = noop, tone = noop, addFloatText = noop, hud = noop, juiceHit = noop, hitTone = noop, toneFx = noop, comboBurst = noop; // v43: judge() memanggil hitTone (suara pukulan baru) + toneFx (golden) + comboBurst (milestone) — stub audio di harness, skor tidak berubah
   const navigator = { vibrate: noop };
   const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
   eval(judgeSrc40); // judge() asli client, menutup atas G/anthem/liveZoomies di atas
@@ -874,7 +874,9 @@ t('submitLb memakai verifyRejectedText saat rejected', js.includes("show(verifyR
 function mkConnectHarness42(opts) {
   const ADDR = '0x88538a82143065664232422e2dec4309038fcf9a';
   const ADDR2 = '0x372D48abe5eDccCcDE9BD914a6dE30Dc53e3a1Db';
-  const btn = { textContent: '[ CONNECT WALLET ]', disabled: false };
+  // v43: tombol CONNECT bisa disembunyikan (hidden saat terhubung) — mock butuh classList yang melacak.
+  const mkCls = () => { const s = new Set(); return { toggle(c, f) { if (f === undefined) { if (s.has(c)) s.delete(c); else s.add(c); } else if (f) s.add(c); else s.delete(c); }, add(c) { s.add(c); }, remove(c) { s.delete(c); }, contains(c) { return s.has(c); } }; };
+  const btn = { textContent: 'CONNECT', disabled: false, classList: mkCls() };
   const walletInput = { value: '', addEventListener() {} };
   const handlers = {};
   const said = [];
@@ -905,7 +907,7 @@ function mkConnectHarness42(opts) {
     ethereum: mockEth,
     EthereumProvider: (opts && opts.wc) ? { init: async () => mockWcProvider } : undefined,
   };
-  const I18Nstub = { en: { connect: '[ CONNECT WALLET ]', connectedTpl: '[ CONNECTED: {addr} ]' }, id: { connect: '[ HUBUNGKAN WALLET ]', connectedTpl: '[ TERHUBUNG: {addr} ]' } };
+  const I18Nstub = { en: { connect: 'CONNECT', connectedTpl: '[ CONNECTED: {addr} ]' }, id: { connect: 'HUBUNGKAN', connectedTpl: '[ TERHUBUNG: {addr} ]' } }; // v43: label CONNECT singkat
   const MSGstub = {
     walletConnected: 'WALLET CONNECTED: {addr} — ADDRESS ONLY, NO SIGNATURE REQUESTED.',
     walletSwitched: 'WALLET SWITCHED TO {addr}.', walletDisconnected: 'WALLET DISCONNECTED.', walletInvalid: 'WALLET RETURNED NO VALID ADDRESS.',
@@ -927,43 +929,44 @@ function mkConnectHarness42(opts) {
 // IIFE lepas — process.exit di summary bisa memotong tes async yang
 // masih jalan).
 async function runConnectTests42() {
-  // Path A (injected): connect -> tombol TERHUBUNG + disabled.
+  // v43 KARTU WALLET: saat terhubung tombol CONNECT HILANG (bukan berubah jadi TERHUBUNG);
+  // alamat singkat + dot hijau tampil di kartu. Path A (injected): connect -> tombol hilang.
   {
     const h = mkConnectHarness42({ injected: true });
     await h.api.connectWallet();
-    t('v42.4 connectBtn: path A connect -> TERHUBUNG 0x8853...cf9a + disabled', h.btn.textContent === '[ CONNECTED: 0x8853...cf9a ]' && h.btn.disabled === true);
+    t('v43 connectBtn: path A connect -> CONNECT hilang (kartu menampilkan alamat singkat)', h.btn.classList.contains('hidden') === true && h.btn.textContent === 'CONNECT');
     t('v42.4 connectBtn: path A mengisi walletInput', h.walletInput.value.toLowerCase() === h.ADDR.toLowerCase());
     h.handlers.accountsChanged([h.ADDR2]);
-    t('v42.4 connectBtn: accountsChanged ganti wallet -> tombol ikut ganti', h.btn.textContent === '[ CONNECTED: 0x372D...a1Db ]' && h.btn.disabled === true);
+    t('v43 connectBtn: accountsChanged ganti wallet -> tetap terhubung (tombol tetap hilang)', h.btn.classList.contains('hidden') === true);
     h.handlers.accountsChanged([]);
-    t('v42.4 connectBtn: accountsChanged kosong -> kembali CONNECT WALLET', h.btn.textContent === '[ CONNECT WALLET ]' && h.btn.disabled === false);
+    t('v43 connectBtn: accountsChanged kosong -> kembali CONNECT tampil + aktif', h.btn.textContent === 'CONNECT' && h.btn.disabled === false && h.btn.classList.contains('hidden') === false);
   }
-  // Path B (WalletConnect): connect -> tombol TERHUBUNG; disconnect -> kembali.
+  // Path B (WalletConnect): connect -> tombol hilang; disconnect -> kembali.
   {
     const h = mkConnectHarness42({ wc: true });
     await h.api.connectWallet();
-    t('v42.4 connectBtn: path B (WC) connect -> TERHUBUNG + disabled', h.btn.textContent === '[ CONNECTED: 0x8853...cf9a ]' && h.btn.disabled === true);
+    t('v43 connectBtn: path B (WC) connect -> tombol hilang', h.btn.classList.contains('hidden') === true);
     h.handlers.disconnect();
-    t('v42.4 connectBtn: WC disconnect -> kembali CONNECT WALLET', h.btn.textContent === '[ CONNECT WALLET ]' && h.btn.disabled === false);
+    t('v43 connectBtn: WC disconnect -> kembali CONNECT tampil', h.btn.textContent === 'CONNECT' && h.btn.disabled === false && h.btn.classList.contains('hidden') === false);
   }
-  // Restore: WC session tersimpan (wc@2:) -> tombol TERHUBUNG tanpa klik.
+  // Restore: WC session tersimpan (wc@2:) -> tombol hilang tanpa klik.
   {
     const h = mkConnectHarness42({ wc: true, wcKeys: true });
     await h.api.restoreWalletConnectSession();
-    t('v42.4 connectBtn: restore WC session -> TERHUBUNG tanpa klik', h.btn.textContent === '[ CONNECTED: 0x8853...cf9a ]' && h.btn.disabled === true);
+    t('v43 connectBtn: restore WC session -> tombol hilang tanpa klik', h.btn.classList.contains('hidden') === true);
   }
-  // Restore: injected eth_accounts -> tombol TERHUBUNG tanpa klik.
+  // Restore: injected eth_accounts -> tombol hilang tanpa klik.
   {
     const h = mkConnectHarness42({ injected: true });
     await h.api.restoreInjectedSession();
-    t('v42.4 connectBtn: restore injected (eth_accounts) -> TERHUBUNG tanpa klik', h.btn.textContent === '[ CONNECTED: 0x8853...cf9a ]' && h.btn.disabled === true);
+    t('v43 connectBtn: restore injected (eth_accounts) -> tombol hilang tanpa klik', h.btn.classList.contains('hidden') === true);
   }
   // setConnected(null) manual + updateConnectBtn idempotent.
   {
     const h = mkConnectHarness42({ injected: true });
     h.api.setConnected(h.ADDR);
     h.api.setConnected(null);
-    t('v42.4 connectBtn: setConnected(null) -> CONNECT WALLET', h.btn.textContent === '[ CONNECT WALLET ]' && h.btn.disabled === false);
+    t('v43 connectBtn: setConnected(null) -> CONNECT tampil + aktif', h.btn.textContent === 'CONNECT' && h.btn.disabled === false && h.btn.classList.contains('hidden') === false);
   }
 }
 t('MSG connectedTpl ada di EN + ID', js.includes("connectedTpl: '[ CONNECTED: {addr} ]'") && js.includes("connectedTpl: '[ TERHUBUNG: {addr} ]'"));
@@ -1325,8 +1328,8 @@ t('worker v6: /league you carries verified', worker.includes('verified: me.verif
 t('worker version is 13', worker.includes('{ service: "squeekchain-leaderboard", version: 13 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
-t('submit sends gameVersion v42.5.4', js.includes("gameVersion: 'v42.5.4'"));
-t('html title is v42.5.4', html.includes('<title>SQUEEKCHAIN // v42.5.4</title>'));
+t('submit sends gameVersion v43', js.includes("gameVersion: 'v43'"));
+t('html title is v43', html.includes('<title>SQUEEKCHAIN // v43</title>'));
 t('README documents v41.1 league badge', readme.includes('**v41.1**') && readme.includes('LEFT JOIN'));
 // Functional: run the REAL renderLeagueWeekly with a fake DOM + mock /league rows.
 (function () {
@@ -1490,7 +1493,7 @@ t('v42.5 resolve handles 429 with retry time', js.includes("msgf('sqkRateLimited
 t('v42.5 MSG rate-limit keys exist in EN + ID', js.includes("sqkRateLimited: 'TOO MANY REQUESTS — TRY AGAIN AT {time}.'") && js.includes("sqkRateLimited: 'TERLALU SERING — COBA LAGI {time}.'") && js.includes("lbRateLimited: 'TOO MANY SUBMITS — TRY AGAIN AT {time}.'") && js.includes("lbRateLimited: 'TERLALU SERING KIRIM SKOR — COBA LAGI {time}.'"));
 // P1-1 wallet UX: transactions use txWallet() (connected address), not the field.
 t('v42.5 txWallet() exists and is used by buy/commit/resolve', js.includes('function txWallet() { return connectedAddr || currentWallet(); }') && (js.match(/const w = txWallet\(\); \/\/ v42\.5/g) || []).length === 3);
-t('v42.5 updateConnectBtn renders status card + disconnect + readonly field', js.includes("const st = $('walletStatus');") && js.includes("const dc = $('disconnectBtn');") && js.includes('walletEl.readOnly = connected;') && js.includes("const mn = $('walletManualNote');"));
+t('v43 updateConnectBtn renders kartu wallet (dot + alamat singkat + salin) + status + disconnect + readonly field', js.includes("const dot = $('walletDot');") && js.includes("const addrEl = $('walletAddr');") && js.includes("const copy = $('walletCopyBtn');") && js.includes("const st = $('walletStatus');") && js.includes("const dc = $('disconnectBtn');") && js.includes('walletEl.readOnly = connected;'));
 t('v42.5 disconnectWallet() exists and is bound', js.includes('async function disconnectWallet()') && js.includes("bindClick('disconnectBtn', disconnectWallet);"));
 t('v42.5 sqkNoProvider no longer says BUKA HALAMAN INI DI METAMASK', !js.includes('BUKA HALAMAN INI DI METAMASK') && js.includes('TAP [ CONNECT WALLET ] TO CONNECT'));
 // P1-3 GHOST: constants + helpers + labels.
@@ -1518,7 +1521,7 @@ t('worker v10: ghost header validation + checkOppDist ghost branch', worker.incl
 t('worker v10: /dream/harvest + /analytics endpoints', worker.includes('url.pathname === "/dream/harvest"') && worker.includes('url.pathname === "/analytics"'));
 t('worker v10: dreamReward helper (25/50/75)', worker.includes('function dreamReward(stage)'));
 t('migrate-v10.sql exists and covers all 5 new objects', (() => { try { const m = fs.readFileSync('migrate-v10.sql', 'utf8'); return m.includes('resolve_log') && m.includes('session_wallets') && m.includes('dream_harvests') && m.includes('idx_cheese_ledger_dream') && m.includes('analytics_daily'); } catch (_) { return false; } })());
-t('build-worker.sh points at v42.5.4', (() => { try { const b = fs.readFileSync('build-worker.sh', 'utf8'); return b.includes('squeekchain-v42.5.4') && b.includes('/tmp/v42.5.4-build') && b.includes('Worker v13'); } catch (_) { return false; } })());
+t('build-worker.sh points at v43', (() => { try { const b = fs.readFileSync('build-worker.sh', 'utf8'); return b.includes('squeekchain-v43') && b.includes('/tmp/v43-build') && b.includes('Worker v13'); } catch (_) { return false; } })());
 
 runVerifyPollTests().then(() => {
   console.log(`\n${pass} passed, ${fail} failed`);

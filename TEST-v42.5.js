@@ -238,11 +238,16 @@ async function runRateLimitTests() {
 // --- 8. Wallet UX harness (v42.5): status card + disconnect + readonly field ---
 function mkWalletHarness42(opts) {
   const ADDR = '0x88538a82143065664232422e2dec4309038fcf9a';
-  const btn = { textContent: '[ CONNECT WALLET ]', disabled: false };
+  const btn = { textContent: 'CONNECT', disabled: false, classList: mockClassList() }; // v43: tombol CONNECT singkat + bisa disembunyikan (classList wajib — updateConnectBtn toggle 'hidden')
   const walletInput = { value: '', readOnly: false, addEventListener() {} };
   const walletStatus = mockEl();
   const disconnectBtn = mockEl();
   const walletManualNote = mockEl();
+  const walletDot = mockEl(); // v43: kartu wallet baru — dot status + alamat singkat + salin
+  const walletAddr = mockEl();
+  const walletCopyBtn = mockEl();
+  const wcRestoreNote = mockEl();
+  const walletManualRow = mockEl(); walletManualRow.classList.add('hidden'); // v43: baris manual tersembunyi by default (opt-in via [ ALAMAT ])
   const handlers = {};
   const said = [];
   const store = {};
@@ -273,7 +278,7 @@ function mkWalletHarness42(opts) {
     ethereum: mockEth,
     EthereumProvider: (opts && opts.wc) ? { init: async () => mockWcProvider } : undefined,
   };
-  const I18Nstub = { en: { connect: '[ CONNECT WALLET ]', connectedTpl: '[ CONNECTED: {addr} ]' }, id: { connect: '[ HUBUNGKAN WALLET ]', connectedTpl: '[ TERHUBUNG: {addr} ]' } };
+  const I18Nstub = { en: { connect: 'CONNECT', connectedTpl: '[ CONNECTED: {addr} ]' }, id: { connect: 'HUBUNGKAN', connectedTpl: '[ TERHUBUNG: {addr} ]' } }; // v43: label CONNECT singkat (bukan CONNECT WALLET)
   const MSGstub = {
     walletConnected: 'WALLET CONNECTED: {addr} — ADDRESS ONLY, NO SIGNATURE REQUESTED.',
     walletConnectedTpl: 'WALLET CONNECTED: {addr} • Transactions use THIS address.',
@@ -282,7 +287,7 @@ function mkWalletHarness42(opts) {
   const msgStub = k => MSGstub[k] || I18Nstub.en[k] || k;
   const msgfStub = (k, vars) => { let s = msgStub(k); if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(String(b)); return s; };
   const isAddrStub = s => /^0x[a-fA-F0-9]{40}$/.test(s || '');
-  const els = { connectBtn: btn, walletInput, walletStatus, disconnectBtn, walletManualNote };
+  const els = { connectBtn: btn, walletInput, walletStatus, disconnectBtn, walletManualNote, walletDot, walletAddr, walletCopyBtn, wcRestoreNote, walletManualRow };
   const $stub = id => els[id] || null;
   const api = new Function('window', 'localStorage', 'document', '$', 'msg', 'msgf', 'isAddr', 'walletEl', 'saveWallet38', 'preview', 'say', 'CONFIG', 'I18N', 'lang',
     js.slice(js.indexOf('let wcProvider = null; // active WalletConnect provider'), js.indexOf("bindClick('connectBtn'")) +
@@ -291,50 +296,59 @@ function mkWalletHarness42(opts) {
     $stub, msgStub, msgfStub, isAddrStub, walletInput, () => {}, () => {}, (m) => said.push(m),
     { WC_PROJECT_ID: 'x', WC_CHAINS: [11155111], SEPOLIA_RPC: 'https://rpc.test', SHOP_ADDRESS: '0x0000000000000000000000000000000000000000' },
     I18Nstub, 'en');
-  return { api, btn, walletInput, walletStatus, disconnectBtn, walletManualNote, handlers, said, ADDR, store };
+  return { api, btn, walletInput, walletStatus, disconnectBtn, walletManualNote, walletDot, walletAddr, walletCopyBtn, wcRestoreNote, walletManualRow, handlers, said, ADDR, store };
 }
 async function runWalletTests42() {
-  // Not connected: status card + disconnect hidden, manual note visible, field editable.
+  // v43 KARTU WALLET: satu bar elegan — dot + alamat singkat + CONNECT/PUTUSKAN.
+  // Not connected: dot mati, alamat GUEST, salin tersembunyi, CONNECT tampil + aktif,
+  // PUTUSKAN + status tersembunyi, field bisa diedit, baris manual tersembunyi (opt-in via [ ALAMAT ]).
   {
     const h = mkWalletHarness42({});
-    t('v42.5 wallet UX: not connected -> status card hidden, disconnect hidden, MANUAL note visible, field editable',
+    t('v43 wallet UX: not connected -> dot off, GUEST, CONNECT tampil, status/PUTUSKAN tersembunyi, field editable, baris manual tersembunyi',
+      h.walletDot.classList.contains('on') === false && h.walletAddr.textContent === 'GUEST' &&
+      h.walletCopyBtn.classList.contains('hidden') === true &&
       h.walletStatus.classList.contains('hidden') === true && h.disconnectBtn.classList.contains('hidden') === true &&
-      h.walletManualNote.classList.contains('hidden') === false && h.walletInput.readOnly === false &&
-      h.btn.textContent === '[ CONNECT WALLET ]' && h.btn.disabled === false);
+      h.walletInput.readOnly === false && h.walletManualRow.classList.contains('hidden') === true &&
+      h.btn.textContent === 'CONNECT' && h.btn.disabled === false && h.btn.classList.contains('hidden') === false);
   }
-  // Connected (injected): card green + visible, disconnect visible, field readonly, manual note hidden.
+  // Connected (injected): CONNECT hilang, dot hijau, alamat singkat, status terlihat, PUTUSKAN muncul, field readonly.
   {
     const h = mkWalletHarness42({ injected: true });
     await h.api.connectWallet();
-    t('v42.5 wallet UX: connected -> TERHUBUNG + status card visible with address',
-      h.btn.textContent === '[ CONNECTED: 0x8853...cf9a ]' && h.btn.disabled === true &&
+    t('v43 wallet UX: connected -> CONNECT hilang, dot hijau, alamat singkat, status terlihat',
+      h.btn.classList.contains('hidden') === true && h.walletDot.classList.contains('on') === true &&
+      h.walletAddr.textContent === '0x8853...cf9a' &&
       h.walletStatus.classList.contains('hidden') === false && h.walletStatus.textContent.includes('0x8853...cf9a'));
-    t('v42.5 wallet UX: connected -> disconnect visible, field readonly, MANUAL note hidden',
+    t('v43 wallet UX: connected -> disconnect visible, field readonly, baris manual tetap tersembunyi',
       h.disconnectBtn.classList.contains('hidden') === false && h.walletInput.readOnly === true &&
-      h.walletManualNote.classList.contains('hidden') === true);
+      h.walletManualRow.classList.contains('hidden') === true);
     await h.api.disconnectWallet();
-    t('v42.5 wallet UX: disconnect -> back to CONNECT WALLET, card hidden, field editable again',
-      h.btn.textContent === '[ CONNECT WALLET ]' && h.btn.disabled === false &&
+    t('v43 wallet UX: disconnect -> kembali CONNECT tampil, dot mati, alamat tetap di field sebagai manual (bukan GUEST), card hidden, field editable lagi',
+      h.btn.textContent === 'CONNECT' && h.btn.disabled === false && h.btn.classList.contains('hidden') === false &&
+      h.walletDot.classList.contains('on') === false && h.walletAddr.textContent === '0x8853...cf9a' &&
+      h.walletCopyBtn.classList.contains('hidden') === false &&
       h.walletStatus.classList.contains('hidden') === true && h.disconnectBtn.classList.contains('hidden') === true &&
-      h.walletInput.readOnly === false && h.walletManualNote.classList.contains('hidden') === false);
+      h.walletInput.readOnly === false && h.walletManualRow.classList.contains('hidden') === true);
   }
   // Failed restore (no wc keys, no injected provider): stays NOT connected, never shows the old address.
   {
     const h = mkWalletHarness42({});
     await h.api.restoreWalletConnectSession();
     await h.api.restoreInjectedSession();
-    t('v42.5 wallet UX: failed restore -> still NOT CONNECTED (no phantom address)',
-      h.btn.textContent === '[ CONNECT WALLET ]' && h.walletStatus.classList.contains('hidden') === true);
+    t('v43 wallet UX: failed restore -> still NOT CONNECTED (no phantom address)',
+      h.btn.textContent === 'CONNECT' && h.walletStatus.classList.contains('hidden') === true);
   }
   // WC connect + disconnect via the page button.
   {
     const h = mkWalletHarness42({ wc: true });
     await h.api.connectWallet();
-    t('v42.5 wallet UX: WC connect -> TERHUBUNG + card visible',
-      h.btn.textContent === '[ CONNECTED: 0x8853...cf9a ]' && h.walletStatus.classList.contains('hidden') === false);
+    t('v43 wallet UX: WC connect -> CONNECT hilang, dot hijau, status terlihat',
+      h.btn.classList.contains('hidden') === true && h.walletDot.classList.contains('on') === true &&
+      h.walletStatus.classList.contains('hidden') === false);
     await h.api.disconnectWallet();
-    t('v42.5 wallet UX: WC disconnect -> CONNECT WALLET again',
-      h.btn.textContent === '[ CONNECT WALLET ]' && h.walletStatus.classList.contains('hidden') === true);
+    t('v43 wallet UX: WC disconnect -> CONNECT lagi',
+      h.btn.textContent === 'CONNECT' && h.btn.classList.contains('hidden') === false &&
+      h.walletStatus.classList.contains('hidden') === true);
   }
 }
 
@@ -412,7 +426,7 @@ async function runDreamTests42() {
   t('v42.5.1 og:image -> Worker /og.png', html.includes('<meta property="og:image" content="' + W + '/og.png">'));
   t('v42.5.1 twitter:image -> Worker /og.png', html.includes('<meta name="twitter:image" content="' + W + '/og.png">'));
   t('v42.5.1 favicon + apple-touch-icon -> Worker /icon.png', html.includes('<link rel="icon" type="image/png" href="' + W + '/icon.png">') && html.includes('<link rel="apple-touch-icon" href="' + W + '/icon.png">'));
-  t('v42.5.4 gameVersion v42.5.4', js.includes("gameVersion: 'v42.5.4'"));
+  t('v43 gameVersion v43', js.includes("gameVersion: 'v43'"));
   t('v42.5.1 worker routes /icon.png + /og.png exist', worker.includes('"/icon.png"') && worker.includes('"/og.png"') && worker.includes('function pngResponse('));
   t('v13 worker version 13', worker.includes('version: 13'));
   t('v42.5.1 no stale headline-simple.png URL in client', !html.includes('squeekchain-headline-simple.png') && !js.includes('squeekchain-headline-simple.png'));
@@ -666,11 +680,11 @@ async function runBugFixTests4252() {
   // Statis: timeout baru + gameVersion + kunci i18n + Worker v12.
   t('v42.5.2 FIX 2: POST /scores timeout 30 detik', js.includes('body: JSON.stringify(body) }, 30000)'));
   t('v42.5.2 FIX 2: GET /scores, /rank, /verify timeout 20 detik', js.includes("'/scores?mode=' + lbState.mode + '&limit=10', null, 20000)") && js.includes("'/rank?wallet=' + w + '&mode=' + lbState.mode, null, 20000)") && js.includes('encodeURIComponent(replayHash), null, 20000)') && js.includes('encodeURIComponent(lastVerifyHash), null, 20000)'));
-  t('v42.5.4: gameVersion v42.5.4', js.includes("gameVersion: 'v42.5.4'"));
+  t('v43: gameVersion v43', js.includes("gameVersion: 'v43'"));
   t('v42.5.2 FIX 1: kunci i18n UNEQUIP EN+ID ada', js.includes("sqkUnequipBtn: '[ UNEQUIP ]'") && js.includes("sqkUnequipped: 'UNEQUIPPED: {item} ✓ — BACK TO DEFAULT.'") && js.includes("sqkUnequipBtn: '[ LEPAS ]'") && js.includes("sqkUnequipped: 'DILEPAS: {item} ✓ — KEMBALI KE DEFAULT.'") && js.includes("shopUnequipped: 'UNEQUIPPED {item} ✓'") && js.includes("shopUnequipped: 'DILEPAS {item} ✓'") && js.includes("unequipBtn: '[ UNEQUIP ]'") && js.includes("unequipBtn: '[ LEPAS ]'"));
   t('v42.5.2 FIX 1: Worker v12 punya POST /cheese/unequip + UPDATE equipped=0', worker.includes('"/cheese/unequip"') && worker.includes('UPDATE cheese_inventory SET equipped = 0') && worker.includes('version: 13'));
   t('v42.5.2 FIX 1: render toko memakai data-unequip / data-sqk-unequip', js.includes('data-unequip=') && js.includes('data-sqk-unequip='));
-  t('v42.5.4: index.html judul v42.5.4', html.includes('<title>SQUEEKCHAIN // v42.5.4</title>') && html.includes('PIXEL ID // v42.5.4'));
+  t('v43: index.html judul v43', html.includes('<title>SQUEEKCHAIN // v43</title>') && html.includes('PIXEL ID // v43'));
 }
 
 // --- 13. v42.5.2 FIX 3: WalletConnect session restore ---

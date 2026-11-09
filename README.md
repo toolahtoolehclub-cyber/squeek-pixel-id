@@ -1,4 +1,4 @@
-# Squeekchain v42.5.1
+# Squeekchain v43
 
 A pixel cyberpunk rhythm game — build an anthem from your wallet (read-only; optional wallet connect reads your address only, no signature, no transactions), play 3 or 4 lanes, earn XP, play the Daily Anthem, complete daily missions, earn Keju from verified songs to spend in the Cheese Shop, join the weekly league, generate your ID Card, race the real hamster in LIVE mode, and race Squeektoshi himself in RACE mode.
 

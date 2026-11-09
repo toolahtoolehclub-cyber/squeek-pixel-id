@@ -1,17 +1,17 @@
 #!/bin/bash
-# Build + deploy Worker v13 (v42.5.4: client-only — Worker v13 unchanged from v42.5.3) (squeekchain-leaderboard).
+# Build + deploy Worker v13 (v43: client-only — Worker v13 unchanged) (squeekchain-leaderboard).
 # The repo keeps `import { buildChart, simulate } from "./engine.js"`;
 # esbuild inlines engine.js (and @noble) into ONE bundle because
 # upload_worker.py only uploads a single file.
 # Usage: ./build-worker.sh [deploy|bundle-only]
-#   bundle-only : just produce /tmp/v42.5.4-build/dist/worker.js
+#   bundle-only : just produce /tmp/v43-build/dist/worker.js
 #   deploy      : bundle + upload (default)
 set -euo pipefail
-V4254="$HOME/workspace/goals/domain-squeekpixel-is-a-dev-submit-genesis-buildooooor/files/squeekchain-v42.5.4"
-BUILD=/tmp/v42.5.4-build
+V43="$HOME/workspace/goals/domain-squeekpixel-is-a-dev-submit-genesis-buildooooor/files/squeekchain-v43"
+BUILD=/tmp/v43-build
 DB_ID=cd6920f3-3efb-491d-ae0c-b287069c8052
 mkdir -p "$BUILD/dist"
-cp "$V4254/worker.js" "$V4254/engine.js" "$BUILD/"
+cp "$V43/worker.js" "$V43/engine.js" "$BUILD/"
 # node_modules (@noble/* + esbuild): install once in the build dir if missing.
 # (/tmp is ephemeral — each version installs its own node_modules.)
 if [ ! -d "$BUILD/node_modules/@noble" ]; then
