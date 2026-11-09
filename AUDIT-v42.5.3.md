@@ -140,3 +140,45 @@ versi supaya tes bisa jalan dari checkout repo):
    1 antara client dan engine. Tidak terpicu oleh replay GHOST ini
    (harness == sim persis); butuh replay yang mengandung pola itu
    untuk membuktikan/memperbaikinya.
+
+## Worker v13 — /capsule-resolve fallback ke /v1/events (2026-11-09 ~08:45 WIB)
+
+Masalah: kapsul pull #1 user (pullId 1, targetRound 712) sudah settled, tapi
+settlement kini 752 dan jendela 10 settlement API hanya 741–752, jadi
+/capsule-resolve menolak 409 "older than the API's recent-settlements window".
+
+Perbaikan (worker.js saja; client tidak berubah; Worker v12 → v13):
+- Bila targetRound tidak ditemukan di `recentSettlements` DAN terbukti sudah
+  settled (`targetRound <= settledThroughRound` dari jendela), fallback ke
+  `GET /v1/events?category=protocol` (paginasi `nextCursor`, limit 100,
+  maks 10 halaman) dan cari `system.settlement_completed` dengan
+  `previousSettledThroughRound < targetRound <= settledThroughRound`
+  (range di `payload`, tx hash di `source.transactionHash`).
+- Record event dibentuk agar `dataHashForSettlement` bisa dipakai tanpa
+  perubahan (dataHash tetap transactionHash settlement). Berhenti dini
+  begitu sebuah event settlement punya `settledThroughRound < targetRound`
+  (event lebih lama hanya men-settle ronde yang lebih rendah).
+- Ronde di dalam jendela tetap pakai /v1/settlements dulu; ronde yang masih
+  terbuka tetap 409 tanpa panggilan API tambahan; rate limit resolve_log
+  tidak berubah; signing (struct + deadline + SIGNING_KEY) tidak berubah.
+
+Tes: TEST-v13-capsule-fallback.js — 28/28 lolos (menjalankan bundle Worker
+asli dengan fetch + D1 mock + kunci tes): (a) ronde 712 → dataHash persis
+tx event + signature pulih ke kunci tes; (b) ronde di dalam jendela tidak
+pernah memanggil /v1/events; (c) ronde yang tidak ditemukan di mana pun
+tetap 409 lama; (d) paginasi/early-stop/10-page-cap. Suite lama hijau:
+TEST-v34-neo 1813/1813, TEST-v42.5 144/144, TEST-v42.5.3-ghost 27/27,
+TEST-motif 11/11, verify-icon-routes 9/9 (total 2032). Asersi versi 12 di
+tes lama diperbarui ke 13.
+
+Verifikasi live: GET / → version 13. POST /capsule-resolve
+{wallet user, pullId 1, targetRound 712} → dataHash
+`0xe5e50fa1c93d4d248816f8127d04dac9e84fe6ad505adf051c4b08ffcebf5880`
+(persis tx settlement 712) + signature pulih ke dataSigner
+`0x69f24c0598c8e6b6b938527d84141dd04ec2b3e3` (verifikasi independen
+EIP-712 dari nol). Deadline 600 dtk.
+
+Yang harus dilakukan user: buka game → RESOLVE KAPSUL → setujui di OKX.
+Kapsul terbuka (item 101–104). Pelajaran: jendela resolve hanya ~10
+settlement (~1,5–2 jam saat hamster aktif) — lain kali resolve segera
+setelah settlement melewati target.

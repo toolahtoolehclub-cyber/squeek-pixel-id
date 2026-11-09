@@ -846,7 +846,7 @@ const validateReplay42 = new Function(
   'const GENRES = ["cyber","synth","chip","void"]; const DIFFS = ["easy","normal","hard"]; const MAX_EXTRA_TAPS = 50; const MAX_POLLS = 600; const GOLDEN_MAX = 2;\n' +
   fnSrcW('isNonEmptyString') + '\n' + fnSrcW('isInt') + '\n' + fnSrcW('isFiniteNumber') + '\n' + fnSrcW('checkOppDist') + '\n' + fnSrcW('validateReplay') +
   '\nreturn validateReplay;')();
-t('worker v12: GET / version 12', worker.includes('version: 12'));
+t('worker v13: GET / version 13', worker.includes('version: 13'));
 t('worker v9: replay user ASLI lolos validasi bentuk (yang menolaknya simulasi, bukan validasi)', validateReplay42(userRep42, { notes: 148 }, 'daily', 34675, 51.8).ok === true);
 t('worker v9: replay user t=-0.10 LOLOS validasi (lead-in diterima)', validateReplay42(userFixed42, { notes: 148 }, 'daily', 34675, 51.8).ok === true);
 const userTooEarly42 = JSON.parse(JSON.stringify(userRep42));
@@ -1245,7 +1245,7 @@ t('dupCompensation bogus = 0', dupCompensation('bogus') === 0);
 t('catalogItem finds note-gold', catalogItem('note-gold').slot === 'note' && catalogItem('note-gold').rarity === 'rare' && catalogItem('note-gold').price === 800);
 t('catalogItem misses unknown ids', catalogItem('nope') === null);
 // 15b. Worker v5 wiring (string checks — the live D1 + endpoint checks run after deploy).
-t('worker root reports version 12', worker.includes('version: 12'));
+t('worker root reports version 13', worker.includes('version: 13'));
 t('worker has GET /cheese', worker.includes("url.pathname === \"/cheese\" && request.method === \"GET\""));
 t('worker has POST /cheese/buy', worker.includes("url.pathname === \"/cheese/buy\" && request.method === \"POST\""));
 t('worker has POST /cheese/pull', worker.includes("url.pathname === \"/cheese/pull\" && request.method === \"POST\""));
@@ -1322,7 +1322,7 @@ t('README documents the v41 shop catalog', readme.includes('Mint/Golden/Void/Rai
 t('worker v6: /league joins scores for verified', worker.includes("LEFT JOIN scores s ON s.wallet = l.wallet AND s.mode = 'free'") && worker.includes('COALESCE(s.verified, 0) AS verified'));
 t('worker v6: /league rows carry verified', worker.includes('verified: r.verified ? 1 : 0'));
 t('worker v6: /league you carries verified', worker.includes('verified: me.verified ? 1 : 0'));
-t('worker version is 12', worker.includes('{ service: "squeekchain-leaderboard", version: 12 }'));
+t('worker version is 13', worker.includes('{ service: "squeekchain-leaderboard", version: 13 }'));
 t('worker verification path untouched by v41.1', worker.includes('function verifyOne') && worker.includes('function validateReplay') && worker.includes('function verifySimulated'));
 t('renderLeagueWeekly shows ✓ for verified rows only', js.includes("r.verified ? ` <span class=\"lb-verified\"") && js.includes('✓'));
 t('submit sends gameVersion v42.5.3', js.includes("gameVersion: 'v42.5.3'"));
@@ -1508,7 +1508,7 @@ t('v42.5 recheckVerifyOnLeague exists and is called from setTab(league)', js.inc
 // P2-5 analytics.
 t('v42.5 analytics: allowlist + fire-and-forget POST /analytics', js.includes("const ANALYTICS_EVENTS = ['visit', 'play', 'mode_free'") && js.includes("tfetch(CONFIG.LB_URL + '/analytics'") && js.includes("analyticsEvent('visit');") && js.includes("analyticsEvent('shop_open');"));
 // Worker v10: version + new endpoints + helpers.
-t('worker v12: version 12', worker.includes('version: 12'));
+t('worker v13: version 13', worker.includes('version: 13'));
 t('worker v10: rateLimitAllowed helper (count first, insert only if allowed)', worker.includes('async function rateLimitAllowed(env, table, wallet, ip, walletMax, ipMax)'));
 t('worker v10: resolve uses its own resolve_log table', worker.includes('rateLimitAllowed(env, "resolve_log"'));
 t('worker v10: scores 429 carries retryAfterSec', worker.includes('return json({ error: "rate_limited", retryAfterSec: rlScores.retryAfterSec }, 429);'));

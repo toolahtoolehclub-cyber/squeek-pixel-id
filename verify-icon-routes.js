@@ -18,7 +18,7 @@ function b64ToBuf(b64) { return Buffer.from(b64, 'base64'); }
 
   const root = await worker.fetch(new Request('https://x/'), env);
   const rootJson = await root.json();
-  t('GET / -> version 12', root.status === 200 && rootJson.version === 12);
+  t('GET / -> version 13', root.status === 200 && rootJson.version === 13);
   console.log('  GET /:', root.status, JSON.stringify(rootJson));
 
   const icon = await worker.fetch(new Request('https://x/icon.png'), env);

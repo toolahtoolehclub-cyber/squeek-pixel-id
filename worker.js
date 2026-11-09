@@ -80,8 +80,10 @@
 //     (a) validates input; (b) asks the public Squeekchain API
 //     (GET /v1/settlements, no query params — any query is rejected
 //     "invalid_query") for the settlement record covering targetRound;
-//     (c) 409 while the round is not settled yet (or too old to be in
-//     the API's 10-entry recent window); (d) signs the CapsuleResolve
+//     (c) 409 while the round is not settled yet; a round that settled
+//     but fell out of the 10-entry window is looked up in
+//     /v1/events?category=protocol instead (v13 fallback — see
+//     settlementEventForRound); (d) signs the CapsuleResolve
 //     struct with SIGNING_KEY (same key as the score attestation — it
 //     is also the shop contract's dataSigner) and returns
 //     {pullId, targetRound, dataHash, deadline, signature}.
@@ -115,7 +117,15 @@
 //   ditolak karena itu). Tanpa ini, replay v42.4 dengan tap lead-in
 //   ditolak checkReplay dengan "t out of range". Tidak ada perubahan
 //   lain: verifikasi, enforcement, EIP-712, Keju, liga byte-identical.
-// EIP-712 domain: { name: "Squeek Pixel ID", version: "1",
+//   v42.5.3 / Worker v13: /capsule-resolve fallback — a round that has
+//     already settled but fallen out of /v1/settlements' 10-entry window
+//     is now looked up in /v1/events?category=protocol
+//     (system.settlement_completed, paginated via nextCursor, max 10
+//     pages; range in payload, tx hash in source.transactionHash).
+//     In-window rounds still use /v1/settlements first; a still-open
+//     round keeps the 409 without extra API calls. dataHash definition,
+//     rate limit, and signing are unchanged. Client untouched.
+
 //   chainId: 11155111 (Sepolia), verifyingContract: <signer address> }
 // Attestation: player (address), score (uint256), accuracy (uint256 =
 //   Math.round(acc*100)), songId (string), gameVersion (string, e.g. "v40"),
@@ -164,7 +174,7 @@
 // It already exists since v3 — do NOT rotate or re-enter it.
 //
 // Endpoints (all JSON, CORS open):
-//   GET  /                  -> { service, version: 12 }
+//   GET  /                  -> { service, version: 13 }
 //   GET  /icon.png           -> 512x512 app icon PNG (WalletConnect/OKX, favicon)
 //   GET  /og.png             -> 1600x900 banner PNG (og:image / twitter:image)
 //   GET  /cheese?wallet=0x...   -> { wallet, balance, items: [{id, slot,
@@ -410,6 +420,7 @@ const SQK_TOKEN = "0xd78a3956cF63164d1Fa1C622ad3c66623162Fa1e"; // Sepolia SQK
 const SHOP_OWNER = "0x88538a82143065664232422e2dec4309038fcf9a";
 const SEPOLIA_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
 const SQUEEK_API_SETTLEMENTS = "https://api.squeekchain.com/v1/settlements";
+const SQUEEK_API_EVENTS = "https://api.squeekchain.com/v1/events?category=protocol";
 const SQUEEK_API_STATS = "https://api.squeekchain.com/v1/measurement/stats?range=7d";
 // --- v10: GHOST pace bound — a claimed ghost pace above 1.0 m/s is not a
 // real daytime average (fastest sustained daytime pace observed ~0.6 m/s).
@@ -690,6 +701,68 @@ function maxSettledRound(recent) {
     if (Number.isFinite(through) && (m === null || through > m)) m = through;
   }
   return m;
+}
+
+// Settlement lookup fallback (v13): /v1/events?category=protocol —
+// for a round that has already settled but fallen out of
+// /v1/settlements' 10-entry recent window. Events are newest-first;
+// each system.settlement_completed carries its range in
+// payload.{previousSettledThroughRound, settledThroughRound} and the tx
+// hash in source.transactionHash. Same (prev, through] match as
+// settlementForRound; the returned record is shaped so
+// dataHashForSettlement can use it unchanged. Stops early once a
+// settlement event's through < targetRound (older events only settle
+// lower rounds) or after 10 pages (limit 100 each). Returns the record
+// or null (not found / events API unavailable).
+async function settlementEventForRound(targetRound, fetchFn) {
+  let cursor = null;
+  for (let page = 0; page < 10; page++) {
+    const url =
+      SQUEEK_API_EVENTS +
+      "&limit=100" +
+      (cursor ? "&cursor=" + encodeURIComponent(cursor) : "");
+    let res;
+    try {
+      res = await fetchFn(url, {
+        headers: { "User-Agent": "squeekchain-leaderboard/13" },
+      });
+    } catch (_) {
+      return null;
+    }
+    if (!res || !res.ok) return null;
+    let data;
+    try {
+      data = await res.json();
+    } catch (_) {
+      return null;
+    }
+    const events = Array.isArray(data.events) ? data.events : [];
+    for (const ev of events) {
+      if (!ev || ev.type !== "system.settlement_completed") continue;
+      const p = ev.payload || {};
+      const prev = Number(p.previousSettledThroughRound);
+      const through = Number(p.settledThroughRound);
+      if (!Number.isFinite(prev) || !Number.isFinite(through)) continue;
+      if (prev < targetRound && targetRound <= through) {
+        const tx =
+          ev.source && typeof ev.source.transactionHash === "string"
+            ? ev.source.transactionHash
+            : "";
+        return {
+          transactionHash: tx,
+          previousSettledThroughRound: p.previousSettledThroughRound,
+          settledThroughRound: p.settledThroughRound,
+        };
+      }
+      if (through < targetRound) return null;
+    }
+    cursor =
+      typeof data.nextCursor === "string" && data.nextCursor
+        ? data.nextCursor
+        : null;
+    if (!cursor) return null;
+  }
+  return null;
 }
 
 // dataHash for a settled round (v7 definition — see header Fase 4):
@@ -1338,7 +1411,7 @@ export default {
 
     try {
       if (url.pathname === "/" && request.method === "GET") {
-        return json({ service: "squeekchain-leaderboard", version: 12 });
+        return json({ service: "squeekchain-leaderboard", version: 13 });
       }
 
       // --- v42.5.1: app icon (WalletConnect/OKX) + OG image ---
@@ -1557,7 +1630,19 @@ export default {
         } catch (e) {
           return json({ error: "settlement api unavailable", detail: String(e && e.message ? e.message : e).slice(0, 80) }, 502);
         }
-        const record = settlementForRound(recent, targetRound);
+        const record0 = settlementForRound(recent, targetRound);
+        let record = record0;
+        if (!record) {
+          const settled = maxSettledRound(recent);
+          // v13: round already settled but out of the 10-entry window —
+          // fall back to /v1/events (system.settlement_completed). Only
+          // when the round is provably settled (targetRound <= settled
+          // frontier); a still-open round keeps the 409 below without
+          // extra API calls.
+          if (settled !== null && targetRound <= settled) {
+            record = await settlementEventForRound(targetRound, fetch);
+          }
+        }
         if (!record) {
           const settled = maxSettledRound(recent);
           return json(
@@ -2232,4 +2317,4 @@ export default {
 
 // Named exports for local unit tests (the Worker runtime only uses
 // `default`; esbuild keeps these in the bundle).
-export { canonical, replayHashOf, validateReplay, checkOppDist, verifySimulated, cheeseEarned, squeekDayKey, weekStartMs, weekStartKey, capsuleRarity, capsulePool, capsulePick, dupCompensation, catalogItem, rateLimitAllowed, pollsContradictWheel, dreamReward, CHEESE_CATALOG, CHEESE_PER_SONG, CHEESE_GRADE_S_BONUS, CHEESE_DAILY_BONUS, CHEESE_PULL_PRICE, GHOST_PACE_MAX_MS };
+export { canonical, replayHashOf, validateReplay, checkOppDist, verifySimulated, cheeseEarned, squeekDayKey, weekStartMs, weekStartKey, capsuleRarity, capsulePool, capsulePick, dupCompensation, catalogItem, rateLimitAllowed, pollsContradictWheel, dreamReward, settlementForRound, maxSettledRound, settlementEventForRound, dataHashForSettlement, capsuleResolveDigest, signCapsuleResolve, CHEESE_CATALOG, CHEESE_PER_SONG, CHEESE_GRADE_S_BONUS, CHEESE_DAILY_BONUS, CHEESE_PULL_PRICE, GHOST_PACE_MAX_MS };

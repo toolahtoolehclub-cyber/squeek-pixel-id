@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build + deploy Worker v12 (v42.5.2: POST /cheese/unequip + v42.5.1 rate-limit check-sebelum-insert + resolve_log terpisah, session->wallet, poll cross-check, GHOST, Dream Seeds, analytics) (squeekchain-leaderboard).
+# Build + deploy Worker v13 (v42.5.3: /capsule-resolve fallback ke /v1/events untuk ronde di luar jendela 10 settlement) (squeekchain-leaderboard).
 # The repo keeps `import { buildChart, simulate } from "./engine.js"`;
 # esbuild inlines engine.js (and @noble) into ONE bundle because
 # upload_worker.py only uploads a single file.
