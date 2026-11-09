@@ -664,6 +664,7 @@ const SQK_SEL = {
   buyWithPermit: '0x01a833fb', commitCapsule: '0x4dd52bb4', resolveCapsule: '0x6172f59f',
   prizePool: '0x719ce73e', seasonEnd: '0xe757b20d', sweepAvailableAt: '0xfa9b12a5', isSwept: '0xc31cb3da',
   itemPrice: '0xadcb005c', balanceOfItem: '0x4496166b', pityCounter: '0x175c2792', nextPullId: '0x6cb9e7ee',
+  pulls: '0x7a9dfa7e', // v42.5.4: pulls(uint256) -> (player, targetRound, resolved); keccak256("pulls(uint256)")[:4], verified live vs shop
   balanceOf: '0x70a08231', allowance: '0xdd62ed3e', nonces: '0x7ecebe00', name: '0x06fdde03', domainSeparator: '0x3644e515',
 };
 const SQK_PERMIT_TYPEHASH = '0x6e71edae'; // keccak("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)")
@@ -3215,6 +3216,44 @@ function sqkParseLogWords(log, topic0) {
   for (let i = 0; i < n; i++) words.push(data.slice(2 + i * 64, 2 + (i + 1) * 64));
   return { topics: log.topics, words };
 }
+function sqkPullIdFromCommitLog(log, fallback) {
+  // v42.5.4 (BUG KAPSUL 1): CapsuleCommitted(address indexed player,
+  // uint256 indexed pullId, uint256 targetRound) — player DAN pullId
+  // KEDUANYA indexed, jadi DATA log hanya berisi [targetRound]. Kode lama
+  // membaca words[0] sebagai pullId dan mendapat targetRound (712),
+  // menimpa nilai benar dari nextPullId (1) — resolve lalu revert
+  // PullNotFound(712). pullId yang benar ada di topics[2]; bila
+  // topics < 3, pakai fallback (nextPullId). Kembalikan null bila log
+  // ini bukan CapsuleCommitted.
+  const parsed = sqkParseLogWords(log, SQK_CAPSULE_COMMITTED_TOPIC0);
+  if (!parsed) return null;
+  if (parsed.topics.length >= 3) {
+    try { return Number(BigInt(parsed.topics[2])); } catch (_) { return fallback; }
+  }
+  return fallback;
+}
+function sqkResultFromResolveLog(log) {
+  // v42.5.4 (BUG KAPSUL 2): CapsuleResolved(address indexed player,
+  // uint256 indexed pullId, uint256 targetRound, bytes32 dataHash,
+  // uint8 rarity, uint256 itemId, bool duplicate, uint256 kejuCompensation)
+  // — player DAN pullId indexed, jadi DATA hanya 6 kata [targetRound,
+  // dataHash, rarity, itemId, duplicate, kejuCompensation]. Kode lama
+  // mensyaratkan words.length >= 7 (SELALU salah -> result null -> tampil
+  // sqkResolveFail walau transaksi SUKSES di chain, dan kompensasi Keju
+  // duplikat tidak pernah dikirim) dan indeksnya off-by-one (words[3..6]
+  // padahal benar words[2..5]). Kembalikan null bila log ini bukan
+  // CapsuleResolved atau datanya < 6 kata.
+  const parsed = sqkParseLogWords(log, SQK_CAPSULE_RESOLVED_TOPIC0);
+  if (!parsed) return null;
+  const words = parsed.words;
+  if (words.length < 6) return null;
+  return {
+    rarity: SQK_RARITY_NAMES[Number(BigInt('0x' + words[2]))] || 'common',
+    itemId: Number(BigInt('0x' + words[3])),
+    duplicate: BigInt('0x' + words[4]) !== 0n,
+    kejuCompensation: Number(BigInt('0x' + words[5])),
+  };
+}
 async function buySqkItem(itemId) {
   if (!sqkShopDeployed()) return sqkShopMsg(msg('sqkShopSoon'));
   const w = txWallet(); // v42.5: transaksi pakai alamat TERHUBUNG, bukan field
@@ -3257,24 +3296,76 @@ async function commitSqkCapsule() {
   if (receipt.status !== '0x1') return sqkShopMsg(msg('sqkTxFail'));
   let pullId = nextPull === null ? null : Number(nextPull);
   for (const log of (receipt.logs || [])) {
-    const parsed = sqkParseLogWords(log, SQK_CAPSULE_COMMITTED_TOPIC0);
-    if (parsed) {
-      // Non-indexed: [player, pullId, targetRound]; indexed player: [pullId, targetRound].
-      const words = parsed.topics.length >= 2 ? parsed.words : parsed.words.slice(1);
-      if (words.length >= 1) pullId = Number(BigInt('0x' + words[0]));
-      break;
-    }
+    const p = sqkPullIdFromCommitLog(log, pullId); // v42.5.4: pullId dari topics[2], bukan words[0] (= targetRound)
+    if (p !== null) { pullId = p; break; }
   }
   if (pullId === null) return sqkShopMsg(msg('sqkTxFail'));
   sqkSavePendingCapsule({ pullId, targetRound, txHash });
   sqkShopMsg(msgf('sqkCommitted', { pull: pullId, round: targetRound }));
   renderSqkShop();
 }
+async function sqkHealPendingCapsule(wallet, pending) {
+  // v42.5.4 (BUG KAPSUL 3 — SELF-HEALING): verifikasi pull tersimpan
+  // on-chain via getter publik pulls(uint256) -> (player, targetRound,
+  // resolved) SEBELUM resolve memanggil Worker / mengirim transaksi.
+  // PullId tersimpan bisa rusak (bug lama menyimpan targetRound 712
+  // sebagai pullId) dan resolve dengan pullId itu pasti revert
+  // PullNotFound. Bila pull tersimpan salah / milik wallet lain / sudah
+  // resolved, pindai pull 1..nextPullId-1 (paling baru dulu, maks 50) dan
+  // pakai pull milik wallet yang belum resolved dan targetRound-nya cocok
+  // dengan yang tersimpan (fallback: pull milik wallet yang belum resolved
+  // dan paling baru); simpan perbaikannya ke localStorage. Bila tidak ada
+  // pull yang cocok, kembalikan null — pemanggil menampilkan sqkNoPending
+  // dan TIDAK mengirim transaksi yang pasti revert. Bila pembacaan
+  // on-chain gagal (RPC mati), kembalikan pending apa adanya — jalur tx
+  // akan gagal dengan aman sendiri (eth_sendTransaction melempar) dan
+  // user bisa coba lagi saat koneksi pulih.
+  const readPull = async (id) => {
+    let r;
+    try { r = await sqkEthCall(CONFIG.SHOP_ADDRESS, SQK_SEL.pulls + sqkWordUint(id)); } catch (_) { return null; }
+    if (!r) return null;
+    const hex = String(r).replace(/^0x/, '');
+    if (hex.length < 192) return null;
+    try {
+      return {
+        player: '0x' + hex.slice(24, 64),
+        targetRound: Number(BigInt('0x' + hex.slice(64, 128))),
+        resolved: BigInt('0x' + hex.slice(128, 192)) !== 0n,
+      };
+    } catch (_) { return null; }
+  };
+  const w = String(wallet).toLowerCase();
+  const stored = await readPull(pending.pullId);
+  if (stored === null) return pending; // RPC gagal — tidak bisa verifikasi; lanjut seperti biasa
+  if (stored.player.toLowerCase() === w && stored.targetRound === pending.targetRound && !stored.resolved) return pending; // pull tersimpan benar
+  let next = null;
+  try { next = await sqkEthCall(CONFIG.SHOP_ADDRESS, SQK_SEL.nextPullId).then(sqkUint); } catch (_) {}
+  const maxId = next === null ? 0 : Number(next) - 1;
+  let newest = null;
+  for (let id = maxId; id >= Math.max(1, maxId - 49); id--) {
+    const p = await readPull(id);
+    if (!p || p.player.toLowerCase() !== w || p.resolved) continue;
+    if (p.targetRound === pending.targetRound) {
+      const fixed = { pullId: id, targetRound: p.targetRound, txHash: pending.txHash };
+      sqkSavePendingCapsule(fixed);
+      return fixed;
+    }
+    if (!newest) newest = { pullId: id, targetRound: p.targetRound, txHash: pending.txHash };
+  }
+  if (newest) { sqkSavePendingCapsule(newest); return newest; }
+  return null;
+}
 async function resolveSqkCapsule() {
   if (!sqkShopDeployed()) return sqkShopMsg(msg('sqkShopSoon'));
   const w = txWallet(); // v42.5: transaksi pakai alamat TERHUBUNG, bukan field
   if (!isAddr(w)) return sqkShopMsg(msg('sqkNeedWallet'));
-  const pending = sqkPendingCapsule();
+  const pending0 = sqkPendingCapsule();
+  if (!pending0) return sqkShopMsg(msg('sqkNoPending'));
+  // v42.5.4 (BUG KAPSUL 3): verifikasi + perbaiki pull tersimpan on-chain
+  // SEBELUM memanggil Worker / mengirim transaksi — pullId rusak (712)
+  // pasti revert PullNotFound. Bila tidak ada pull yang cocok, tampilkan
+  // sqkNoPending dan JANGAN kirim transaksi.
+  let pending = await sqkHealPendingCapsule(w, pending0);
   if (!pending) return sqkShopMsg(msg('sqkNoPending'));
   sqkShopMsg(msg('sqkWaiting'));
   let d;
@@ -3310,19 +3401,8 @@ async function resolveSqkCapsule() {
   // Read the result from the CapsuleResolved log (never trust a guess).
   let result = null;
   for (const log of (receipt.logs || [])) {
-    const parsed = sqkParseLogWords(log, SQK_CAPSULE_RESOLVED_TOPIC0);
-    if (parsed) {
-      const words = parsed.topics.length >= 2 ? parsed.words : parsed.words.slice(1);
-      if (words.length >= 7) {
-        result = {
-          rarity: SQK_RARITY_NAMES[Number(BigInt('0x' + words[3]))] || 'common',
-          itemId: Number(BigInt('0x' + words[4])),
-          duplicate: BigInt('0x' + words[5]) !== 0n,
-          kejuCompensation: Number(BigInt('0x' + words[6])),
-        };
-      }
-      break;
-    }
+    const r = sqkResultFromResolveLog(log); // v42.5.4: DATA hanya 6 kata; rarity=words[2], itemId=words[3], duplicate=words[4], keju=words[5]
+    if (r) { result = r; break; }
   }
   sqkClearPendingCapsule();
   renderSqkShop();
